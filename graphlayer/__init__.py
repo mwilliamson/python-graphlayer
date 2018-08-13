@@ -11,7 +11,7 @@ def executor(expanders):
         def expand(self, query, target_representation):
             return expanders_by_type[query.type](self, query)
     
-    return lambda query: Graph().expand(query, ObjectResult)
+    return lambda query: Graph().expand(query, object_representation)
 
 
 def expander(type, target_representation):
@@ -57,11 +57,6 @@ class ListQuery(object):
     def __init__(self, type, element_query):
         self.type = type
         self.element_query = element_query
-
-
-class ListResult(object):
-    def __init__(self, elements):
-        self.elements = elements
 
 
 class ObjectType(object):
@@ -126,3 +121,6 @@ def constant_object_expander(type, values):
         ))
     
     return expand
+
+
+object_representation = object()

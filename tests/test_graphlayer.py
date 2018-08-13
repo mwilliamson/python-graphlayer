@@ -13,7 +13,7 @@ def test_can_get_scalar_from_root():
         ],
     )
     
-    @g.expander(Root, g.ObjectResult)
+    @g.expander(Root, g.object_representation)
     def expand_root(graph, query):
         values = dict(
             one=1,
@@ -71,17 +71,17 @@ def test_can_recursively_expand():
         ],
     )
     
-    @g.expander(Root, g.ObjectResult)
+    @g.expander(Root, g.object_representation)
     def expand_root(graph, query):
         def resolve_field(query):
-            return graph.expand(query, g.ListResult(g.ObjectResult))
+            return graph.expand(query, g.object_representation)
         
         return g.ObjectResult(iterables.to_dict(
             (key, resolve_field(field_query.query))
             for key, field_query in query.fields.items()
         ))
     
-    @g.expander(g.List(Book), g.ListResult(g.ObjectResult))
+    @g.expander(g.List(Book), g.object_representation)
     def expand_book(graph, query):
         books = [
             dict(title="Leave it to Psmith"),
