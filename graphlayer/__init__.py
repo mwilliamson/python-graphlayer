@@ -74,7 +74,7 @@ class ObjectType(object):
         return ObjectQuery(self, fields)
     
     def __repr__(self):
-        return "List(name={!r})".format(self._name)
+        return "ObjectType(name={!r})".format(self._name)
 
 
 def _lambdaise(value):
