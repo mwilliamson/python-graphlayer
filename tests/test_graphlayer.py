@@ -35,6 +35,27 @@ def test_can_get_scalar_from_root():
     assert_that(result, has_attrs(value=1))
 
 
+def test_constant_object_expander():
+    Root = g.ObjectType(
+        "Root",
+        fields=[
+            g.field("one", type=g.Int),
+            g.field("two", type=g.Int),
+        ],
+    )
+    
+    expand_root = g.constant_object_expander(Root, dict(one=1, two=2))
+    
+    expanders = [expand_root]
+    execute = g.executor(expanders)
+    
+    result = execute(Root(
+        value=Root.one(),
+    ))
+    
+    assert_that(result, has_attrs(value=1))
+
+
 def test_can_recursively_expand():
     Root = g.ObjectType(
         "Root",
