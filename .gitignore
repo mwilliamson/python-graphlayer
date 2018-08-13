@@ -1,0 +1,7 @@
+/.cache
+*.egg-info
+*.pyc
+/.venv
+/.tox
+/build
+/dist
