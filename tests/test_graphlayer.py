@@ -110,3 +110,102 @@ def test_can_recursively_expand():
             has_attrs(title="Pericles, Prince of Tyre"),
         ),
     ))
+
+
+def test_can_recursively_expand_selected_fields():
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: [
+            g.field("books", type=g.List(Book)),
+        ],
+    )
+    
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("author", type=Author),
+            g.field("title", type=g.String),
+        ],
+    )
+    
+    Author = g.ObjectType(
+        "Author",
+        fields=lambda: [
+            g.field("name", type=g.String),
+        ],
+    )
+    
+    @g.expander(Root, g.object_representation)
+    def expand_root(graph, query):
+        def resolve_field(query):
+            return graph.expand(query, g.object_representation)
+        
+        return g.ObjectResult(iterables.to_dict(
+            (key, resolve_field(field_query.query))
+            for key, field_query in query.fields.items()
+        ))
+    
+    books = [
+        dict(author_id="wodehouse", title="Leave it to Psmith"),
+        dict(author_id="shakespeare", title="Pericles, Prince of Tyre"),
+    ]
+        
+    @g.expander(g.List(Book), g.object_representation)
+    def expand_book(graph, query):
+        def resolve_field(book, field_query):
+            if field_query.field.name in book:
+                return book[field_query.field.name]
+            else:
+                return graph.expand(
+                    field_query.query,
+                    g.object_representation,
+                    representations={
+                        "author_id": book["author_id"],
+                    },
+                )
+        
+        return [
+            g.ObjectResult(iterables.to_dict(
+                (key, resolve_field(book, field_query))
+                for key, field_query in query.element_query.fields.items()
+            ))
+            for book in books
+        ]
+    
+    authors = {
+        "wodehouse": dict(name="PG Wodehouse"),
+        "shakespeare": dict(name="William Shakespeare"),
+    }
+    
+    @g.expander(Author, g.object_representation, dict(author_id="author_id"))
+    def expand_author(graph, query, author_id):
+        author = authors[author_id]
+        return g.ObjectResult(iterables.to_dict(
+            (key, author[field_query.field.name])
+            for key, field_query in query.fields.items()
+        ))
+    
+    expanders = [expand_root, expand_book, expand_author]
+    execute = g.executor(expanders)
+    
+    result = execute(Root(
+        books=Root.books(
+            author=Book.author(
+                name=Author.name(),
+            ),
+            title=Book.title(),
+        ),
+    ))
+    
+    assert_that(result, has_attrs(
+        books=contains_exactly(
+            has_attrs(
+                author=has_attrs(name="PG Wodehouse"),
+                title="Leave it to Psmith",
+            ),
+            has_attrs(
+                author=has_attrs(name="William Shakespeare"),
+                title="Pericles, Prince of Tyre",
+            ),
+        ),
+    ))
