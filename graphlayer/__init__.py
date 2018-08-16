@@ -1,7 +1,7 @@
 from .core import executor, expander
 from .expanders import constant_object_expander
 from .representations import object_representation, ObjectResult
-from .schema import field, Int, List, ObjectType, String
+from .schema import field, IntType, ListType, ObjectType, StringType
 
 
 __all__ = [
@@ -14,8 +14,8 @@ __all__ = [
     "ObjectResult",
     
     "field",
-    "Int",
-    "List",
+    "IntType",
+    "ListType",
     "ObjectType",
-    "String",
+    "StringType",
 ]

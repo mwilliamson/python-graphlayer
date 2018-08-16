@@ -8,8 +8,8 @@ def test_can_get_scalar_from_root():
     Root = g.ObjectType(
         "Root",
         fields=[
-            g.field("one", type=g.Int),
-            g.field("two", type=g.Int),
+            g.field("one", type=g.IntType),
+            g.field("two", type=g.IntType),
         ],
     )
     
@@ -40,8 +40,8 @@ def test_constant_object_expander():
     Root = g.ObjectType(
         "Root",
         fields=[
-            g.field("one", type=g.Int),
-            g.field("two", type=g.Int),
+            g.field("one", type=g.IntType),
+            g.field("two", type=g.IntType),
         ],
     )
     
@@ -62,14 +62,14 @@ def test_can_recursively_expand():
     Root = g.ObjectType(
         "Root",
         fields=lambda: [
-            g.field("books", type=g.List(Book)),
+            g.field("books", type=g.ListType(Book)),
         ],
     )
     
     Book = g.ObjectType(
         "Book",
         fields=lambda: [
-            g.field("title", type=g.String),
+            g.field("title", type=g.StringType),
         ],
     )
     
@@ -83,7 +83,7 @@ def test_can_recursively_expand():
             for key, field_query in query.fields.items()
         ))
     
-    @g.expander(g.List(Book), g.object_representation)
+    @g.expander(g.ListType(Book), g.object_representation)
     def expand_book(graph, query):
         books = [
             dict(title="Leave it to Psmith"),
@@ -119,7 +119,7 @@ def test_can_recursively_expand_selected_fields():
     Root = g.ObjectType(
         "Root",
         fields=lambda: [
-            g.field("books", type=g.List(Book)),
+            g.field("books", type=g.ListType(Book)),
         ],
     )
     
@@ -127,14 +127,14 @@ def test_can_recursively_expand_selected_fields():
         "Book",
         fields=lambda: [
             g.field("author", type=Author),
-            g.field("title", type=g.String),
+            g.field("title", type=g.StringType),
         ],
     )
     
     Author = g.ObjectType(
         "Author",
         fields=lambda: [
-            g.field("name", type=g.String),
+            g.field("name", type=g.StringType),
         ],
     )
     
@@ -173,7 +173,7 @@ def test_can_recursively_expand_selected_fields():
     def resolve_field(graph, book, field_query):
         return fields[field_query.field.name](graph, book, field_query.query)
     
-    @g.expander(g.List(Book), g.object_representation)
+    @g.expander(g.ListType(Book), g.object_representation)
     def expand_book(graph, query):
         return [
             g.ObjectResult(iterables.to_dict(

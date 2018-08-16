@@ -1,15 +1,15 @@
 from . import iterables
 
 
-class Int(object):
+class IntType(object):
     pass
 
 
-class String(object):
+class StringType(object):
     pass
 
 
-class List(object):
+class ListType(object):
     def __init__(self, element_type):
         self._element_type = element_type
     
@@ -17,7 +17,7 @@ class List(object):
         return ListQuery(self, self._element_type(*args, **kwargs))
     
     def __eq__(self, other):
-        if isinstance(other, List):
+        if isinstance(other, ListType):
             return self._element_type == other._element_type
         else:
             raise NotImplemented()
