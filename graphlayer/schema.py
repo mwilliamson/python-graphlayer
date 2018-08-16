@@ -76,10 +76,10 @@ class Field(object):
         self.type = type
     
     def __call__(self, *args, **kwargs):
-        return FieldQuery(field=self, query=self.type(*args, **kwargs))
+        return FieldQuery(field=self, type_query=self.type(*args, **kwargs))
 
 
 class FieldQuery(object):
-    def __init__(self, field, query):
+    def __init__(self, field, type_query):
         self.field = field
-        self.query = query
+        self.type_query = type_query

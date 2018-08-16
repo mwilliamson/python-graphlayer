@@ -79,7 +79,7 @@ def test_can_recursively_expand():
             return graph.expand(query, g.object_representation)
         
         return g.ObjectResult(iterables.to_dict(
-            (key, resolve_field(field_query.query))
+            (key, resolve_field(field_query.type_query))
             for key, field_query in query.fields.items()
         ))
     
@@ -144,7 +144,7 @@ def test_can_recursively_expand_selected_fields():
             return graph.expand(query, g.object_representation)
         
         return g.ObjectResult(iterables.to_dict(
-            (key, resolve_field(field_query.query))
+            (key, resolve_field(field_query.type_query))
             for key, field_query in query.fields.items()
         ))
     
@@ -171,7 +171,7 @@ def test_can_recursively_expand_selected_fields():
     }
 
     def resolve_field(graph, book, field_query):
-        return fields[field_query.field.name](graph, book, field_query.query)
+        return fields[field_query.field.name](graph, book, field_query.type_query)
     
     @g.expander(g.ListType(Book), g.object_representation)
     def expand_book(graph, query):
