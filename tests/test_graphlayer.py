@@ -26,12 +26,11 @@ def test_can_get_scalar_from_root():
         ))
     
     expanders = [expand_root]
-    execute = g.executor(expanders)
     
     query = Root(
         value=Root.one(),
     )
-    result = execute(query, g.object_representation)
+    result = g.create_graph(expanders).expand(query, g.object_representation)
     
     assert_that(result, has_attrs(value=1))
 
@@ -48,12 +47,11 @@ def test_constant_object_expander():
     expand_root = g.constant_object_expander(Root, dict(one=1, two=2))
     
     expanders = [expand_root]
-    execute = g.executor(expanders)
     
     query = Root(
         value=Root.one(),
     )
-    result = execute(query, g.object_representation)
+    result = g.create_graph(expanders).expand(query, g.object_representation)
     
     assert_that(result, has_attrs(value=1))
 
@@ -98,14 +96,13 @@ def test_can_recursively_expand():
         ]
     
     expanders = [expand_root, expand_book]
-    execute = g.executor(expanders)
     
     query = Root(
         books=Root.books(
             title=Book.title(),
         ),
     )
-    result = execute(query, g.object_representation)
+    result = g.create_graph(expanders).expand(query, g.object_representation)
     
     assert_that(result, has_attrs(
         books=contains_exactly(
@@ -197,7 +194,6 @@ def test_can_recursively_expand_selected_fields():
         ))
     
     expanders = [expand_root, expand_book, expand_author]
-    execute = g.executor(expanders)
     
     query = Root(
         books=Root.books(
@@ -207,7 +203,7 @@ def test_can_recursively_expand_selected_fields():
             title=Book.title(),
         ),
     )
-    result = execute(query, g.object_representation)
+    result = g.create_graph(expanders).expand(query, g.object_representation)
     
     assert_that(result, has_attrs(
         books=contains_exactly(

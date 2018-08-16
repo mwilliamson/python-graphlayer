@@ -1,7 +1,7 @@
 from . import iterables
 
 
-def executor(expanders):
+def create_graph(expanders):
     expanders_by_type = iterables.to_dict(
         (expander.type, expander)
         for expander in expanders
@@ -21,7 +21,7 @@ def executor(expanders):
             
             return expander(self, query, **required_representations)
     
-    return Graph().expand
+    return Graph()
 
 
 def expander(type, target_representation, representations=None):

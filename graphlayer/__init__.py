@@ -1,11 +1,11 @@
-from .core import executor, expander
+from .core import create_graph, expander
 from .expanders import constant_object_expander
 from .representations import object_representation, ObjectResult
 from .schema import field, IntType, ListType, ObjectType, StringType
 
 
 __all__ = [
-    "executor",
+    "create_graph",
     "expander",
 
     "constant_object_expander",
