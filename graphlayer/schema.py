@@ -1,6 +1,9 @@
 from . import iterables
 
 
+object_query = object()
+
+
 class IntType(object):
     pass
 

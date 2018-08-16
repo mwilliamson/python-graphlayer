@@ -1,6 +1,7 @@
 from . import iterables
 from .core import expander
-from .representations import object_query, object_representation, ObjectResult
+from .representations import object_representation, ObjectResult
+from .schema import object_query
 
 
 def constant_object_expander(type, values):
