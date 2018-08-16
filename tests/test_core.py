@@ -1,4 +1,5 @@
 from precisely import assert_that, equal_to
+import pytest
 
 import graphlayer.core as g
 
@@ -45,3 +46,21 @@ def test_given_expander_has_dependencies_when_expand_is_called_with_dependencies
     )
     
     assert_that(result, equal_to(42))
+
+
+def test_given_expander_has_dependencies_when_expand_is_called_without_dependencies_then_error_is_raised():
+    @g.expander("root", "integer_representation", dependencies={"result": "answer"})
+    def expand_root(graph, result):
+        return result
+    
+    expanders = [expand_root]
+    
+    error = pytest.raises(g.NoRouteError, lambda: g.create_graph(expanders).expand(
+        "root",
+        "integer_representation",
+        dependencies={"a": 1},
+    ))
+    
+    assert_that(str(error.value), equal_to(
+        "Could not find route to {root!r} with dependencies {dependencies!r}".format(root="root", dependencies={"a": 1}),
+    ))
