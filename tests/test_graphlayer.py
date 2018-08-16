@@ -149,24 +149,32 @@ def test_can_recursively_expand_selected_fields():
         dict(author_id="wodehouse", title="Leave it to Psmith"),
         dict(author_id="shakespeare", title="Pericles, Prince of Tyre"),
     ]
-        
+    
+    def resolve_title(graph, book, query):
+        return book["title"]
+    
+    def resolve_author(graph, book, query):
+        return graph.expand(
+            query,
+            g.object_representation,
+            representations={
+                "author_id": book["author_id"],
+            },
+        )
+    
+    fields = {
+        "title": resolve_title,
+        "author": resolve_author,
+    }
+
+    def resolve_field(graph, book, field_query):
+        return fields[field_query.field.name](graph, book, field_query.query)
+    
     @g.expander(g.List(Book), g.object_representation)
     def expand_book(graph, query):
-        def resolve_field(book, field_query):
-            if field_query.field.name in book:
-                return book[field_query.field.name]
-            else:
-                return graph.expand(
-                    field_query.query,
-                    g.object_representation,
-                    representations={
-                        "author_id": book["author_id"],
-                    },
-                )
-        
         return [
             g.ObjectResult(iterables.to_dict(
-                (key, resolve_field(book, field_query))
+                (key, resolve_field(graph, book, field_query))
                 for key, field_query in query.element_query.fields.items()
             ))
             for book in books
