@@ -8,29 +8,29 @@ def create_graph(expanders):
     )
     
     class Graph(object):
-        def expand(self, query, target_representation, representations=None):
-            if representations is None:
-                representations = {}
+        def expand(self, type, target_representation, dependencies=None):
+            if dependencies is None:
+                dependencies = {}
             
-            expander = expanders_by_type[query.type]
+            expander = expanders_by_type[type]
             
-            required_representations = iterables.to_dict(
-                (key, representations[representation])
-                for key, representation in expander.representations.items()
+            dependencies_for_expander = iterables.to_dict(
+                (key, dependencies[dependency])
+                for key, dependency in expander.dependencies.items()
             )
             
-            return expander(self, query, **required_representations)
+            return expander(self, **dependencies_for_expander)
     
     return Graph()
 
 
-def expander(type, target_representation, representations=None):
-    if representations is None:
-        representations = {}
+def expander(type, target_representation, dependencies=None):
+    if dependencies is None:
+        dependencies = {}
     
     def register_expander(func):
         func.type = type
-        func.representations = representations
+        func.dependencies = dependencies
         return func
     
     return register_expander

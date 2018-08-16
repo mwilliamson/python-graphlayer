@@ -13,7 +13,7 @@ def test_can_get_scalar_from_root():
         ],
     )
     
-    @g.expander(Root, g.object_representation)
+    @g.expander(Root, g.object_representation, dependencies=dict(query=g.object_query))
     def expand_root(graph, query):
         values = dict(
             one=1,
@@ -30,7 +30,7 @@ def test_can_get_scalar_from_root():
     query = Root(
         value=Root.one(),
     )
-    result = g.create_graph(expanders).expand(query, g.object_representation)
+    result = g.create_graph(expanders).expand(Root, g.object_representation, dependencies={g.object_query: query})
     
     assert_that(result, has_attrs(value=1))
 
@@ -51,7 +51,7 @@ def test_constant_object_expander():
     query = Root(
         value=Root.one(),
     )
-    result = g.create_graph(expanders).expand(query, g.object_representation)
+    result = g.create_graph(expanders).expand(Root, g.object_representation, dependencies={g.object_query: query})
     
     assert_that(result, has_attrs(value=1))
 
@@ -71,17 +71,21 @@ def test_can_recursively_expand():
         ],
     )
     
-    @g.expander(Root, g.object_representation)
+    @g.expander(Root, g.object_representation, dependencies=dict(query=g.object_query))
     def expand_root(graph, query):
         def resolve_field(query):
-            return graph.expand(query, g.object_representation)
+            return graph.expand(
+                query.type,
+                g.object_representation,
+                dependencies={g.object_query: query},
+            )
         
         return g.ObjectResult(iterables.to_dict(
             (key, resolve_field(field_query.type_query))
             for key, field_query in query.fields.items()
         ))
     
-    @g.expander(g.ListType(Book), g.object_representation)
+    @g.expander(g.ListType(Book), g.object_representation, dependencies=dict(query=g.object_query))
     def expand_book(graph, query):
         books = [
             dict(title="Leave it to Psmith"),
@@ -102,7 +106,7 @@ def test_can_recursively_expand():
             title=Book.title(),
         ),
     )
-    result = g.create_graph(expanders).expand(query, g.object_representation)
+    result = g.create_graph(expanders).expand(Root, g.object_representation, {g.object_query: query})
     
     assert_that(result, has_attrs(
         books=contains_exactly(
@@ -135,10 +139,14 @@ def test_can_recursively_expand_selected_fields():
         ],
     )
     
-    @g.expander(Root, g.object_representation)
+    @g.expander(Root, g.object_representation, dict(query=g.object_query))
     def expand_root(graph, query):
         def resolve_field(query):
-            return graph.expand(query, g.object_representation)
+            return graph.expand(
+                query.type,
+                g.object_representation,
+                dependencies={g.object_query: query},
+            )
         
         return g.ObjectResult(iterables.to_dict(
             (key, resolve_field(field_query.type_query))
@@ -155,10 +163,11 @@ def test_can_recursively_expand_selected_fields():
     
     def resolve_author(graph, book, query):
         return graph.expand(
-            query,
+            query.type,
             g.object_representation,
-            representations={
+            dependencies={
                 "author_id": book["author_id"],
+                g.object_query: query,
             },
         )
     
@@ -170,7 +179,7 @@ def test_can_recursively_expand_selected_fields():
     def resolve_field(graph, book, field_query):
         return fields[field_query.field.name](graph, book, field_query.type_query)
     
-    @g.expander(g.ListType(Book), g.object_representation)
+    @g.expander(g.ListType(Book), g.object_representation, dict(query=g.object_query))
     def expand_book(graph, query):
         return [
             g.ObjectResult(iterables.to_dict(
@@ -185,7 +194,7 @@ def test_can_recursively_expand_selected_fields():
         "shakespeare": dict(name="William Shakespeare"),
     }
     
-    @g.expander(Author, g.object_representation, dict(author_id="author_id"))
+    @g.expander(Author, g.object_representation, dict(query=g.object_query, author_id="author_id"))
     def expand_author(graph, query, author_id):
         author = authors[author_id]
         return g.ObjectResult(iterables.to_dict(
@@ -203,7 +212,7 @@ def test_can_recursively_expand_selected_fields():
             title=Book.title(),
         ),
     )
-    result = g.create_graph(expanders).expand(query, g.object_representation)
+    result = g.create_graph(expanders).expand(Root, g.object_representation, {g.object_query: query})
     
     assert_that(result, has_attrs(
         books=contains_exactly(
