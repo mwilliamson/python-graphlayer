@@ -16,24 +16,24 @@ class Graph(object):
             for expander in expanders
         )
     
-    def expand(self, type, target_representation, dependencies=None):
-        if dependencies is None:
-            dependencies = {}
+    def expand(self, type, target_representation, context=None):
+        if context is None:
+            context = {}
         
         expander = self._expanders_by_type[type]
         
         dependencies_for_expander = iterables.to_dict(
-            (key, self._get_dependency(expander, dependencies, dependency))
+            (key, self._get_dependency(expander, context, dependency))
             for key, dependency in expander.dependencies.items()
         )
         
         return expander(self, **dependencies_for_expander)
     
-    def _get_dependency(self, expander, dependencies, key):
-        if key in dependencies:
-            return dependencies[key]
+    def _get_dependency(self, expander, context, key):
+        if key in context:
+            return context[key]
         else:
-            raise NoRouteError("Could not find route to {!r} with dependencies {!r}".format(expander.type, dependencies))
+            raise NoRouteError("Could not find route to {!r} with context {!r}".format(expander.type, context))
         
 
 def expander(type, target_representation, dependencies=None):

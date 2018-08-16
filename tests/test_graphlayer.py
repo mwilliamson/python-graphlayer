@@ -30,7 +30,7 @@ def test_can_get_scalar_from_root():
     query = Root(
         value=Root.one(),
     )
-    result = g.create_graph(expanders).expand(Root, g.object_representation, dependencies={g.object_query: query})
+    result = g.create_graph(expanders).expand(Root, g.object_representation, context={g.object_query: query})
     
     assert_that(result, has_attrs(value=1))
 
@@ -51,7 +51,7 @@ def test_constant_object_expander():
     query = Root(
         value=Root.one(),
     )
-    result = g.create_graph(expanders).expand(Root, g.object_representation, dependencies={g.object_query: query})
+    result = g.create_graph(expanders).expand(Root, g.object_representation, context={g.object_query: query})
     
     assert_that(result, has_attrs(value=1))
 
@@ -77,7 +77,7 @@ def test_can_recursively_expand():
             return graph.expand(
                 query.type,
                 g.object_representation,
-                dependencies={g.object_query: query},
+                context={g.object_query: query},
             )
         
         return g.ObjectResult(iterables.to_dict(
@@ -145,7 +145,7 @@ def test_can_recursively_expand_selected_fields():
             return graph.expand(
                 query.type,
                 g.object_representation,
-                dependencies={g.object_query: query},
+                context={g.object_query: query},
             )
         
         return g.ObjectResult(iterables.to_dict(
@@ -165,7 +165,7 @@ def test_can_recursively_expand_selected_fields():
         return graph.expand(
             query.type,
             g.object_representation,
-            dependencies={
+            context={
                 "author_id": book["author_id"],
                 g.object_query: query,
             },

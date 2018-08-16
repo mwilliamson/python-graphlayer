@@ -4,7 +4,7 @@ import pytest
 import graphlayer.core as g
 
 
-def test_given_expander_has_no_dependencies_when_expand_is_called_with_no_dependencies_then_expander_is_directly_called():
+def test_given_expander_has_no_dependencies_when_expand_is_called_with_empty_context_then_expander_is_directly_called():
     @g.expander("root", "integer_representation")
     def expand_root(graph):
         return 42
@@ -12,6 +12,18 @@ def test_given_expander_has_no_dependencies_when_expand_is_called_with_no_depend
     expanders = [expand_root]
     
     result = g.create_graph(expanders).expand("root", "integer_representation")
+    
+    assert_that(result, equal_to(42))
+
+
+def test_given_expander_has_no_dependencies_when_expand_is_called_with_non_empty_context_then_context_is_ignored():
+    @g.expander("root", "integer_representation")
+    def expand_root(graph):
+        return 42
+    
+    expanders = [expand_root]
+    
+    result = g.create_graph(expanders).expand("root", "integer_representation", context={"a": 1})
     
     assert_that(result, equal_to(42))
 
@@ -32,7 +44,7 @@ def test_when_expand_is_called_then_expander_is_passed_the_graph():
     assert_that(result, equal_to(42))
 
 
-def test_given_expander_has_dependencies_when_expand_is_called_with_dependencies_then_dependencies_are_passed_to_expander():
+def test_given_expander_has_dependencies_when_expand_is_called_with_context_then_dependencies_are_passed_to_expander():
     @g.expander("root", "integer_representation", dependencies={"result": "answer"})
     def expand_root(graph, result):
         return result
@@ -42,7 +54,7 @@ def test_given_expander_has_dependencies_when_expand_is_called_with_dependencies
     result = g.create_graph(expanders).expand(
         "root",
         "integer_representation",
-        dependencies=dict(answer=42),
+        context=dict(answer=42),
     )
     
     assert_that(result, equal_to(42))
@@ -58,9 +70,9 @@ def test_given_expander_has_dependencies_when_expand_is_called_without_dependenc
     error = pytest.raises(g.NoRouteError, lambda: g.create_graph(expanders).expand(
         "root",
         "integer_representation",
-        dependencies={"a": 1},
+        context={"a": 1},
     ))
     
     assert_that(str(error.value), equal_to(
-        "Could not find route to {root!r} with dependencies {dependencies!r}".format(root="root", dependencies={"a": 1}),
+        "Could not find route to {root!r} with context {context!r}".format(root="root", context={"a": 1}),
     ))
