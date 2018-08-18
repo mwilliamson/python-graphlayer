@@ -62,7 +62,7 @@ def test_can_recursively_expand_selected_fields():
     
     expand_root = root_object_expander(Root, {
         Root.books: {
-            "primary_key_query": sqlalchemy.orm.Query([BookRow.c_id]).select_from(BookRow),
+            "where": None,
         },
     })
     
@@ -73,7 +73,9 @@ def test_can_recursively_expand_selected_fields():
             Book.title: BookRow.c_title,
         },
         joins={
-            Book.author: BookRow.c_author_id,
+            Book.author: {
+                BookRow.c_author_id: AuthorRow.c_id,
+            },
         },
         session=session,
     )
