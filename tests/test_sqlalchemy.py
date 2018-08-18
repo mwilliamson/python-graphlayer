@@ -9,10 +9,9 @@ from graphlayer.expanders import root_object_expander
 from graphlayer.sqlalchemy import sql_table_expander
 
 
-Base = sqlalchemy.ext.declarative.declarative_base()
-
-
 def test_can_recursively_expand_selected_fields():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+    
     class AuthorRow(Base):
         __tablename__ = "author"
 
@@ -110,5 +109,63 @@ def test_can_recursively_expand_selected_fields():
                 author=has_attrs(name="William Shakespeare"),
                 title="Pericles, Prince of Tyre",
             ),
+        ),
+    ))
+
+
+def test_can_get_fields_backed_by_expressions():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+    
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+    
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+    
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith"))
+    session.add(BookRow(c_title="Pericles, Prince of Tyre"))
+    session.commit()
+    
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.StringType),
+        ],
+    )
+    
+    expand_book = sql_table_expander(
+        Book,
+        BookRow,
+        expressions={
+            Book.title: BookRow.c_title,
+        },
+        session=session,
+    )
+    
+    expanders = [expand_book]
+    
+    query = g.ListType(Book)(
+        title=Book.title(),
+    )
+    result = g.create_graph(expanders).expand(
+        g.ListType(Book),
+        g.object_representation,
+        {
+            g.object_query: query,
+            "where": None,
+        },
+    )
+    
+    assert_that(result, contains_exactly(
+        has_attrs(
+            title="Leave it to Psmith",
+        ),
+        has_attrs(
+            title="Pericles, Prince of Tyre",
         ),
     ))
