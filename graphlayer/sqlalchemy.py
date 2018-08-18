@@ -11,31 +11,18 @@ def sql_table_expander(type, model, session, expressions, joins=None):
     if joins is None:
         joins = {}
         
-    def read_field(join_results, row, key, field_query):
-        if field_query.field in expressions:
-            return row[key]
-        else:
-            return join_results[key][row[key]]
-        
     @g.expander(g.ListType(type), g.object_representation, dict(
         query=g.object_query,
         where="where",
     ))
     def expand_objects(graph, query, where):
-        rows, join_results = expand(
+        return expand(
             graph,
             query=query,
             where=where,
             extra_expressions=[],
+            process_row=lambda row, result: result,
         )
-        
-        return [
-            g.ObjectResult(iterables.to_dict(
-                (key, read_field(join_results, row._asdict(), key, field_query))
-                for key, field_query in query.element_query.fields.items()
-            ))
-            for row in rows
-        ]
     
     @g.expander(g.ListType(type), "indexed_object_representation", dict(
         query=g.object_query,
@@ -43,25 +30,15 @@ def sql_table_expander(type, model, session, expressions, joins=None):
         index_expression="index_expression",
     ))
     def expand_indexed_objects(graph, query, where, index_expression):
-        rows, join_results = expand(
+        return iterables.to_dict(expand(
             graph,
             query=query,
             where=where,
             extra_expressions=[index_expression.label("__index")],
-        )
-        
-        return iterables.to_dict([
-            (
-                row.__index,
-                g.ObjectResult(iterables.to_dict(
-                    (key, read_field(join_results, row._asdict(), key, field_query))
-                    for key, field_query in query.element_query.fields.items()
-                ))
-            )
-            for row in rows
-        ])
+            process_row=lambda row, result: (row.__index, result),
+        ))
     
-    def expand(graph, query, where, extra_expressions):
+    def expand(graph, query, where, extra_expressions, process_row):
         base_query = sqlalchemy.orm.Query(extra_expressions) \
             .select_from(model)
             
@@ -89,6 +66,21 @@ def sql_table_expander(type, model, session, expressions, joins=None):
                     },
                 )
         
-        return sql_query.with_session(session), join_results
+        def read_field(row, key, field_query):
+            if field_query.field in expressions:
+                return getattr(row, key)
+            else:
+                return join_results[key][getattr(row, key)  ]
+        
+        return [
+            process_row(
+                row,
+                g.ObjectResult(iterables.to_dict(
+                    (key, read_field(row, key, field_query))
+                    for key, field_query in query.element_query.fields.items()
+                ))
+            )
+            for row in sql_query.with_session(session)
+        ]
         
     return [expand_objects, expand_indexed_objects]
