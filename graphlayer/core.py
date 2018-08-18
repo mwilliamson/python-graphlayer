@@ -11,16 +11,16 @@ def create_graph(expanders):
     
 class Graph(object):
     def __init__(self, expanders):
-        self._expanders_by_type = iterables.to_dict(
-            (expander.type, expander)
-            for expander in expanders
+        self._expanders = iterables.to_dict(
+            ((expander.type, expander.target_representation), expander)
+            for expander in _flatten(expanders)
         )
     
     def expand(self, type, target_representation, context=None):
         if context is None:
             context = {}
         
-        expander = self._expanders_by_type[type]
+        expander = self._expanders[(type, target_representation)]
         
         dependencies_for_expander = iterables.to_dict(
             (key, self._get_dependency(expander, context, dependency))
@@ -34,7 +34,15 @@ class Graph(object):
             return context[key]
         else:
             raise NoRouteError("Could not find route to {!r} with context {!r}".format(expander.type, context))
-        
+
+
+def _flatten(values):
+    return [
+        value
+        for element in values
+        for value in (element if isinstance(element, list) else [element])
+    ]
+
 
 def expander(type, target_representation, dependencies=None):
     if dependencies is None:
@@ -42,6 +50,7 @@ def expander(type, target_representation, dependencies=None):
     
     def register_expander(func):
         func.type = type
+        func.target_representation = target_representation
         func.dependencies = dependencies
         return func
     

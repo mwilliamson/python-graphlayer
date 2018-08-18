@@ -23,7 +23,7 @@ class ListType(object):
         if isinstance(other, ListType):
             return self._element_type == other._element_type
         else:
-            raise NotImplemented()
+            return NotImplemented
     
     def __ne__(self, other):
         return not (self == other)
@@ -46,10 +46,9 @@ class ObjectType(object):
         self._name = name
         if not callable(fields):
             fields = _lambdaise(fields)
-        self._fields = fields
+        self._fields = _memoize(fields)
     
     def __getattr__(self, field_name):
-        # TODO: memoisation
         return iterables.find(lambda field: field.name == field_name, self._fields())
     
     def __call__(self, **fields):
@@ -57,6 +56,18 @@ class ObjectType(object):
     
     def __repr__(self):
         return "ObjectType(name={!r})".format(self._name)
+
+
+def _memoize(func):
+    result = []
+    
+    def get():
+        if len(result) == 0:
+            result.append(func())
+        
+        return result[0]
+    
+    return get
 
 
 def _lambdaise(value):
@@ -80,6 +91,9 @@ class Field(object):
     
     def __call__(self, *args, **kwargs):
         return FieldQuery(field=self, type_query=self.type(*args, **kwargs))
+    
+    def __repr__(self):
+        return "Field(name={!r}, type={!r})".format(self.name, self.type)
 
 
 class FieldQuery(object):
