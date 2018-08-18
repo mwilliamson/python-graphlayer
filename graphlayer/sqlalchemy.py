@@ -11,6 +11,12 @@ def sql_table_expander(type, model, session, expressions, joins=None):
     if joins is None:
         joins = {}
         
+    def read_field(join_results, row, key, field_query):
+        if field_query.field in expressions:
+            return row[key]
+        else:
+            return join_results[key][row[key]]
+        
     @g.expander(g.ListType(type), g.object_representation, dict(
         query=g.object_query,
         where="where",
@@ -23,15 +29,9 @@ def sql_table_expander(type, model, session, expressions, joins=None):
             extra_expressions=[],
         )
         
-        def read_field(row, key, field_query):
-            if field_query.field in expressions:
-                return row[key]
-            else:
-                return join_results[key][row[key]]
-        
         return [
             g.ObjectResult(iterables.to_dict(
-                (key, read_field(row._asdict(), key, field_query))
+                (key, read_field(join_results, row._asdict(), key, field_query))
                 for key, field_query in query.element_query.fields.items()
             ))
             for row in rows
@@ -50,17 +50,11 @@ def sql_table_expander(type, model, session, expressions, joins=None):
             extra_expressions=[index_expression.label("__index")],
         )
         
-        def read_field(row, key):
-            if key in row:
-                return row[key]
-            else:
-                return join_results[key]
-        
         return iterables.to_dict([
             (
                 row.__index,
                 g.ObjectResult(iterables.to_dict(
-                    (key, read_field(row._asdict(), key))
+                    (key, read_field(join_results, row._asdict(), key, field_query))
                     for key, field_query in query.element_query.fields.items()
                 ))
             )
