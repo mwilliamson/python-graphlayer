@@ -27,17 +27,19 @@ def sql_table_expander(type, model, session, expressions, joins=None):
     @g.expander(g.ListType(type), "indexed_object_representation", dict(
         query=g.object_query,
         where="where",
-        index_expression="index_expression",
+        index_expressions="index_expressions",
     ))
-    def expand_indexed_objects(graph, query, where, index_expression):
+    def expand_indexed_objects(graph, query, where, index_expressions):
         return iterables.to_dict(expand(
             graph,
             query=query,
             where=where,
-            extra_expressions=[index_expression.label("__index")],
-            process_row=lambda row, result: (row.__index, result),
+            #~ extra_expressions=[index_expression.label("__index")],
+            #~ process_row=lambda row, result: (row.__index, result),
+            extra_expressions=index_expressions,
+            process_row=lambda row, result: (row[:len(index_expressions)], result),
         ))
-    
+        
     def expand(graph, query, where, extra_expressions, process_row):
         base_query = sqlalchemy.orm.Query(extra_expressions) \
             .select_from(model)
@@ -53,16 +55,25 @@ def sql_table_expander(type, model, session, expressions, joins=None):
             if field_query.field in expressions:
                 sql_query = sql_query.add_columns(expressions[field_query.field].label(key))
             else:
-                # TODO: support multiple join keys
-                (local_expression, foreign_expression), = joins[field_query.field].items()
-                sql_query = sql_query.add_columns(local_expression.label(key))
+                join = joins[field_query.field]
+                sql_query = sql_query.add_columns(*[
+                    local_key_expression.label("{}_{}".format(key, index))
+                    for index, local_key_expression in enumerate(join.keys())
+                ])
+                if len(join) == 1:
+                    foreign_key_expression, = join.values()
+                else:
+                    foreign_key_expression = sqlalchemy.tuple_(*join.values())
+                
+                where = foreign_key_expression.in_(base_query.add_columns(*join.keys()))
+                
                 join_results[key] = graph.expand(
                     g.ListType(field_query.field.type),
                     "indexed_object_representation",
                     {
                         g.object_query: ListQuery(field_query.field.type, field_query.type_query),
-                        "where": foreign_expression.in_(base_query.add_columns(local_expression)),
-                        "index_expression": foreign_expression,
+                        "where": where,
+                        "index_expressions": join.values(),
                     },
                 )
         
@@ -70,7 +81,11 @@ def sql_table_expander(type, model, session, expressions, joins=None):
             if field_query.field in expressions:
                 return getattr(row, key)
             else:
-                return join_results[key][getattr(row, key)  ]
+                join = joins[field_query.field]
+                return join_results[key][tuple([
+                    getattr(row, "{}_{}".format(key, index))
+                    for index in range(len(join.keys()))
+                ])]
         
         return [
             process_row(
