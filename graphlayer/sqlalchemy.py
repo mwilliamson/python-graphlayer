@@ -34,32 +34,27 @@ def sql_table_expander(type, model, session, expressions, joins=None):
             graph,
             query=query,
             where=where,
-            #~ extra_expressions=[index_expression.label("__index")],
-            #~ process_row=lambda row, result: (row.__index, result),
             extra_expressions=index_expressions,
-            process_row=lambda row, result: (row[:len(index_expressions)], result),
+            process_row=lambda row, result: (tuple(row), result),
         ))
         
     def expand(graph, query, where, extra_expressions, process_row):
-        base_query = sqlalchemy.orm.Query(extra_expressions) \
-            .select_from(model)
+        query_expressions = []
+        
+        base_query = sqlalchemy.orm.Query([]).select_from(model)
             
         if where is not None:
             base_query = base_query.filter(where)
-        
-        sql_query = base_query
         
         join_results = {}
         
         for key, field_query in query.element_query.fields.items():
             if field_query.field in expressions:
-                sql_query = sql_query.add_columns(expressions[field_query.field].label(key))
+                query_expressions.append(expressions[field_query.field].label(key))
             else:
                 join = joins[field_query.field]
-                sql_query = sql_query.add_columns(*[
-                    local_key_expression.label("{}_{}".format(key, index))
-                    for index, local_key_expression in enumerate(join.keys())
-                ])
+                for index, local_key_expression in enumerate(join.keys()):
+                    query_expressions.append(local_key_expression)
                 if len(join) == 1:
                     foreign_key_expression, = join.values()
                 else:
@@ -77,25 +72,36 @@ def sql_table_expander(type, model, session, expressions, joins=None):
                     },
                 )
         
-        def read_field(row, key, field_query):
+        def create_field_reader(key, field_query):
             if field_query.field in expressions:
-                return getattr(row, key)
+                return lambda row: row.pop()
             else:
                 join = joins[field_query.field]
-                return join_results[key][tuple([
-                    getattr(row, "{}_{}".format(key, index))
-                    for index in range(len(join.keys()))
+                results = join_results[key]
+                join_range = range(len(join))
+                return lambda row: results[tuple([
+                    row.pop()
+                    for _ in join_range
                 ])]
         
-        return [
-            process_row(
+        readers = [
+            (key, create_field_reader(key, field_query))
+            for key, field_query in query.element_query.fields.items()
+        ]
+        
+        def read_row(row):
+            row = list(row)
+            return process_row(
                 row,
                 g.ObjectResult(iterables.to_dict(
-                    (key, read_field(row, key, field_query))
-                    for key, field_query in query.element_query.fields.items()
+                    (key, read(row))
+                    for key, read in readers
                 ))
             )
-            for row in sql_query.with_session(session)
+        
+        return [
+            read_row(row)
+            for row in base_query.with_session(session).add_columns(*extra_expressions).add_columns(*reversed(query_expressions))
         ]
         
     return [expand_objects, expand_indexed_objects]
