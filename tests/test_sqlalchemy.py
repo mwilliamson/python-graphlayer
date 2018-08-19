@@ -70,9 +70,9 @@ def test_can_recursively_expand_selected_fields():
         BookRow,
         fields={
             Book.title: gsql.expression(BookRow.c_title),
-            Book.author: gsql.sql_join({
+            Book.author: gsql.single(gsql.sql_join({
                 BookRow.c_author_id: AuthorRow.c_id,
-            }),
+            })),
         },
         session=session,
     )
@@ -214,9 +214,9 @@ def test_can_resolve_many_to_one_field():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.right: gsql.sql_join({
+            Left.right: gsql.single(gsql.sql_join({
                 LeftRow.c_id: RightRow.c_id,
-            }),
+            })),
         },
         session=session,
     )
@@ -307,9 +307,9 @@ def test_can_resolve_many_to_one_or_zero_field():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.right: gsql.sql_join({
+            Left.right: gsql.single_or_null(gsql.sql_join({
                 LeftRow.c_id: RightRow.c_id,
-            }),
+            })),
         },
         session=session,
     )
@@ -405,9 +405,9 @@ def test_can_resolve_one_to_many_field():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.rights: gsql.sql_join({
+            Left.rights: gsql.many(gsql.sql_join({
                 LeftRow.c_id: RightRow.c_left_id,
-            }),
+            })),
         },
         session=session,
     )
@@ -506,10 +506,10 @@ def test_can_join_tables_using_multi_column_key():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.right: gsql.sql_join({
+            Left.right: gsql.single(gsql.sql_join({
                 LeftRow.c_id_1: RightRow.c_id_1,
                 LeftRow.c_id_2: RightRow.c_id_2,
-            }),
+            })),
         },
         session=session,
     )

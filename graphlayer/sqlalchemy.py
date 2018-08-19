@@ -26,12 +26,13 @@ class _ExpressionField(object):
 
 
 def sql_join(join):
-    return _SqlJoinField(join)
+    return lambda select: _SqlJoinField(join, select=select)
 
 
 class _SqlJoinField(object):
-    def __init__(self, join):
+    def __init__(self, join, select):
         self._join = join
+        self._select = select
     
     def process(self, graph, field_query, base_query):
         if len(self._join) == 1:
@@ -61,38 +62,42 @@ class _SqlJoinField(object):
     def create_reader(self, field_query, result):
         join_range = range(len(self._join))
 
-        select = _create_list_processor(field_query.field.type)
-
         def read(row):
-            return select(result.get(tuple([
+            return self._select(result.get(tuple([
                 row.pop()
                 for _ in join_range
             ]), ()))
             
         return read
 
-def _create_list_processor(type):
-    if isinstance(type, g.ListType):
-        def select(values):
-            return values
 
-    elif isinstance(type, g.NullableType):
-        def select(values):
-            if len(values) == 0:
-                return None
-            elif len(values) == 1:
-                return values[0]
-            else:
-                raise ValueError("expected zero or one values")
+def many(field):
+    def select(values):
+        return values
 
-    else:
-        def select(values):
-            if len(values) == 1:
-                return values[0]
-            else:
-                raise ValueError("expected exactly one value")
+    return field(select=select)
 
-    return select
+
+def single(field):
+    def select(values):
+        if len(values) == 1:
+            return values[0]
+        else:
+            raise ValueError("expected exactly one value")
+
+    return field(select=select)
+
+
+def single_or_null(field):
+    def select(values):
+        if len(values) == 0:
+            return None
+        elif len(values) == 1:
+            return values[0]
+        else:
+            raise ValueError("expected zero or one values")
+
+    return field(select=select)
 
 
 def sql_table_expander(type, model, fields, session):
