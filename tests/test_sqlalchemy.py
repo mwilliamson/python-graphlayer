@@ -5,8 +5,8 @@ import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 
 import graphlayer as g
+from graphlayer import sqlalchemy as gsql
 from graphlayer.expanders import root_object_expander
-from graphlayer.sqlalchemy import sql_table_expander
 
 
 def test_can_recursively_expand_selected_fields():
@@ -65,25 +65,23 @@ def test_can_recursively_expand_selected_fields():
         },
     })
     
-    expand_book = sql_table_expander(
+    expand_book = gsql.sql_table_expander(
         Book,
         BookRow,
-        expressions={
-            Book.title: BookRow.c_title,
-        },
-        joins={
-            Book.author: {
+        fields={
+            Book.title: gsql.expression(BookRow.c_title),
+            Book.author: gsql.sql_join({
                 BookRow.c_author_id: AuthorRow.c_id,
-            },
+            }),
         },
         session=session,
     )
     
-    expand_author = sql_table_expander(
+    expand_author = gsql.sql_table_expander(
         Author,
         AuthorRow,
-        expressions={
-            Author.name: AuthorRow.c_name,
+        fields={
+            Author.name: gsql.expression(AuthorRow.c_name),
         },
         session=session,
     )
@@ -138,11 +136,11 @@ def test_can_get_fields_backed_by_expressions():
         ],
     )
     
-    expand_book = sql_table_expander(
+    expand_book = gsql.sql_table_expander(
         Book,
         BookRow,
-        expressions={
-            Book.title: BookRow.c_title,
+        fields={
+            Book.title: gsql.expression(BookRow.c_title),
         },
         session=session,
     )
@@ -213,26 +211,24 @@ def test_can_join_tables_using_multi_column_key():
         ],
     )
     
-    expand_left = sql_table_expander(
+    expand_left = gsql.sql_table_expander(
         Left,
         LeftRow,
-        expressions={
-            Left.value: LeftRow.c_value,
-        },
-        joins={
-            Left.right: {
+        fields={
+            Left.value: gsql.expression(LeftRow.c_value),
+            Left.right: gsql.sql_join({
                 LeftRow.c_id_1: RightRow.c_id_1,
                 LeftRow.c_id_2: RightRow.c_id_2,
-            },
+            }),
         },
         session=session,
     )
     
-    expand_right = sql_table_expander(
+    expand_right = gsql.sql_table_expander(
         Right,
         RightRow,
-        expressions={
-            Right.value: RightRow.c_value,
+        fields={
+            Right.value: gsql.expression(RightRow.c_value),
         },
         session=session,
     )

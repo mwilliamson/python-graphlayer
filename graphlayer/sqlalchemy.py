@@ -7,10 +7,64 @@ from . import iterables
 from .schema import ListQuery
 
 
-def sql_table_expander(type, model, session, expressions, joins=None):
-    if joins is None:
-        joins = {}
+def expression(expression):
+    return _ExpressionField(expression)
+
+
+class _ExpressionField(object):
+    def __init__(self, expression):
+        self._expression = expression
+    
+    def process(self, graph, field_query, base_query):
+        return ((self._expression, ), None)
+    
+    def create_reader(self, result):
+        def read(row):
+            return row.pop()
         
+        return read
+
+
+def sql_join(join):
+    return _SqlJoinField(join)
+
+
+class _SqlJoinField(object):
+    def __init__(self, join):
+        self._join = join
+    
+    def process(self, graph, field_query, base_query):
+        if len(self._join) == 1:
+            foreign_key_expression, = self._join.values()
+        else:
+            foreign_key_expression = sqlalchemy.tuple_(*self._join.values())
+        
+        where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
+        
+        result = graph.expand(
+            g.ListType(field_query.field.type),
+            "indexed_object_representation",
+            {
+                g.object_query: ListQuery(field_query.field.type, field_query.type_query),
+                "where": where,
+                "index_expressions": self._join.values(),
+            },
+        )
+        return self._join.keys(), result
+    
+    def create_reader(self, result):
+        join_range = range(len(self._join))
+        
+        def read(row):
+            return result[tuple([
+                row.pop()
+                for _ in join_range
+            ])]
+            
+        return read
+
+
+def sql_table_expander(type, model, fields, session):
     @g.expander(g.ListType(type), g.object_representation, dict(
         query=g.object_query,
         where="where",
@@ -49,40 +103,12 @@ def sql_table_expander(type, model, session, expressions, joins=None):
         join_results = {}
         
         for key, field_query in query.element_query.fields.items():
-            if field_query.field in expressions:
-                query_expressions.append(expressions[field_query.field].label(key))
-            else:
-                join = joins[field_query.field]
-                for index, local_key_expression in enumerate(join.keys()):
-                    query_expressions.append(local_key_expression)
-                if len(join) == 1:
-                    foreign_key_expression, = join.values()
-                else:
-                    foreign_key_expression = sqlalchemy.tuple_(*join.values())
-                
-                where = foreign_key_expression.in_(base_query.add_columns(*join.keys()))
-                
-                join_results[key] = graph.expand(
-                    g.ListType(field_query.field.type),
-                    "indexed_object_representation",
-                    {
-                        g.object_query: ListQuery(field_query.field.type, field_query.type_query),
-                        "where": where,
-                        "index_expressions": join.values(),
-                    },
-                )
+            expressions, result = fields[field_query.field].process(graph, field_query, base_query)
+            query_expressions += expressions
+            join_results[key] = result
         
         def create_field_reader(key, field_query):
-            if field_query.field in expressions:
-                return lambda row: row.pop()
-            else:
-                join = joins[field_query.field]
-                results = join_results[key]
-                join_range = range(len(join))
-                return lambda row: results[tuple([
-                    row.pop()
-                    for _ in join_range
-                ])]
+            return fields[field_query.field].create_reader(join_results[key])
         
         readers = [
             (key, create_field_reader(key, field_query))
