@@ -26,13 +26,13 @@ class _ExpressionField(object):
 
 
 def sql_join(join):
-    return lambda select: _SqlJoinField(join, select=select)
+    return lambda select_result: _SqlJoinField(join, select_result=select_result)
 
 
 class _SqlJoinField(object):
-    def __init__(self, join, select):
+    def __init__(self, join, select_result):
         self._join = join
-        self._select = select
+        self._select_result = select_result
     
     def process(self, graph, field_query, base_query):
         if len(self._join) == 1:
@@ -63,7 +63,7 @@ class _SqlJoinField(object):
         join_range = range(len(self._join))
 
         def read(row):
-            return self._select(result.get(tuple([
+            return self._select_result(result.get(tuple([
                 row.pop()
                 for _ in join_range
             ]), ()))
@@ -72,24 +72,24 @@ class _SqlJoinField(object):
 
 
 def many(field):
-    def select(values):
+    def select_result(values):
         return values
 
-    return field(select=select)
+    return field(select_result=select_result)
 
 
 def single(field):
-    def select(values):
+    def select_result(values):
         if len(values) == 1:
             return values[0]
         else:
             raise ValueError("expected exactly one value")
 
-    return field(select=select)
+    return field(select_result=select_result)
 
 
 def single_or_null(field):
-    def select(values):
+    def select_result(values):
         if len(values) == 0:
             return None
         elif len(values) == 1:
@@ -97,7 +97,7 @@ def single_or_null(field):
         else:
             raise ValueError("expected zero or one values")
 
-    return field(select=select)
+    return field(select_result=select_result)
 
 
 def sql_table_expander(type, model, fields, session):
