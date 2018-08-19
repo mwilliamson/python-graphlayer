@@ -41,11 +41,17 @@ class _SqlJoinField(object):
         
         where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
         
+        element_type = field_query.field.type
+        type_query = field_query.type_query
+        while isinstance(element_type, (g.ListType, g.NullableType)):
+            element_type = element_type.element_type
+            type_query = type_query.element_query
+        
         result = graph.expand(
-            g.ListType(field_query.field.type),
+            g.ListType(element_type),
             "indexed_object_representation",
             {
-                g.object_query: ListQuery(field_query.field.type, field_query.type_query),
+                g.object_query: ListQuery(g.ListType(element_type), type_query),
                 "where": where,
                 "index_expressions": self._join.values(),
             },
@@ -56,10 +62,10 @@ class _SqlJoinField(object):
         join_range = range(len(self._join))
         
         def read(row):
-            return result[tuple([
+            return result.get(tuple([
                 row.pop()
                 for _ in join_range
-            ])]
+            ]))
             
         return read
 
@@ -131,3 +137,4 @@ def sql_table_expander(type, model, fields, session):
         ]
         
     return [expand_objects, expand_indexed_objects]
+    

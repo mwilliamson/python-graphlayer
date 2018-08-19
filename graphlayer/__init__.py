@@ -1,7 +1,7 @@
 from .core import create_graph, expander, NoRouteError
 from .expanders import constant_object_expander
 from .representations import object_representation, ObjectResult
-from .schema import field, IntType, ListType, object_query, ObjectType, StringType
+from .schema import field, IntType, ListType, NullableType, object_query, ObjectType, StringType
 
 
 __all__ = [
@@ -17,6 +17,7 @@ __all__ = [
     "field",
     "IntType",
     "ListType",
+    "NullableType",
     "object_query",
     "ObjectType",
     "StringType",

@@ -32,10 +32,39 @@ class ListType(object):
         return hash(self._element_type)
     
     def __repr__(self):
-        return "List(element_type={!r})".format(self._element_type)
+        return "ListType(element_type={!r})".format(self._element_type)
 
 
 class ListQuery(object):
+    def __init__(self, type, element_query):
+        self.type = type
+        self.element_query = element_query
+
+
+class NullableType(object):
+    def __init__(self, element_type):
+        self.element_type = element_type
+    
+    def __call__(self, *args, **kwargs):
+        return NullableQuery(self, self.element_type(*args, **kwargs))
+    
+    def __eq__(self, other):
+        if isinstance(other, NullableType):
+            return self.element_type == other.element_type
+        else:
+            return NotImplemented
+    
+    def __ne__(self, other):
+        return not (self == other)
+    
+    def __hash__(self):
+        return hash(self.element_type)
+    
+    def __repr__(self):
+        return "NullableType(element_type={!r})".format(self.element_type)
+
+
+class NullableQuery(object):
     def __init__(self, type, element_query):
         self.type = type
         self.element_query = element_query
