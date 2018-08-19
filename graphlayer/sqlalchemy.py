@@ -136,20 +136,13 @@ def sql_table_expander(type, model, fields, session):
         if where is not None:
             base_query = base_query.filter(where)
         
-        join_results = {}
+        readers = []
         
         for key, field_query in query.element_query.fields.items():
             expressions, result = fields[field_query.field].process(graph, field_query, base_query)
             query_expressions += expressions
-            join_results[key] = result
-        
-        def create_field_reader(key, field_query):
-            return fields[field_query.field].create_reader(field_query, join_results[key])
-        
-        readers = [
-            (key, create_field_reader(key, field_query))
-            for key, field_query in query.element_query.fields.items()
-        ]
+            reader = fields[field_query.field].create_reader(field_query, result)
+            readers.append((key, reader))
         
         def read_row(row):
             row = list(row)
