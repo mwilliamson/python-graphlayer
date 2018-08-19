@@ -20,7 +20,7 @@ class _ExpressionField(object):
     
     def create_reader(self, field_query, result):
         def read(row):
-            return row.pop()
+            return row[0]
         
         return read
 
@@ -60,13 +60,8 @@ class _SqlJoinField(object):
         return self._join.keys(), result
     
     def create_reader(self, field_query, result):
-        join_range = range(len(self._join))
-
         def read(row):
-            return self._select_result(result.get(tuple([
-                row.pop()
-                for _ in join_range
-            ]), ()))
+            return self._select_result(result.get(tuple(row), ()))
             
         return read
 
@@ -140,23 +135,23 @@ def sql_table_expander(type, model, fields, session):
         
         for key, field_query in query.element_query.fields.items():
             expressions, result = fields[field_query.field].process(graph, field_query, base_query)
+            row_slice = slice(len(query_expressions), len(query_expressions) + len(expressions))
             query_expressions += expressions
             reader = fields[field_query.field].create_reader(field_query, result)
-            readers.append((key, reader))
+            readers.append((key, row_slice, reader))
         
         def read_row(row):
-            row = list(row)
             return process_row(
-                row,
+                row[len(query_expressions):],
                 g.ObjectResult(iterables.to_dict(
-                    (key, read(row))
-                    for key, read in readers
+                    (key, read(row[row_slice]))
+                    for key, row_slice, read in readers
                 ))
             )
         
         return [
             read_row(row)
-            for row in base_query.with_session(session).add_columns(*extra_expressions).add_columns(*reversed(query_expressions))
+            for row in base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
         ]
         
     return [expand_objects, expand_indexed_objects]
