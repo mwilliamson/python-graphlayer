@@ -16,3 +16,15 @@ def to_dict(iterable):
         result[key] = value
     
     return result
+
+    
+def to_multidict(iterable):
+    result = {}
+
+    for key, value in iterable:
+        if key not in result:
+            result[key] = []
+
+        result[key].append(value)
+
+    return result

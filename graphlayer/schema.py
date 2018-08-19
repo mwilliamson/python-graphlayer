@@ -14,14 +14,14 @@ class StringType(object):
 
 class ListType(object):
     def __init__(self, element_type):
-        self._element_type = element_type
+        self.element_type = element_type
     
     def __call__(self, *args, **kwargs):
-        return ListQuery(self, self._element_type(*args, **kwargs))
+        return ListQuery(self, self.element_type(*args, **kwargs))
     
     def __eq__(self, other):
         if isinstance(other, ListType):
-            return self._element_type == other._element_type
+            return self.element_type == other.element_type
         else:
             return NotImplemented
     
@@ -29,10 +29,10 @@ class ListType(object):
         return not (self == other)
     
     def __hash__(self):
-        return hash(self._element_type)
+        return hash(self.element_type)
     
     def __repr__(self):
-        return "ListType(element_type={!r})".format(self._element_type)
+        return "ListType(element_type={!r})".format(self.element_type)
 
 
 class ListQuery(object):

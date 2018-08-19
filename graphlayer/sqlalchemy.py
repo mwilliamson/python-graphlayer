@@ -18,7 +18,7 @@ class _ExpressionField(object):
     def process(self, graph, field_query, base_query):
         return ((self._expression, ), None)
     
-    def create_reader(self, result):
+    def create_reader(self, field_query, result):
         def read(row):
             return row.pop()
         
@@ -58,14 +58,34 @@ class _SqlJoinField(object):
         )
         return self._join.keys(), result
     
-    def create_reader(self, result):
+    def create_reader(self, field_query, result):
         join_range = range(len(self._join))
-        
+
+        if isinstance(field_query.field.type, g.ListType):
+            def select(values):
+                return values
+
+        elif isinstance(field_query.field.type, g.NullableType):
+            def select(values):
+                if len(values) == 0:
+                    return None
+                elif len(values) == 1:
+                    return values[0]
+                else:
+                    raise ValueError("expected zero or one values")
+
+        else:
+            def select(values):
+                if len(values) == 1:
+                    return values[0]
+                else:
+                    raise ValueError("expected exactly one value")
+
         def read(row):
-            return result.get(tuple([
+            return select(result.get(tuple([
                 row.pop()
                 for _ in join_range
-            ]))
+            ]), ()))
             
         return read
 
@@ -90,7 +110,7 @@ def sql_table_expander(type, model, fields, session):
         index_expressions="index_expressions",
     ))
     def expand_indexed_objects(graph, query, where, index_expressions):
-        return iterables.to_dict(expand(
+        return iterables.to_multidict(expand(
             graph,
             query=query,
             where=where,
@@ -114,7 +134,7 @@ def sql_table_expander(type, model, fields, session):
             join_results[key] = result
         
         def create_field_reader(key, field_query):
-            return fields[field_query.field].create_reader(join_results[key])
+            return fields[field_query.field].create_reader(field_query, join_results[key])
         
         readers = [
             (key, create_field_reader(key, field_query))
