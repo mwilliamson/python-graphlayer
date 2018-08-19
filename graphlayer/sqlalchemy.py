@@ -61,25 +61,7 @@ class _SqlJoinField(object):
     def create_reader(self, field_query, result):
         join_range = range(len(self._join))
 
-        if isinstance(field_query.field.type, g.ListType):
-            def select(values):
-                return values
-
-        elif isinstance(field_query.field.type, g.NullableType):
-            def select(values):
-                if len(values) == 0:
-                    return None
-                elif len(values) == 1:
-                    return values[0]
-                else:
-                    raise ValueError("expected zero or one values")
-
-        else:
-            def select(values):
-                if len(values) == 1:
-                    return values[0]
-                else:
-                    raise ValueError("expected exactly one value")
+        select = _create_list_processor(field_query.field.type)
 
         def read(row):
             return select(result.get(tuple([
@@ -88,6 +70,29 @@ class _SqlJoinField(object):
             ]), ()))
             
         return read
+
+def _create_list_processor(type):
+    if isinstance(type, g.ListType):
+        def select(values):
+            return values
+
+    elif isinstance(type, g.NullableType):
+        def select(values):
+            if len(values) == 0:
+                return None
+            elif len(values) == 1:
+                return values[0]
+            else:
+                raise ValueError("expected zero or one values")
+
+    else:
+        def select(values):
+            if len(values) == 1:
+                return values[0]
+            else:
+                raise ValueError("expected exactly one value")
+
+    return select
 
 
 def sql_table_expander(type, model, fields, session):
