@@ -43,20 +43,15 @@ class _DirectSqlJoinField(object):
     
     def process(self, graph, field_query, base_query, session):
         foreign_key_expression = _to_sql_expression(self._join.values())
-        
         where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
         
-        element_type = field_query.field.type
-        type_query = field_query.type_query
-        while isinstance(element_type, (g.ListType, g.NullableType)):
-            element_type = element_type.element_type
-            type_query = type_query.element_query
+        list_query = _to_list_query(field_query)
         
         result = graph.expand(
-            g.ListType(element_type),
+            list_query.type,
             "indexed_object_representation",
             {
-                g.object_query: ListQuery(g.ListType(element_type), type_query),
+                g.object_query: list_query,
                 "where": where,
                 "index_expressions": self._join.values(),
             },
@@ -100,20 +95,15 @@ class _AssociationSqlJoinField(object):
         ]
         
         foreign_key_expression = _to_sql_expression(self._right_join.values())
-        
         where = foreign_key_expression.in_(base_association_query.add_columns(*self._right_join.keys()))
         
-        element_type = field_query.field.type
-        type_query = field_query.type_query
-        while isinstance(element_type, (g.ListType, g.NullableType)):
-            element_type = element_type.element_type
-            type_query = type_query.element_query
+        list_query = _to_list_query(field_query)
         
         right_result = graph.expand(
-            g.ListType(element_type),
+            list_query.type,
             "indexed_object_representation",
             {
-                g.object_query: ListQuery(g.ListType(element_type), type_query),
+                g.object_query: list_query,
                 "where": where,
                 "index_expressions": self._right_join.values(),
             },
@@ -129,6 +119,16 @@ class _AssociationSqlJoinField(object):
             return self._select_result(result.get(tuple(row), ()))
             
         return read
+
+
+def _to_list_query(field_query):
+    element_type = field_query.field.type
+    type_query = field_query.type_query
+    while isinstance(element_type, (g.ListType, g.NullableType)):
+        element_type = element_type.element_type
+        type_query = type_query.element_query
+    
+    return ListQuery(g.ListType(element_type), type_query)
 
 
 def _to_sql_expression(expressions):
