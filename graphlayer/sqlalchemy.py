@@ -206,27 +206,32 @@ def sql_table_expander(type, model, fields, session):
         if where is not None:
             base_query = base_query.filter(where)
         
+        row_slices = []
         readers = []
         
         for key, field_query in query.element_query.fields.items():
             expressions = fields[field_query.field].expressions()
-            row_slice = slice(len(query_expressions), len(query_expressions) + len(expressions))
+            row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions))) 
             query_expressions += expressions
+        
+        rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
+        
+        for key, field_query in query.element_query.fields.items():    
             reader = fields[field_query.field].create_reader(graph, field_query, base_query, session=session)
-            readers.append((key, row_slice, reader))
+            readers.append(reader)
         
         def read_row(row):
             return process_row(
                 row[len(query_expressions):],
                 g.ObjectResult(iterables.to_dict(
                     (key, read(row[row_slice]))
-                    for key, row_slice, read in readers
+                    for key, row_slice, read in zip(query.element_query.fields.keys(), row_slices, readers)
                 ))
             )
         
         return [
             read_row(row)
-            for row in base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
+            for row in rows
         ]
         
     return [expand_objects, expand_indexed_objects]
