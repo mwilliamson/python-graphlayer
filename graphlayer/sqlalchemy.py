@@ -15,8 +15,11 @@ class _ExpressionField(object):
     def __init__(self, expression):
         self._expression = expression
     
+    def expressions(self):
+        return (self._expression, )
+    
     def process(self, graph, field_query, base_query, session):
-        return ((self._expression, ), None)
+        return None
     
     def create_reader(self, field_query, result):
         def read(row):
@@ -41,6 +44,9 @@ class _DirectSqlJoinField(object):
         self._join = join
         self._select_result = select_result
     
+    def expressions(self):
+        return self._join.keys()
+    
     def process(self, graph, field_query, base_query, session):
         foreign_key_expression = _to_sql_expression(self._join.values())
         where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
@@ -56,7 +62,7 @@ class _DirectSqlJoinField(object):
                 "index_expressions": self._join.values(),
             },
         )
-        return self._join.keys(), result
+        return result
     
     def create_reader(self, field_query, result):
         def read(row):
@@ -80,6 +86,9 @@ class _AssociationSqlJoinField(object):
         self._association = association
         self._right_join = right_join
         self._select_result = select_result
+    
+    def expressions(self):
+        return self._left_join.keys()
     
     def process(self, graph, field_query, base_query, session):
         base_association_query = sqlalchemy.orm.Query([]) \
@@ -108,7 +117,7 @@ class _AssociationSqlJoinField(object):
                 "index_expressions": self._right_join.values(),
             },
         )
-        return self._left_join.keys(), iterables.to_multidict(
+        return iterables.to_multidict(
             (left_key, right_value)
             for left_key, right_key in associations
             for right_value in right_result.get(right_key, ())
@@ -206,7 +215,8 @@ def sql_table_expander(type, model, fields, session):
         readers = []
         
         for key, field_query in query.element_query.fields.items():
-            expressions, result = fields[field_query.field].process(graph, field_query, base_query, session=session)
+            expressions = fields[field_query.field].expressions()
+            result = fields[field_query.field].process(graph, field_query, base_query, session=session)
             row_slice = slice(len(query_expressions), len(query_expressions) + len(expressions))
             query_expressions += expressions
             reader = fields[field_query.field].create_reader(field_query, result)
