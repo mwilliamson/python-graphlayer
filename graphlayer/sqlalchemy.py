@@ -216,16 +216,16 @@ def sql_table_expander(type, model, fields, session):
         
         rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
         
-        for key, field_query in query.element_query.fields.items():    
+        for (key, field_query), row_slice in zip(query.element_query.fields.items(), row_slices):
             reader = fields[field_query.field].create_reader(graph, field_query, base_query, session=session)
-            readers.append(reader)
+            readers.append((key, row_slice, reader))
         
         def read_row(row):
             return process_row(
                 row[len(query_expressions):],
                 g.ObjectResult(iterables.to_dict(
                     (key, read(row[row_slice]))
-                    for key, row_slice, read in zip(query.element_query.fields.keys(), row_slices, readers)
+                    for key, row_slice, read in readers
                 ))
             )
         
