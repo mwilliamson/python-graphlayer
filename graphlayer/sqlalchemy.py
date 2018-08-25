@@ -18,10 +18,7 @@ class _ExpressionField(object):
     def expressions(self):
         return (self._expression, )
     
-    def process(self, graph, field_query, base_query, session):
-        return None
-    
-    def create_reader(self, field_query, result):
+    def create_reader(self, graph, field_query, base_query, session):
         def read(row):
             return row[0]
         
@@ -47,7 +44,7 @@ class _DirectSqlJoinField(object):
     def expressions(self):
         return self._join.keys()
     
-    def process(self, graph, field_query, base_query, session):
+    def create_reader(self, graph, field_query, base_query, session):
         foreign_key_expression = _to_sql_expression(self._join.values())
         where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
         
@@ -62,9 +59,7 @@ class _DirectSqlJoinField(object):
                 "index_expressions": self._join.values(),
             },
         )
-        return result
-    
-    def create_reader(self, field_query, result):
+            
         def read(row):
             return self._select_result(result.get(tuple(row), ()))
             
@@ -90,7 +85,7 @@ class _AssociationSqlJoinField(object):
     def expressions(self):
         return self._left_join.keys()
     
-    def process(self, graph, field_query, base_query, session):
+    def create_reader(self, graph, field_query, base_query, session):
         base_association_query = sqlalchemy.orm.Query([]) \
             .select_from(self._association)
         
@@ -117,13 +112,12 @@ class _AssociationSqlJoinField(object):
                 "index_expressions": self._right_join.values(),
             },
         )
-        return iterables.to_multidict(
+        result = iterables.to_multidict(
             (left_key, right_value)
             for left_key, right_key in associations
             for right_value in right_result.get(right_key, ())
         )
-    
-    def create_reader(self, field_query, result):
+
         def read(row):
             return self._select_result(result.get(tuple(row), ()))
             
@@ -216,10 +210,9 @@ def sql_table_expander(type, model, fields, session):
         
         for key, field_query in query.element_query.fields.items():
             expressions = fields[field_query.field].expressions()
-            result = fields[field_query.field].process(graph, field_query, base_query, session=session)
             row_slice = slice(len(query_expressions), len(query_expressions) + len(expressions))
             query_expressions += expressions
-            reader = fields[field_query.field].create_reader(field_query, result)
+            reader = fields[field_query.field].create_reader(graph, field_query, base_query, session=session)
             readers.append((key, row_slice, reader))
         
         def read_row(row):
