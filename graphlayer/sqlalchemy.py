@@ -209,7 +209,7 @@ def sql_table_expander(type, model, fields, session):
         row_slices = []
         readers = []
         
-        for key, field_query in query.element_query.fields.items():
+        for field_query in query.element_query.fields.values():
             expressions = fields[field_query.field].expressions()
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions))) 
             query_expressions += expressions
