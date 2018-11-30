@@ -50,15 +50,11 @@ class _DirectSqlJoinField(object):
         
         list_query = _to_list_query(field_query)
         
-        result = graph.expand(
-            list_query.type,
-            "indexed_object_representation",
-            {
-                g.object_query: list_query,
-                "where": where,
-                "index_expressions": self._join.values(),
-            },
-        )
+        result = graph.expand(_IndexedQuery(
+            type_query=list_query,
+            where=where,
+            index_expressions=self._join.values(),
+        ))
             
         def read(row):
             return self._select_result(result.get(tuple(row), ()))
@@ -103,15 +99,11 @@ class _AssociationSqlJoinField(object):
         
         list_query = _to_list_query(field_query)
         
-        right_result = graph.expand(
-            list_query.type,
-            "indexed_object_representation",
-            {
-                g.object_query: list_query,
-                "where": where,
-                "index_expressions": self._right_join.values(),
-            },
-        )
+        right_result = graph.expand(_IndexedQuery(
+            type_query=list_query,
+            where=where,
+            index_expressions=self._right_join.values(),
+        ))
         result = iterables.to_multidict(
             (left_key, right_value)
             for left_key, right_key in associations
@@ -170,31 +162,39 @@ def single_or_null(field):
     return field(select_result=select_result)
 
 
+_index_type_key = object()
+
+
+def _index_type(t):
+    return (_index_type_key, t)
+
+
+class _IndexedQuery(object):
+    def __init__(self, type_query, where, index_expressions):
+        self.type = _index_type(type_query.type)
+        self.type_query = type_query
+        self.where = where
+        self.index_expressions = index_expressions
+
+
 def sql_table_expander(type, model, fields, session):
-    @g.expander(g.ListType(type), g.object_representation, dict(
-        query=g.object_query,
-        where="where",
-    ))
-    def expand_objects(graph, query, where):
+    @g.expander(g.ListType(type))
+    def expand_objects(graph, query):
         return expand(
             graph,
             query=query,
-            where=where,
+            where=None,
             extra_expressions=[],
             process_row=lambda row, result: result,
         )
     
-    @g.expander(g.ListType(type), "indexed_object_representation", dict(
-        query=g.object_query,
-        where="where",
-        index_expressions="index_expressions",
-    ))
-    def expand_indexed_objects(graph, query, where, index_expressions):
+    @g.expander(_index_type(g.ListType(type)))
+    def expand_indexed_objects(graph, query):
         return iterables.to_multidict(expand(
             graph,
-            query=query,
-            where=where,
-            extra_expressions=index_expressions,
+            query=query.type_query,
+            where=query.where,
+            extra_expressions=query.index_expressions,
             process_row=lambda row, result: (tuple(row), result),
         ))
         
