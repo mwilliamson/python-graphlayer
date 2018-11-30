@@ -78,7 +78,7 @@ class ObjectType(object):
         return iterables.find(lambda field: field.name == field_name, self._fields())
     
     def __call__(self, **fields):
-        return ObjectQuery(self, fields, args=None)
+        return ObjectQuery(self, fields)
     
     def __repr__(self):
         return "ObjectType(name={!r})".format(self._name)
@@ -101,16 +101,9 @@ def _lambdaise(value):
 
 
 class ObjectQuery(object):
-    def __init__(self, type, fields, args):
+    def __init__(self, type, fields):
         self.type = type
         self.fields = fields
-        self.args = args
-    
-    def with_args(self, **kwargs):
-        args = Args()
-        for key, value in kwargs.items():
-            setattr(args, key, value)
-        return ObjectQuery(type=self.type, fields=self.fields, args=args)
 
 
 class Args(object):

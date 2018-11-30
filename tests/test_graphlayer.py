@@ -147,8 +147,15 @@ def test_can_recursively_expand_selected_fields():
     def resolve_title(graph, book, query):
         return book["title"]
     
+    class AuthorQuery(object):
+        type = "author"
+        
+        def __init__(self, type_query, author_id):
+            self.type_query = type_query
+            self.author_id = author_id
+    
     def resolve_author(graph, book, query):
-        return graph.expand(query.with_args(author_id=book["author_id"]))
+        return graph.expand(AuthorQuery(query, author_id=book["author_id"]))
     
     fields = {
         "title": resolve_title,
@@ -173,12 +180,12 @@ def test_can_recursively_expand_selected_fields():
         "shakespeare": dict(name="William Shakespeare"),
     }
     
-    @g.expander(Author)
+    @g.expander(AuthorQuery.type)
     def expand_author(graph, query):
-        author = authors[query.args.author_id]
+        author = authors[query.author_id]
         return g.ObjectResult(iterables.to_dict(
             (key, author[field_query.field.name])
-            for key, field_query in query.fields.items()
+            for key, field_query in query.type_query.fields.items()
         ))
     
     expanders = [expand_root, expand_book, expand_author]
