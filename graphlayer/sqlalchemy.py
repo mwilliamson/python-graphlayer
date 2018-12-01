@@ -221,6 +221,13 @@ def sql_table_expander(type, model, fields, session):
         ))
         
     def expand(graph, query, where, extra_expressions, process_row):
+        def get_field(field_query):
+            field = fields[field_query.field]
+            if callable(field):
+                return field(field_query.args)
+            else:
+                return field
+        
         query_expressions = []
         
         base_query = sqlalchemy.orm.Query([]).select_from(model)
@@ -232,14 +239,14 @@ def sql_table_expander(type, model, fields, session):
         readers = []
         
         for field_query in query.element_query.fields.values():
-            expressions = fields[field_query.field].expressions()
+            expressions = get_field(field_query).expressions()
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions))) 
             query_expressions += expressions
         
         rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
         
         for (key, field_query), row_slice in zip(query.element_query.fields.items(), row_slices):
-            reader = fields[field_query.field].create_reader(graph, field_query, base_query, session=session)
+            reader = get_field(field_query).create_reader(graph, field_query, base_query, session=session)
             readers.append((key, row_slice, reader))
         
         def read_row(row):

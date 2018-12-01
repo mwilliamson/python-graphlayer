@@ -60,7 +60,56 @@ def test_can_get_fields_backed_by_expressions():
     ))
 
 
-def test_can_pass_arguments():
+def test_can_pass_arguments_to_expression():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+    
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+    
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+    
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith"))
+    session.commit()
+    
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.StringType, args=[
+                g.arg("truncate", g.IntType),
+            ]),
+        ],
+    )
+    
+    expand_book = gsql.sql_table_expander(
+        Book,
+        BookRow,
+        fields={
+            Book.title: lambda args: gsql.expression(sqlalchemy.func.substr(BookRow.c_title, 1, args.truncate)),
+        },
+        session=session,
+    )
+    
+    expanders = [expand_book]
+    
+    query = g.ListType(Book)(
+        title=Book.title(Book.title.truncate(8)),
+    )
+    result = g.create_graph(expanders).expand(query)
+    
+    assert_that(result, contains_exactly(
+        has_attrs(
+            title="Leave it",
+        ),
+    ))
+
+
+def test_can_pass_arguments_from_root():
     Base = sqlalchemy.ext.declarative.declarative_base()
     
     class BookRow(Base):

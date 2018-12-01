@@ -21,11 +21,7 @@ def root_object_expander(type):
             # TODO: handle unhandled args
             # TODO: argument handling in non-root types
             if field_query.args:
-                args = ObjectResult(iterables.to_dict(
-                    (arg.parameter.name, arg.value)
-                    for arg in field_query.args
-                ))
-                return graph.expand(field_query.type_query, args, type=ArgumentHandler(field_query.field))
+                return graph.expand(field_query.type_query, field_query.args, type=ArgumentHandler(field_query.field))
             else:
                 return field_query.type_query
         
@@ -52,3 +48,6 @@ class ArgumentHandler(object):
     
     def __hash__(self):
         return hash(self._field)
+    
+    def __repr__(self):
+        return "ArgumentHandler(field={!r})".format(self._field)

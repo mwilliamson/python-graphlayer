@@ -1,4 +1,5 @@
 from . import iterables
+from .representations import ObjectResult
 
 
 class IntType(object):
@@ -124,7 +125,11 @@ class Field(object):
         return iterables.find(lambda arg: arg.name == arg_name, self._args)
     
     def __call__(self, *args, **kwargs):
-        return FieldQuery(field=self, type_query=self.type(**kwargs), args=args)
+        field_args = ObjectResult(iterables.to_dict(
+            (arg.parameter.name, arg.value)
+            for arg in args
+        ))
+        return FieldQuery(field=self, type_query=self.type(**kwargs), args=field_args)
     
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
