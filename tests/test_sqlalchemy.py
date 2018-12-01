@@ -60,6 +60,78 @@ def test_can_get_fields_backed_by_expressions():
     ))
 
 
+def test_can_pass_arguments():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+    
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+    
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+    
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_id=1, c_title="Leave it to Psmith"))
+    session.add(BookRow(c_id=2, c_title="Pericles, Prince of Tyre"))
+
+    session.commit()
+    
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: [
+            g.field("books", type=g.ListType(Book), args=[
+                g.arg("id", g.IntType),
+            ]),
+        ],
+    )
+    
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.StringType),
+        ],
+    )
+    
+    expand_root = root_object_expander(Root, {
+        Root.books: lambda graph, query, args: expand_book.filter_id(query, args.id),
+    })
+    
+    expand_book = gsql.sql_table_expander(
+        Book,
+        BookRow,
+        fields={
+            Book.title: gsql.expression(BookRow.c_title),
+        },
+        session=session,
+    )
+    
+    @expand_book.add("filter_id")
+    def expand_book_filter_id(query, id):
+        return gsql.where(query, BookRow.c_id == id)
+    
+    expanders = [expand_root, expand_book]
+    
+    query = Root(
+        books=Root.books(
+            Root.books.id(1),
+            
+            title=Book.title(),
+        ),
+    )
+    result = g.create_graph(expanders).expand(query)
+    
+    assert_that(result, has_attrs(
+        books=contains_exactly(
+            has_attrs(
+                title="Leave it to Psmith",
+            ),
+        ),
+    ))
+
+
 def test_can_recursively_expand_selected_fields():
     Base = sqlalchemy.ext.declarative.declarative_base()
     

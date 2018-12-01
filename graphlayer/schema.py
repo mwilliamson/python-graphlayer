@@ -110,23 +110,47 @@ class Args(object):
     pass
 
 
-def field(name, type):
-    return Field(name=name, type=type)
+def field(name, type, args=None):
+    return Field(name=name, type=type, args=args)
 
 
 class Field(object):
-    def __init__(self, name, type):
+    def __init__(self, name, type, args):
         self.name = name
         self.type = type
+        self._args = args
+    
+    def __getattr__(self, arg_name):
+        return iterables.find(lambda arg: arg.name == arg_name, self._args)
     
     def __call__(self, *args, **kwargs):
-        return FieldQuery(field=self, type_query=self.type(*args, **kwargs))
+        return FieldQuery(field=self, type_query=self.type(**kwargs), args=args)
     
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
 
 
 class FieldQuery(object):
-    def __init__(self, field, type_query):
+    def __init__(self, field, type_query, args):
         self.field = field
         self.type_query = type_query
+        self.args = args
+
+
+def arg(name, type):
+    return Parameter(name=name, type=type)
+
+
+class Parameter(object):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+    
+    def __call__(self, value):
+        return Argument(parameter=self, value=value)
+
+
+class Argument(object):
+    def __init__(self, parameter, value):
+        self.parameter = parameter
+        self.value = value

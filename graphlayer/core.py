@@ -17,12 +17,17 @@ class Graph(object):
         return expander(self, query)
 
 
-def _flatten(values):
-    return [
-        value
-        for element in values
-        for value in (element if isinstance(element, list) else [element])
-    ]
+def _flatten(value):
+    if isinstance(value, list):
+        return [
+            subelement
+            for element in value
+            for subelement in _flatten(element)
+        ]
+    elif hasattr(value, "expanders"):
+        return _flatten(value.expanders)
+    else:
+        return [value]
 
 
 def expander(type):

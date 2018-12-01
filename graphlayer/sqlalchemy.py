@@ -177,13 +177,35 @@ class _IndexedQuery(object):
         self.index_expressions = index_expressions
 
 
+def where(query, condition):
+    return _FilteredQuery(type_query=query, where=condition)
+
+
+_filtered_type_key = object()
+
+
+def _filtered_type(t):
+    return (_filtered_type_key, t)
+
+
+class _FilteredQuery(object):
+    def __init__(self, type_query, where):
+        self.type = _filtered_type(type_query.type)
+        self.type_query = type_query
+        self.where = where
+
+
 def sql_table_expander(type, model, fields, session):
     @g.expander(g.ListType(type))
     def expand_objects(graph, query):
+        return graph.expand(_FilteredQuery(type_query=query, where=None))
+        
+    @g.expander(_filtered_type(g.ListType(type)))
+    def expand_filtered_objects(graph, query):
         return expand(
             graph,
-            query=query,
-            where=None,
+            query=query.type_query,
+            where=query.where,
             extra_expressions=[],
             process_row=lambda row, result: result,
         )
@@ -234,5 +256,16 @@ def sql_table_expander(type, model, fields, session):
             for row in rows
         ]
         
-    return [expand_objects, expand_indexed_objects]
+    return _Expander(expanders=[expand_objects, expand_filtered_objects, expand_indexed_objects])
     
+
+class _Expander(object):
+    def __init__(self, expanders):
+        self.expanders = expanders
+    
+    def add(self, name):
+        def add(value):
+            setattr(self, name, value)
+            return value
+        
+        return add
