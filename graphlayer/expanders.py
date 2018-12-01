@@ -15,34 +15,40 @@ def constant_object_expander(type, values):
 
 
 def root_object_expander(type):
-    field_arg_handlers = {}
-    
     @expander(type)
     def expand_root(graph, query):
         def handle_args(field_query):
-            arg_handler = field_arg_handlers.get(field_query.field)
             # TODO: handle unhandled args
             # TODO: argument handling in non-root types
-            if arg_handler is None:
-                return field_query.type_query
-            else:
+            if field_query.args:
                 args = ObjectResult(iterables.to_dict(
                     (arg.parameter.name, arg.value)
                     for arg in field_query.args
                 ))
-                return arg_handler(graph, field_query.type_query, args)
+                return graph.expand(field_query.type_query, args, type=ArgumentHandler(field_query.field))
+            else:
+                return field_query.type_query
         
         return ObjectResult(iterables.to_dict(
             (key, graph.expand(handle_args(field_query)))
             for key, field_query in query.fields.items()
         ))
     
-    def arg_handler(field):
-        def add_handler(handler):
-            field_arg_handlers[field] = handler
-        
-        return add_handler
-    
-    expand_root.arg_handler = arg_handler
-    
     return expand_root
+
+
+class ArgumentHandler(object):
+    def __init__(self, field):
+        self._field = field
+    
+    def __eq__(self, other):
+        if isinstance(other, ArgumentHandler):
+            return self._field == other._field
+        else:
+            return NotImplemented
+    
+    def __ne__(self, other):
+        return not (self == other)
+    
+    def __hash__(self):
+        return hash(self._field)

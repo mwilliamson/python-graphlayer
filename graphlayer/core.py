@@ -12,9 +12,14 @@ class Graph(object):
             for expander in _flatten(expanders)
         )
     
-    def expand(self, query):
-        expander = self._expanders[query.type]
-        return expander(self, query)
+    def expand(self, *args, **kwargs):
+        type = kwargs.pop("type", None)
+        if type is None:
+            type = args[0].type
+        # TODO: better error
+        assert not kwargs
+        expander = self._expanders[type]
+        return expander(self, *args)
 
 
 def _flatten(value):

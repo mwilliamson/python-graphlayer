@@ -97,7 +97,7 @@ def test_can_pass_arguments():
     
     expand_root = root_object_expander(Root)
     
-    @expand_root.arg_handler(Root.books)
+    @g.expander(g.ArgumentHandler(Root.books))
     def root_books_args(graph, query, args):
         return expand_book.filter_id(query, args.id)
     
@@ -114,7 +114,7 @@ def test_can_pass_arguments():
     def expand_book_filter_id(query, id):
         return gsql.where(query, BookRow.c_id == id)
     
-    expanders = [expand_root, expand_book]
+    expanders = [expand_root, root_books_args, expand_book]
     
     query = Root(
         books=Root.books(
