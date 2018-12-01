@@ -95,9 +95,11 @@ def test_can_pass_arguments():
         ],
     )
     
-    expand_root = root_object_expander(Root, {
-        Root.books: lambda graph, query, args: expand_book.filter_id(query, args.id),
-    })
+    expand_root = root_object_expander(Root)
+    
+    @expand_root.arg_handler(Root.books)
+    def root_books_args(graph, query, args):
+        return expand_book.filter_id(query, args.id)
     
     expand_book = gsql.sql_table_expander(
         Book,
@@ -182,9 +184,7 @@ def test_can_recursively_expand_selected_fields():
         ],
     )
     
-    expand_root = root_object_expander(Root, {
-        Root.books: None,
-    })
+    expand_root = root_object_expander(Root)
     
     expand_book = gsql.sql_table_expander(
         Book,

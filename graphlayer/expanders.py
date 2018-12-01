@@ -14,7 +14,9 @@ def constant_object_expander(type, values):
     return expand
 
 
-def root_object_expander(type, field_arg_handlers):
+def root_object_expander(type):
+    field_arg_handlers = {}
+    
     @expander(type)
     def expand_root(graph, query):
         def handle_args(field_query):
@@ -34,5 +36,13 @@ def root_object_expander(type, field_arg_handlers):
             (key, graph.expand(handle_args(field_query)))
             for key, field_query in query.fields.items()
         ))
+    
+    def arg_handler(field):
+        def add_handler(handler):
+            field_arg_handlers[field] = handler
+        
+        return add_handler
+    
+    expand_root.arg_handler = arg_handler
     
     return expand_root
