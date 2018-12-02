@@ -33,13 +33,12 @@ def sql_join(*args):
 
 
 def _direct_sql_join(join):
-    return lambda select_result: _DirectSqlJoinField(join, select_result=select_result)
+    return _DirectSqlJoinField(join)
 
 
 class _DirectSqlJoinField(object):
-    def __init__(self, join, select_result):
+    def __init__(self, join):
         self._join = join
-        self._select_result = select_result
     
     def expressions(self):
         return self._join.keys()
@@ -57,26 +56,24 @@ class _DirectSqlJoinField(object):
         ))
             
         def read(row):
-            return self._select_result(result.get(tuple(row), ()))
+            return result.get(tuple(row), ())
             
         return read
 
 
 def _association_sql_join(left_join, association, right_join):
-    return lambda select_result: _AssociationSqlJoinField(
+    return _AssociationSqlJoinField(
         left_join=left_join,
         association=association,
         right_join=right_join,
-        select_result=select_result,
     )
 
 
 class _AssociationSqlJoinField(object):
-    def __init__(self, left_join, association, right_join, select_result):
+    def __init__(self, left_join, association, right_join):
         self._left_join = left_join
         self._association = association
         self._right_join = right_join
-        self._select_result = select_result
     
     def expressions(self):
         return self._left_join.keys()
@@ -111,7 +108,7 @@ class _AssociationSqlJoinField(object):
         )
 
         def read(row):
-            return self._select_result(result.get(tuple(row), ()))
+            return result.get(tuple(row), ())
             
         return read
 
@@ -134,32 +131,57 @@ def _to_sql_expression(expressions):
 
 
 def many(field):
-    def select_result(values):
-        return values
-
-    return field(select_result=select_result)
+    return field
 
 
 def single(field):
-    def select_result(values):
-        if len(values) == 1:
-            return values[0]
-        else:
-            raise ValueError("expected exactly one value")
+    return _SingleField(field)
 
-    return field(select_result=select_result)
+
+class _SingleField(object):
+    def __init__(self, field):
+        self._field = field
+    
+    def expressions(self):
+        return self._field.expressions()
+    
+    def create_reader(self, *args, **kwargs):
+        read_many = self._field.create_reader(*args, **kwargs)
+        
+        def read(*args, **kwargs):
+            values = read_many(*args, **kwargs)
+            if len(values) == 1:
+                return values[0]
+            else:
+                raise ValueError("expected exactly one value")
+        
+        return read
 
 
 def single_or_null(field):
-    def select_result(values):
-        if len(values) == 0:
-            return None
-        elif len(values) == 1:
-            return values[0]
-        else:
-            raise ValueError("expected zero or one values")
+    return _SingleOrNullField(field)
 
-    return field(select_result=select_result)
+
+class _SingleOrNullField(object):
+    def __init__(self, field):
+        self._field = field
+    
+    def expressions(self):
+        return self._field.expressions()
+    
+    def create_reader(self, *args, **kwargs):
+        read_many = self._field.create_reader(*args, **kwargs)
+        
+        def read(*args, **kwargs):
+            values = read_many(*args, **kwargs)
+            if len(values) == 0:
+                return None
+            elif len(values) == 1:
+                return values[0]
+            else:
+                raise ValueError("expected zero or one values")
+        
+        return read
 
 
 _index_type_key = object()
