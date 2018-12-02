@@ -135,36 +135,35 @@ def many(field):
 
 
 def single(field):
-    return _SingleField(field)
+    def select_value(values):
+        if len(values) == 1:
+            return values[0]
+        else:
+            raise ValueError("expected exactly one value")
 
-
-class _SingleField(object):
-    def __init__(self, field):
-        self._field = field
-    
-    def expressions(self):
-        return self._field.expressions()
-    
-    def create_reader(self, *args, **kwargs):
-        read_many = self._field.create_reader(*args, **kwargs)
-        
-        def read(*args, **kwargs):
-            values = read_many(*args, **kwargs)
-            if len(values) == 1:
-                return values[0]
-            else:
-                raise ValueError("expected exactly one value")
-        
-        return read
+    return _decorate_read(field, select_value)
 
 
 def single_or_null(field):
-    return _SingleOrNullField(field)
+    def select_value(values):
+        if len(values) == 0:
+            return None
+        elif len(values) == 1:
+            return values[0]
+        else:
+            raise ValueError("expected zero or one values")
+    
+    return _decorate_read(field, select_value)
 
 
-class _SingleOrNullField(object):
-    def __init__(self, field):
+def _decorate_read(field, func):
+    return _DecoratedReadField(field, func)
+
+
+class _DecoratedReadField(object):
+    def __init__(self, field, func):
         self._field = field
+        self._func = func
     
     def expressions(self):
         return self._field.expressions()
@@ -173,13 +172,7 @@ class _SingleOrNullField(object):
         read_many = self._field.create_reader(*args, **kwargs)
         
         def read(*args, **kwargs):
-            values = read_many(*args, **kwargs)
-            if len(values) == 0:
-                return None
-            elif len(values) == 1:
-                return values[0]
-            else:
-                raise ValueError("expected zero or one values")
+            return self._func(read_many(*args, **kwargs))
         
         return read
 
