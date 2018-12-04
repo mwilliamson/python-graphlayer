@@ -49,7 +49,7 @@ class _DirectSqlJoinField(object):
         
         list_query = _to_list_query(field_query)
         
-        result = graph.expand(_IndexedQuery(
+        result = graph.expand(_SqlQuery(
             type_query=list_query,
             where=where,
             index_expressions=self._join.values(),
@@ -96,7 +96,7 @@ class _AssociationSqlJoinField(object):
         
         list_query = _to_list_query(field_query)
         
-        right_result = graph.expand(_IndexedQuery(
+        right_result = graph.expand(_SqlQuery(
             type_query=list_query,
             where=where,
             index_expressions=self._right_join.values(),
@@ -177,63 +177,64 @@ class _DecoratedReadField(object):
         return read
 
 
-_index_type_key = object()
+def select(query):
+    if isinstance(query, _SqlQuery):
+        return query
+    else:
+        return _SqlQuery(query, index_expressions=None, where=None)
 
 
-def _index_type(t):
-    return (_index_type_key, t)
+_sql_query_type_key = object()
 
 
-class _IndexedQuery(object):
+def _sql_query_type(t):
+    return (_sql_query_type_key, t)
+
+
+class _SqlQuery(object):
     def __init__(self, type_query, where, index_expressions):
-        self.type = _index_type(type_query.type)
+        self.type = _sql_query_type(type_query.type)
         self.type_query = type_query
         self.where = where
         self.index_expressions = index_expressions
 
+    def copy(self, where):
+        return _SqlQuery(
+            type_query=self.type_query,
+            where=where,
+            index_expressions=self.index_expressions,
+        )
+
 
 def where(query, condition):
-    return _FilteredQuery(type_query=query, where=condition)
-
-
-_filtered_type_key = object()
-
-
-def _filtered_type(t):
-    return (_filtered_type_key, t)
-
-
-class _FilteredQuery(object):
-    def __init__(self, type_query, where):
-        self.type = _filtered_type(type_query.type)
-        self.type_query = type_query
-        self.where = where
+    return select(query).copy(where=condition)
 
 
 def sql_table_expander(type, model, fields, session):
     @g.expander(g.ListType(type))
-    def expand_objects(graph, query):
-        return graph.expand(_FilteredQuery(type_query=query, where=None))
-        
-    @g.expander(_filtered_type(g.ListType(type)))
-    def expand_filtered_objects(graph, query):
-        return expand(
-            graph,
-            query=query.type_query,
-            where=query.where,
-            extra_expressions=[],
-            process_row=lambda row, result: result,
-        )
+    def expand_object_query(graph, query):
+        return graph.expand(select(query))
     
-    @g.expander(_index_type(g.ListType(type)))
-    def expand_indexed_objects(graph, query):
-        return iterables.to_multidict(expand(
-            graph,
-            query=query.type_query,
-            where=query.where,
-            extra_expressions=query.index_expressions,
-            process_row=lambda row, result: (tuple(row), result),
-        ))
+    @g.expander(_sql_query_type(g.ListType(type)))
+    def expand_sql_query(graph, query):
+        if query.index_expressions is None:
+            return expand(
+                graph,
+                query=query.type_query,
+                where=query.where,
+                extra_expressions=(),
+                process_row=lambda row, result: result,
+            )
+            def process_row(row, result):
+                return result
+        else:
+            return iterables.to_multidict(expand(
+                graph,
+                query=query.type_query,
+                where=query.where,
+                extra_expressions=query.index_expressions,
+                process_row=lambda row, result: (tuple(row), result),
+            ))
         
     def expand(graph, query, where, extra_expressions, process_row):
         def get_field(field_query):
@@ -278,7 +279,7 @@ def sql_table_expander(type, model, fields, session):
             for row in rows
         ]
         
-    return _Expander(expanders=[expand_objects, expand_filtered_objects, expand_indexed_objects])
+    return _Expander(expanders=[expand_object_query, expand_sql_query])
     
 
 class _Expander(object):
