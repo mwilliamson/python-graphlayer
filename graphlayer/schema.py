@@ -142,7 +142,7 @@ class FieldQuery(object):
         self.args = args
 
 
-def arg(name, type):
+def param(name, type):
     return Parameter(name=name, type=type)
 
 

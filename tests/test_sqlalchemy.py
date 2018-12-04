@@ -81,7 +81,7 @@ def test_can_pass_arguments_to_expression():
         "Book",
         fields=lambda: [
             g.field("title", type=g.StringType, args=[
-                g.arg("truncate", g.IntType),
+                g.param("truncate", g.IntType),
             ]),
         ],
     )
@@ -132,7 +132,7 @@ def test_can_pass_arguments_from_root():
         "Root",
         fields=lambda: [
             g.field("books", type=g.ListType(Book), args=[
-                g.arg("id", g.IntType),
+                g.param("id", g.IntType),
             ]),
         ],
     )
