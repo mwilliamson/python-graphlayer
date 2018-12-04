@@ -48,12 +48,10 @@ class _DirectSqlJoinField(object):
         where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
         
         list_query = _to_list_query(field_query)
-        
-        result = graph.expand(_SqlQuery(
-            type_query=list_query,
-            where=where,
-            index_expressions=self._join.values(),
-        ))
+        sql_query = select(list_query) \
+            .where(where) \
+            .index_by(self._join.values())
+        result = graph.expand(sql_query)
             
         def read(row):
             return result.get(tuple(row), ())
@@ -95,12 +93,10 @@ class _AssociationSqlJoinField(object):
         where = foreign_key_expression.in_(base_association_query.add_columns(*self._right_join.keys()))
         
         list_query = _to_list_query(field_query)
-        
-        right_result = graph.expand(_SqlQuery(
-            type_query=list_query,
-            where=where,
-            index_expressions=self._right_join.values(),
-        ))
+        sql_query = select(list_query) \
+            .where(where) \
+            .index_by(self._right_join.values())
+        right_result = graph.expand(sql_query)
         result = iterables.to_multidict(
             (left_key, right_value)
             for left_key, right_key in associations
@@ -181,7 +177,7 @@ def select(query):
     if isinstance(query, _SqlQuery):
         return query
     else:
-        return _SqlQuery(query, index_expressions=None, where=None)
+        return _SqlQuery(query, index_expressions=None, where_clauses=())
 
 
 _sql_query_type_key = object()
@@ -192,36 +188,37 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, type_query, where, index_expressions):
+    def __init__(self, type_query, where_clauses, index_expressions):
         self.type = _sql_query_type(type_query.type)
         self.type_query = type_query
-        self.where = where
+        self.where_clauses = where_clauses
         self.index_expressions = index_expressions
 
-    def copy(self, where):
+    def index_by(self, index_expressions):
         return _SqlQuery(
             type_query=self.type_query,
-            where=where,
+            where_clauses=self.where_clauses,
+            index_expressions=index_expressions,
+        )
+
+    def where(self, where):
+        return _SqlQuery(
+            type_query=self.type_query,
+            where_clauses=self.where_clauses + (where, ),
             index_expressions=self.index_expressions,
         )
 
 
-def where(query, condition):
-    return select(query).copy(where=condition)
-
-
 def sql_table_expander(type, model, fields, session):
-    @g.expander(g.ListType(type))
-    def expand_object_query(graph, query):
-        return graph.expand(select(query))
-    
     @g.expander(_sql_query_type(g.ListType(type)))
     def expand_sql_query(graph, query):
+        where = sqlalchemy.and_(*query.where_clauses)
+        
         if query.index_expressions is None:
             return expand(
                 graph,
                 query=query.type_query,
-                where=query.where,
+                where=where,
                 extra_expressions=(),
                 process_row=lambda row, result: result,
             )
@@ -231,7 +228,7 @@ def sql_table_expander(type, model, fields, session):
             return iterables.to_multidict(expand(
                 graph,
                 query=query.type_query,
-                where=query.where,
+                where=where,
                 extra_expressions=query.index_expressions,
                 process_row=lambda row, result: (tuple(row), result),
             ))
@@ -279,12 +276,15 @@ def sql_table_expander(type, model, fields, session):
             for row in rows
         ]
         
-    return _Expander(expanders=[expand_object_query, expand_sql_query])
+    return _Expander(expanders=[expand_sql_query])
     
 
 class _Expander(object):
     def __init__(self, expanders):
         self.expanders = expanders
+    
+    def select(self, query):
+        return select(query)
     
     def add(self, name):
         def add(value):

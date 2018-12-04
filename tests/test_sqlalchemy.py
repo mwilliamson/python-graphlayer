@@ -45,9 +45,9 @@ def test_can_get_fields_backed_by_expressions():
     
     expanders = [expand_book]
     
-    query = g.ListType(Book)(
+    query = gsql.select(g.ListType(Book)(
         title=Book.title(),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(
@@ -97,9 +97,9 @@ def test_can_pass_arguments_to_expression():
     
     expanders = [expand_book]
     
-    query = g.ListType(Book)(
+    query = gsql.select(g.ListType(Book)(
         title=Book.title(Book.title.truncate(8)),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(
@@ -148,7 +148,7 @@ def test_can_pass_arguments_from_root():
     
     @expand_root.field(Root.books)
     def root_books_args(graph, query, args):
-        return graph.expand(expand_book.filter_id(query, args.id))
+        return graph.expand(expand_book.select(query).where(expand_book.id(args.id)))
     
     expand_book = gsql.sql_table_expander(
         Book,
@@ -159,9 +159,9 @@ def test_can_pass_arguments_from_root():
         session=session,
     )
     
-    @expand_book.add("filter_id")
-    def expand_book_filter_id(query, id):
-        return gsql.where(query, BookRow.c_id == id)
+    @expand_book.add("id")
+    def expand_book_id(id):
+        return BookRow.c_id == id
     
     expanders = [expand_root, expand_book]
     
@@ -234,6 +234,10 @@ def test_can_recursively_expand_selected_fields():
     )
     
     expand_root = root_object_expander(Root)
+    
+    @expand_root.field(Root.books)
+    def expand_root_field_books(graph, query, args):
+        return graph.expand(expand_book.select(query))
     
     expand_book = gsql.sql_table_expander(
         Book,
@@ -344,12 +348,12 @@ def test_can_resolve_many_to_one_field():
     
     expanders = [expand_left, expand_right]
     
-    query = g.ListType(Left)(
+    query = gsql.select(g.ListType(Left)(
         value=Left.value(),
         right=Left.right(
             value=Right.value(),
         ),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(
@@ -430,12 +434,12 @@ def test_can_resolve_many_to_one_or_zero_field():
     
     expanders = [expand_left, expand_right]
     
-    query = g.ListType(Left)(
+    query = gsql.select(g.ListType(Left)(
         value=Left.value(),
         right=Left.right(
             value=Right.value(),
         ),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(
@@ -521,12 +525,12 @@ def test_can_resolve_one_to_many_field():
     
     expanders = [expand_left, expand_right]
     
-    query = g.ListType(Left)(
+    query = gsql.select(g.ListType(Left)(
         value=Left.value(),
         rights=Left.rights(
             value=Right.value(),
         ),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(
@@ -630,12 +634,12 @@ def test_can_resolve_join_through_association_table():
     
     expanders = [expand_left, expand_right]
     
-    query = g.ListType(Left)(
+    query = gsql.select(g.ListType(Left)(
         value=Left.value(),
         rights=Left.rights(
             value=Right.value(),
         ),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(
@@ -725,12 +729,12 @@ def test_can_join_tables_using_multi_column_key():
     
     expanders = [expand_left, expand_right]
     
-    query = g.ListType(Left)(
+    query = gsql.select(g.ListType(Left)(
         value=Left.value(),
         right=Left.right(
             value=Right.value(),
         ),
-    )
+    ))
     result = g.create_graph(expanders).expand(query)
     
     assert_that(result, contains_exactly(

@@ -22,10 +22,7 @@ def root_object_expander(type):
         def expand_field(field_query):
             # TODO: handle unhandled args
             # TODO: argument handling in non-root types
-            if field_query.args:
-                return field_handlers[field_query.field](graph, field_query.type_query, field_query.args)
-            else:
-                return graph.expand(field_query.type_query)
+            return field_handlers[field_query.field](graph, field_query.type_query, field_query.args)
         
         return ObjectResult(iterables.to_dict(
             (key, expand_field(field_query))
