@@ -222,8 +222,6 @@ def sql_table_expander(type, model, fields, session):
                 extra_expressions=(),
                 process_row=lambda row, result: result,
             )
-            def process_row(row, result):
-                return result
         else:
             return iterables.to_multidict(expand(
                 graph,
