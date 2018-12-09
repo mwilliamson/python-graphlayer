@@ -209,9 +209,10 @@ class _SqlQuery(object):
         )
 
 
-def sql_table_expander(type, model, fields, session):
+def sql_table_expander(type, model, fields):
     @g.expander(_sql_query_type(g.ListType(type)))
-    def expand_sql_query(graph, query):
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def expand_sql_query(graph, query, session):
         where = sqlalchemy.and_(*query.where_clauses)
         
         if query.index_expressions is None:
@@ -221,6 +222,7 @@ def sql_table_expander(type, model, fields, session):
                 where=where,
                 extra_expressions=(),
                 process_row=lambda row, result: result,
+                session=session,
             )
         else:
             return iterables.to_multidict(expand(
@@ -229,9 +231,10 @@ def sql_table_expander(type, model, fields, session):
                 where=where,
                 extra_expressions=query.index_expressions,
                 process_row=lambda row, result: (tuple(row), result),
+                session=session,
             ))
         
-    def expand(graph, query, where, extra_expressions, process_row):
+    def expand(graph, query, where, extra_expressions, process_row, session):
         def get_field(field_query):
             field = fields[field_query.field]
             if callable(field):

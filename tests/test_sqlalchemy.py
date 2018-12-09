@@ -40,7 +40,6 @@ def test_can_get_fields_backed_by_expressions():
         fields={
             Book.title: gsql.expression(BookRow.c_title),
         },
-        session=session,
     )
     
     expanders = [expand_book]
@@ -48,7 +47,11 @@ def test_can_get_fields_backed_by_expressions():
     query = gsql.select(g.ListType(Book)(
         title=Book.title(),
     ))
-    result = g.create_graph(expanders).expand(query)
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({
+        sqlalchemy.orm.Session: session,
+    })
+    result = resolver.expand(query)
     
     assert_that(result, contains_exactly(
         has_attrs(
@@ -92,7 +95,6 @@ def test_can_pass_arguments_to_expression():
         fields={
             Book.title: lambda args: gsql.expression(sqlalchemy.func.substr(BookRow.c_title, 1, args.truncate)),
         },
-        session=session,
     )
     
     expanders = [expand_book]
@@ -100,7 +102,9 @@ def test_can_pass_arguments_to_expression():
     query = gsql.select(g.ListType(Book)(
         title=Book.title(Book.title.truncate(8)),
     ))
-    result = g.create_graph(expanders).expand(query)
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
     
     assert_that(result, contains_exactly(
         has_attrs(
@@ -156,7 +160,6 @@ def test_can_pass_arguments_from_root():
         fields={
             Book.title: gsql.expression(BookRow.c_title),
         },
-        session=session,
     )
     
     @expand_book.add("id")
@@ -172,7 +175,10 @@ def test_can_pass_arguments_from_root():
             title=Book.title(),
         ),
     )
-    result = g.create_graph(expanders).expand(query)
+    
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
     
     assert_that(result, has_attrs(
         books=contains_exactly(
@@ -248,7 +254,6 @@ def test_can_recursively_expand_selected_fields():
                 BookRow.c_author_id: AuthorRow.c_id,
             })),
         },
-        session=session,
     )
     
     expand_author = gsql.sql_table_expander(
@@ -257,7 +262,6 @@ def test_can_recursively_expand_selected_fields():
         fields={
             Author.name: gsql.expression(AuthorRow.c_name),
         },
-        session=session,
     )
     expanders = [expand_root, expand_book, expand_author]
     
@@ -269,8 +273,11 @@ def test_can_recursively_expand_selected_fields():
             title=Book.title(),
         ),
     )
-    result = g.create_graph(expanders).expand(query)
-    
+
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
+        
     assert_that(result, has_attrs(
         books=contains_exactly(
             has_attrs(
@@ -334,7 +341,6 @@ def test_can_resolve_many_to_one_field():
                 LeftRow.c_id: RightRow.c_id,
             })),
         },
-        session=session,
     )
     
     expand_right = gsql.sql_table_expander(
@@ -343,7 +349,6 @@ def test_can_resolve_many_to_one_field():
         fields={
             Right.value: gsql.expression(RightRow.c_value),
         },
-        session=session,
     )
     
     expanders = [expand_left, expand_right]
@@ -354,8 +359,11 @@ def test_can_resolve_many_to_one_field():
             value=Right.value(),
         ),
     ))
-    result = g.create_graph(expanders).expand(query)
-    
+
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
+        
     assert_that(result, contains_exactly(
         has_attrs(
             value="one",
@@ -420,7 +428,6 @@ def test_can_resolve_many_to_one_or_zero_field():
                 LeftRow.c_id: RightRow.c_id,
             })),
         },
-        session=session,
     )
     
     expand_right = gsql.sql_table_expander(
@@ -429,7 +436,6 @@ def test_can_resolve_many_to_one_or_zero_field():
         fields={
             Right.value: gsql.expression(RightRow.c_value),
         },
-        session=session,
     )
     
     expanders = [expand_left, expand_right]
@@ -440,8 +446,11 @@ def test_can_resolve_many_to_one_or_zero_field():
             value=Right.value(),
         ),
     ))
-    result = g.create_graph(expanders).expand(query)
-    
+
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
+        
     assert_that(result, contains_exactly(
         has_attrs(
             value="one",
@@ -511,7 +520,6 @@ def test_can_resolve_one_to_many_field():
                 LeftRow.c_id: RightRow.c_left_id,
             })),
         },
-        session=session,
     )
     
     expand_right = gsql.sql_table_expander(
@@ -520,7 +528,6 @@ def test_can_resolve_one_to_many_field():
         fields={
             Right.value: gsql.expression(RightRow.c_value),
         },
-        session=session,
     )
     
     expanders = [expand_left, expand_right]
@@ -531,8 +538,11 @@ def test_can_resolve_one_to_many_field():
             value=Right.value(),
         ),
     ))
-    result = g.create_graph(expanders).expand(query)
-    
+
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
+        
     assert_that(result, contains_exactly(
         has_attrs(
             value="left 1",
@@ -620,7 +630,6 @@ def test_can_resolve_join_through_association_table():
                 {AssociationRow.c_right_id: RightRow.c_id},
             )),
         },
-        session=session,
     )
     
     expand_right = gsql.sql_table_expander(
@@ -629,7 +638,6 @@ def test_can_resolve_join_through_association_table():
         fields={
             Right.value: gsql.expression(RightRow.c_value),
         },
-        session=session,
     )
     
     expanders = [expand_left, expand_right]
@@ -640,8 +648,11 @@ def test_can_resolve_join_through_association_table():
             value=Right.value(),
         ),
     ))
-    result = g.create_graph(expanders).expand(query)
-    
+
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
+        
     assert_that(result, contains_exactly(
         has_attrs(
             value="left 1",
@@ -715,7 +726,6 @@ def test_can_join_tables_using_multi_column_key():
                 LeftRow.c_id_2: RightRow.c_id_2,
             })),
         },
-        session=session,
     )
     
     expand_right = gsql.sql_table_expander(
@@ -724,7 +734,6 @@ def test_can_join_tables_using_multi_column_key():
         fields={
             Right.value: gsql.expression(RightRow.c_value),
         },
-        session=session,
     )
     
     expanders = [expand_left, expand_right]
@@ -735,8 +744,11 @@ def test_can_join_tables_using_multi_column_key():
             value=Right.value(),
         ),
     ))
-    result = g.create_graph(expanders).expand(query)
-    
+
+    graph = g.create_graph(expanders)
+    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
+    result = resolver.expand(query)
+        
     assert_that(result, contains_exactly(
         has_attrs(
             value="one",
