@@ -17,7 +17,7 @@ def test_expander_is_dispatched_using_type_of_query():
     class Query(object):
         type = "one"
     
-    result = g.create_graph(expanders).expand(Query)
+    result = g.create_graph(expanders).create_resolver().expand(Query)
     
     assert_that(result, equal_to(1))
 
@@ -37,6 +37,6 @@ def test_when_expand_is_called_then_expander_is_passed_the_graph():
     
     expanders = [expand_root, expand_leaf]
     
-    result = g.create_graph(expanders).expand(Query("root"))
+    result = g.create_graph(expanders).create_resolver().expand(Query("root"))
     
     assert_that(result, equal_to(42))

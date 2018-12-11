@@ -12,10 +12,10 @@ class Graph(object):
             for expander in _flatten(expanders)
         )
     
-    def expand(self, *args, **kwargs):
-        return self.create_resolver({}).expand(*args, **kwargs)
-    
-    def create_resolver(self, dependencies):
+    def create_resolver(self, dependencies=None):
+        if dependencies is None:
+            dependencies = {}
+
         return Resolver(self._expanders, dependencies)
 
 
