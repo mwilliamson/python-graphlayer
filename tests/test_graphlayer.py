@@ -30,7 +30,7 @@ def test_can_get_scalar_from_root():
     query = Root(
         value=Root.one(),
     )
-    result = g.define_graph(expanders).create_resolver().expand(query)
+    result = g.define_graph(expanders).create_graph().expand(query)
     
     assert_that(result, has_attrs(value=1))
 
@@ -51,7 +51,7 @@ def test_constant_object_expander():
     query = Root(
         value=Root.one(),
     )
-    result = g.define_graph(expanders).create_resolver().expand(query)
+    result = g.define_graph(expanders).create_graph().expand(query)
     
     assert_that(result, has_attrs(value=1))
 
@@ -99,7 +99,7 @@ def test_can_recursively_expand():
             title=Book.title(),
         ),
     )
-    result = g.define_graph(expanders).create_resolver().expand(query)
+    result = g.define_graph(expanders).create_graph().expand(query)
     
     assert_that(result, has_attrs(
         books=contains_exactly(
@@ -198,7 +198,7 @@ def test_can_recursively_expand_selected_fields():
             title=Book.title(),
         ),
     )
-    result = g.define_graph(expanders).create_resolver().expand(query)
+    result = g.define_graph(expanders).create_graph().expand(query)
     
     assert_that(result, has_attrs(
         books=contains_exactly(

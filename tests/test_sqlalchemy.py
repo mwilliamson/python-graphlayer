@@ -47,11 +47,11 @@ def test_can_get_fields_backed_by_expressions():
     query = gsql.select(g.ListType(Book)(
         title=Book.title(),
     ))
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({
         sqlalchemy.orm.Session: session,
     })
-    result = resolver.expand(query)
+    result = graph.expand(query)
     
     assert_that(result, contains_exactly(
         has_attrs(
@@ -102,9 +102,9 @@ def test_can_pass_arguments_to_expression():
     query = gsql.select(g.ListType(Book)(
         title=Book.title(Book.title.truncate(8)),
     ))
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
     
     assert_that(result, contains_exactly(
         has_attrs(
@@ -176,9 +176,9 @@ def test_can_pass_arguments_from_root():
         ),
     )
     
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
     
     assert_that(result, has_attrs(
         books=contains_exactly(
@@ -274,9 +274,9 @@ def test_can_recursively_expand_selected_fields():
         ),
     )
 
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
         
     assert_that(result, has_attrs(
         books=contains_exactly(
@@ -360,9 +360,9 @@ def test_can_resolve_many_to_one_field():
         ),
     ))
 
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
         
     assert_that(result, contains_exactly(
         has_attrs(
@@ -447,9 +447,9 @@ def test_can_resolve_many_to_one_or_zero_field():
         ),
     ))
 
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
         
     assert_that(result, contains_exactly(
         has_attrs(
@@ -539,9 +539,9 @@ def test_can_resolve_one_to_many_field():
         ),
     ))
 
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
         
     assert_that(result, contains_exactly(
         has_attrs(
@@ -649,9 +649,9 @@ def test_can_resolve_join_through_association_table():
         ),
     ))
 
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
         
     assert_that(result, contains_exactly(
         has_attrs(
@@ -745,9 +745,9 @@ def test_can_join_tables_using_multi_column_key():
         ),
     ))
 
-    graph = g.define_graph(expanders)
-    resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
-    result = resolver.expand(query)
+    graph_definition = g.define_graph(expanders)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.expand(query)
         
     assert_that(result, contains_exactly(
         has_attrs(

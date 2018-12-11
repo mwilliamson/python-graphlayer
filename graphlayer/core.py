@@ -12,14 +12,14 @@ class GraphDefinition(object):
             for expander in _flatten(expanders)
         )
     
-    def create_resolver(self, dependencies=None):
+    def create_graph(self, dependencies=None):
         if dependencies is None:
             dependencies = {}
 
-        return Resolver(self._expanders, dependencies)
+        return Graph(self._expanders, dependencies)
 
 
-class Resolver(object):
+class Graph(object):
     def __init__(self, expanders, dependencies):
         self._expanders = expanders
         self._dependencies = dependencies
