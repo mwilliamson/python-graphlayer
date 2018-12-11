@@ -1,6 +1,10 @@
 from . import iterables
 
 
+def create_graph(expanders):
+    return define_graph(expanders).create_graph({})
+
+
 def define_graph(expanders):
     return GraphDefinition(expanders)
 
@@ -12,10 +16,7 @@ class GraphDefinition(object):
             for expander in _flatten(expanders)
         )
     
-    def create_graph(self, dependencies=None):
-        if dependencies is None:
-            dependencies = {}
-
+    def create_graph(self, dependencies):
         return Graph(self._expanders, dependencies)
 
 
