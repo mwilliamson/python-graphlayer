@@ -1,31 +1,31 @@
 from . import iterables
-from .core import expander
+from .core import resolver
 from .representations import ObjectResult
 
 
-def constant_object_expander(type, values):
-    @expander(type)
-    def expand(graph, query):
+def constant_object_resolver(type, values):
+    @resolver(type)
+    def resolve(graph, query):
         return ObjectResult(iterables.to_dict(
             (key, values[field_query.field.name])
             for key, field_query in query.fields.items()
         ))
     
-    return expand
+    return resolve
 
 
-def root_object_expander(type):
+def root_object_resolver(type):
     field_handlers = {}
 
-    @expander(type)
-    def expand_root(graph, query):
-        def expand_field(field_query):
+    @resolver(type)
+    def resolve_root(graph, query):
+        def resolve_field(field_query):
             # TODO: handle unhandled args
             # TODO: argument handling in non-root types
             return field_handlers[field_query.field](graph, field_query.type_query, field_query.args)
         
         return ObjectResult(iterables.to_dict(
-            (key, expand_field(field_query))
+            (key, resolve_field(field_query))
             for key, field_query in query.fields.items()
         ))
     
@@ -36,6 +36,6 @@ def root_object_expander(type):
         
         return add_handler
     
-    expand_root.field = field
+    resolve_root.field = field
     
-    return expand_root
+    return resolve_root

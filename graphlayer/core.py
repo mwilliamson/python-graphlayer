@@ -1,43 +1,43 @@
 from . import iterables
 
 
-def create_graph(expanders):
-    return define_graph(expanders).create_graph({})
+def create_graph(resolvers):
+    return define_graph(resolvers).create_graph({})
 
 
-def define_graph(expanders):
-    return GraphDefinition(expanders)
+def define_graph(resolvers):
+    return GraphDefinition(resolvers)
 
     
 class GraphDefinition(object):
-    def __init__(self, expanders):
-        self._expanders = iterables.to_dict(
-            (expander.type, expander)
-            for expander in _flatten(expanders)
+    def __init__(self, resolvers):
+        self._resolvers = iterables.to_dict(
+            (resolver.type, resolver)
+            for resolver in _flatten(resolvers)
         )
     
     def create_graph(self, dependencies):
-        return Graph(self._expanders, dependencies)
+        return Graph(self._resolvers, dependencies)
 
 
 class Graph(object):
-    def __init__(self, expanders, dependencies):
-        self._expanders = expanders
+    def __init__(self, resolvers, dependencies):
+        self._resolvers = resolvers
         self._dependencies = dependencies
     
-    def expand(self, *args, **kwargs):
+    def resolve(self, *args, **kwargs):
         type = kwargs.pop("type", None)
         if type is None:
             type = args[0].type
         # TODO: better error
         assert not kwargs
-        expander = self._expanders[type]
-        dependencies = getattr(expander, "dependencies", dict())
+        resolver = self._resolvers[type]
+        dependencies = getattr(resolver, "dependencies", dict())
         kwargs = iterables.to_dict(
             (arg_name, self._dependencies[dependency_key])
             for arg_name, dependency_key in dependencies.items()
         )
-        return expander(self, *args, **kwargs)
+        return resolver(self, *args, **kwargs)
 
 
 def _flatten(value):
@@ -47,18 +47,18 @@ def _flatten(value):
             for element in value
             for subelement in _flatten(element)
         ]
-    elif hasattr(value, "expanders"):
-        return _flatten(value.expanders)
+    elif hasattr(value, "resolvers"):
+        return _flatten(value.resolvers)
     else:
         return [value]
 
 
-def expander(type):
-    def register_expander(func):
+def resolver(type):
+    def register_resolver(func):
         func.type = type
         return func
     
-    return register_expander
+    return register_resolver
 
 
 def dependencies(**kwargs):

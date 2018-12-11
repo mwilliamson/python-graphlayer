@@ -51,7 +51,7 @@ class _DirectSqlJoinField(object):
         sql_query = select(list_query) \
             .where(where) \
             .index_by(self._join.values())
-        result = graph.expand(sql_query)
+        result = graph.resolve(sql_query)
             
         def read(row):
             return result.get(tuple(row), ())
@@ -96,7 +96,7 @@ class _AssociationSqlJoinField(object):
         sql_query = select(list_query) \
             .where(where) \
             .index_by(self._right_join.values())
-        right_result = graph.expand(sql_query)
+        right_result = graph.resolve(sql_query)
         result = iterables.to_multidict(
             (left_key, right_value)
             for left_key, right_key in associations
@@ -209,14 +209,14 @@ class _SqlQuery(object):
         )
 
 
-def sql_table_expander(type, model, fields):
-    @g.expander(_sql_query_type(g.ListType(type)))
+def sql_table_resolver(type, model, fields):
+    @g.resolver(_sql_query_type(g.ListType(type)))
     @g.dependencies(session=sqlalchemy.orm.Session)
-    def expand_sql_query(graph, query, session):
+    def resolve_sql_query(graph, query, session):
         where = sqlalchemy.and_(*query.where_clauses)
         
         if query.index_expressions is None:
-            return expand(
+            return resolve(
                 graph,
                 query=query.type_query,
                 where=where,
@@ -225,7 +225,7 @@ def sql_table_expander(type, model, fields):
                 session=session,
             )
         else:
-            return iterables.to_multidict(expand(
+            return iterables.to_multidict(resolve(
                 graph,
                 query=query.type_query,
                 where=where,
@@ -234,7 +234,7 @@ def sql_table_expander(type, model, fields):
                 session=session,
             ))
         
-    def expand(graph, query, where, extra_expressions, process_row, session):
+    def resolve(graph, query, where, extra_expressions, process_row, session):
         def get_field(field_query):
             field = fields[field_query.field]
             if callable(field):
@@ -277,12 +277,12 @@ def sql_table_expander(type, model, fields):
             for row in rows
         ]
         
-    return _Expander(expanders=[expand_sql_query])
+    return _Resolver(resolvers=[resolve_sql_query])
     
 
-class _Expander(object):
-    def __init__(self, expanders):
-        self.expanders = expanders
+class _Resolver(object):
+    def __init__(self, resolvers):
+        self.resolvers = resolvers
     
     def select(self, query):
         return select(query)

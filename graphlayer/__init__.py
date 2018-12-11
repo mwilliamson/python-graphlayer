@@ -1,6 +1,6 @@
-from .core import create_graph, dependencies, define_graph, expander
-from .expanders import constant_object_expander
+from .core import create_graph, dependencies, define_graph, resolver
 from .representations import ObjectResult
+from .resolvers import constant_object_resolver
 from .schema import field, IntType, ListType, NullableType, ObjectType, param, StringType
 
 
@@ -8,9 +8,9 @@ __all__ = [
     "create_graph",
     "dependencies",
     "define_graph",
-    "expander",
+    "resolver",
 
-    "constant_object_expander",
+    "constant_object_resolver",
     
     "ObjectResult",
     
