@@ -209,7 +209,7 @@ class _SqlQuery(object):
         )
 
 
-def sql_table_resolver(type, model, fields):
+def sql_table(type, model, fields):
     @g.resolver(_sql_query_type(g.ListType(type)))
     @g.dependencies(session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, session):
