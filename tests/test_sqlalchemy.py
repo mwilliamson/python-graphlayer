@@ -250,7 +250,7 @@ def test_can_recursively_resolve_selected_fields():
         BookRow,
         fields={
             Book.title: gsql.expression(BookRow.c_title),
-            Book.author: gsql.single(gsql.sql_join({
+            Book.author: g.single(gsql.sql_join({
                 BookRow.c_author_id: AuthorRow.c_id,
             })),
         },
@@ -337,7 +337,7 @@ def test_can_resolve_many_to_one_field():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.right: gsql.single(gsql.sql_join({
+            Left.right: g.single(gsql.sql_join({
                 LeftRow.c_id: RightRow.c_id,
             })),
         },
@@ -424,7 +424,7 @@ def test_can_resolve_many_to_one_or_zero_field():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.right: gsql.single_or_null(gsql.sql_join({
+            Left.right: g.single_or_null(gsql.sql_join({
                 LeftRow.c_id: RightRow.c_id,
             })),
         },
@@ -516,7 +516,7 @@ def test_can_resolve_one_to_many_field():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.rights: gsql.many(gsql.sql_join({
+            Left.rights: g.many(gsql.sql_join({
                 LeftRow.c_id: RightRow.c_left_id,
             })),
         },
@@ -624,7 +624,7 @@ def test_can_resolve_join_through_association_table():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.rights: gsql.many(gsql.sql_join(
+            Left.rights: g.many(gsql.sql_join(
                 {LeftRow.c_id: AssociationRow.c_left_id},
                 AssociationRow,
                 {AssociationRow.c_right_id: RightRow.c_id},
@@ -721,7 +721,7 @@ def test_can_join_tables_using_multi_column_key():
         LeftRow,
         fields={
             Left.value: gsql.expression(LeftRow.c_value),
-            Left.right: gsql.single(gsql.sql_join({
+            Left.right: g.single(gsql.sql_join({
                 LeftRow.c_id_1: RightRow.c_id_1,
                 LeftRow.c_id_2: RightRow.c_id_2,
             })),

@@ -58,6 +58,9 @@ class _DirectSqlJoinField(object):
             
         return read
 
+    def map_values(self, func):
+        return _DecoratedReadField(self, func)
+
 
 def _association_sql_join(left_join, association, right_join):
     return _AssociationSqlJoinField(
@@ -124,36 +127,6 @@ def _to_sql_expression(expressions):
         return next(iter(expressions))
     else:
         return sqlalchemy.tuple_(*expressions)
-
-
-def many(field):
-    return field
-
-
-def single(field):
-    def select_value(values):
-        if len(values) == 1:
-            return values[0]
-        else:
-            raise ValueError("expected exactly one value")
-
-    return _decorate_read(field, select_value)
-
-
-def single_or_null(field):
-    def select_value(values):
-        if len(values) == 0:
-            return None
-        elif len(values) == 1:
-            return values[0]
-        else:
-            raise ValueError("expected zero or one values")
-    
-    return _decorate_read(field, select_value)
-
-
-def _decorate_read(field, func):
-    return _DecoratedReadField(field, func)
 
 
 class _DecoratedReadField(object):
