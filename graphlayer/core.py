@@ -47,8 +47,6 @@ def _flatten(value):
             for element in value
             for subelement in _flatten(element)
         ]
-    elif hasattr(value, "resolvers"):
-        return _flatten(value.resolvers)
     else:
         return [value]
 
