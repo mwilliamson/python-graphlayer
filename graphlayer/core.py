@@ -1,11 +1,11 @@
 from . import iterables
 
 
-def create_graph(expanders):
-    return Graph(expanders)
+def define_graph(expanders):
+    return GraphDefinition(expanders)
 
     
-class Graph(object):
+class GraphDefinition(object):
     def __init__(self, expanders):
         self._expanders = iterables.to_dict(
             (expander.type, expander)

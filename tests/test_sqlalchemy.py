@@ -47,7 +47,7 @@ def test_can_get_fields_backed_by_expressions():
     query = gsql.select(g.ListType(Book)(
         title=Book.title(),
     ))
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({
         sqlalchemy.orm.Session: session,
     })
@@ -102,7 +102,7 @@ def test_can_pass_arguments_to_expression():
     query = gsql.select(g.ListType(Book)(
         title=Book.title(Book.title.truncate(8)),
     ))
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
     
@@ -176,7 +176,7 @@ def test_can_pass_arguments_from_root():
         ),
     )
     
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
     
@@ -274,7 +274,7 @@ def test_can_recursively_expand_selected_fields():
         ),
     )
 
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
         
@@ -360,7 +360,7 @@ def test_can_resolve_many_to_one_field():
         ),
     ))
 
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
         
@@ -447,7 +447,7 @@ def test_can_resolve_many_to_one_or_zero_field():
         ),
     ))
 
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
         
@@ -539,7 +539,7 @@ def test_can_resolve_one_to_many_field():
         ),
     ))
 
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
         
@@ -649,7 +649,7 @@ def test_can_resolve_join_through_association_table():
         ),
     ))
 
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
         
@@ -745,7 +745,7 @@ def test_can_join_tables_using_multi_column_key():
         ),
     ))
 
-    graph = g.create_graph(expanders)
+    graph = g.define_graph(expanders)
     resolver = graph.create_resolver({sqlalchemy.orm.Session: session})
     result = resolver.expand(query)
         
