@@ -277,10 +277,10 @@ def sql_table_resolver(type, model, fields):
             for row in rows
         ]
         
-    return _Resolver(resolvers=[resolve_sql_query])
+    return _Subgraph(resolvers=[resolve_sql_query])
     
 
-class _Resolver(object):
+class _Subgraph(object):
     def __init__(self, resolvers):
         self.resolvers = resolvers
     
