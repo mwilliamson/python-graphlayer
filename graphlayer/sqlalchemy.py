@@ -121,7 +121,7 @@ def _to_list_query(field_query):
 
 def _to_sql_expression(expressions):
     if len(expressions) == 1:
-        return expressions[0]
+        return next(iter(expressions))
     else:
         return sqlalchemy.tuple_(*expressions)
 
