@@ -196,6 +196,53 @@ def test_inline_fragments_are_merged():
     ))
 
 
+def test_when_merging_fragments_then_scalar_fields_can_overlap():
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("user", type=User),
+        ),
+    )
+    
+    User = g.ObjectType(
+        "User",
+        fields=(
+            g.field("name", type=g.StringType),
+            g.field("address", type=g.StringType),
+            g.field("role", type=g.StringType),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            ... on Root {
+                user {
+                    name
+                    address
+                }
+            }
+            ... on Root {
+                user {
+                    name
+                    role
+                }
+            }
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            user=Root.user(
+                name=User.name(),
+                address=User.address(),
+                role=User.role(),
+            ),
+        ),
+    ))
+
+
 def is_query(query):
     if query == schema.scalar_query:
         return schema.scalar_query

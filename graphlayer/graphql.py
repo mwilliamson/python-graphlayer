@@ -46,7 +46,8 @@ def _merge_graphql_fields(graphql_fields):
     merged_field.selection_set = copy(merged_field.selection_set)
     
     for graphql_field in graphql_fields[1:]:
-        merged_field.selection_set.selections += graphql_field.selection_set.selections
+        if graphql_field.selection_set is not None:
+            merged_field.selection_set.selections += graphql_field.selection_set.selections
     
     return merged_field
 
