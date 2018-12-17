@@ -2,12 +2,19 @@ from . import iterables
 from .representations import ObjectResult
 
 
-class IntType(object):
-    pass
+class ScalarType(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self):
+        return scalar_query
 
 
-class StringType(object):
-    pass
+IntType = ScalarType("Int")
+StringType = ScalarType("String")
+
+
+scalar_query = True
 
 
 class ListType(object):
