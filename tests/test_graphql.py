@@ -313,6 +313,36 @@ def test_named_fragments_are_expanded():
     ))
 
 
+def test_graphql_args_are_converted():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.IntType, args=[
+                g.param("arg0", type=g.IntType),
+                g.param("arg1", type=g.IntType),
+            ]),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            one(arg0: 42, arg1: 47)
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.one(
+                Root.one.arg0(42),
+                Root.one.arg1(47),
+            ),
+        ),
+    ))
+
+
+
 def is_query(query):
     if query == schema.scalar_query:
         return schema.scalar_query
@@ -321,6 +351,7 @@ def is_query(query):
         return has_attrs(
             field=query.field,
             type_query=is_query(query.type_query),
+            args=has_attrs(_values=is_mapping(query.args._values)),
         )
         
     elif isinstance(query, schema.ObjectQuery):

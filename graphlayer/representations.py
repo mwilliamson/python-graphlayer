@@ -1,11 +1,11 @@
 class ObjectResult(object):
     def __init__(self, values):
-        self._bool = bool(values)
+        self._values = values
         for key in values:
             setattr(self, key, values[key])
     
     def __nonzero__(self):
-        return self._bool
+        return bool(self._values)
     
     def __bool__(self):
-        return self._bool
+        return bool(self._values)
