@@ -53,5 +53,30 @@ def test_fields_can_have_alias():
     ))
 
 
+def test_field_names_are_converted_to_snake_case():
+    Root = g.ObjectType(
+        "Root",
+        (
+            g.field("one_value", type=g.IntType),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            oneValue
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_object_query(
+        type=Root,
+        fields=is_mapping({
+            "oneValue": is_field_query(field=is_field(name="one_value"), type_query=schema.scalar_query),
+        }),
+    ))
+
+
 is_object_query = has_attrs
 is_field_query = has_attrs
+is_field = has_attrs
