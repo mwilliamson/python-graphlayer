@@ -26,7 +26,7 @@ def test_simple_query_is_converted_to_object_query():
         Root(
             one=Root.one(),
         ),
-    )),
+    ))
 
 
 def test_fields_can_have_alias():
@@ -71,6 +71,51 @@ def test_field_names_are_converted_to_snake_case():
     assert_that(object_query, is_query(
         Root(
             oneValue=Root.one_value(),
+        ),
+    ))
+
+
+def test_fields_can_be_nested():
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("one", type=One),
+        ),
+    )
+    
+    One = g.ObjectType(
+        "One",
+        fields=lambda: (
+            g.field("two", type=Two),
+        ),
+    )
+    
+    Two = g.ObjectType(
+        "Two",
+        fields=lambda: (
+            g.field("three", type=g.IntType),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            one {
+                two {
+                    three
+                }
+            }
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.one(
+                two=One.two(
+                    three=Two.three(),
+                ),
+            ),
         ),
     ))
 

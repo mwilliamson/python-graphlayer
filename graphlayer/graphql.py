@@ -11,11 +11,27 @@ def document_text_to_query(document_text, query_type):
         lambda operation: isinstance(operation, graphql_ast.OperationDefinition),
         document_ast.definitions,
     )
-    fields = to_dict(
-        (_field_key(selection), getattr(query_type, _camel_case_to_snake_case(selection.name.value))())
-        for selection in operation.selection_set.selections
-    )
+    fields = _read_selection_set(operation.selection_set, type=query_type)
     return query_type(**fields)
+
+
+def _read_selection_set(selection_set, type):
+    if selection_set is None:
+        return {}
+    else:
+        return to_dict(
+            _read_selection(selection, type=type)
+            for selection in selection_set.selections
+        )
+
+
+def _read_selection(selection, type):
+    key = _field_key(selection)
+    field_name = _camel_case_to_snake_case(selection.name.value)
+    field = getattr(type, field_name)
+    subfields = _read_selection_set(selection.selection_set, type=field.type)
+    field_query = field(**subfields)
+    return (key, field_query)
 
 
 def _field_key(selection):
