@@ -57,7 +57,11 @@ def _graphql_selection_to_graphql_fields(selection):
         return (selection, )
     
     elif isinstance(selection, graphql_ast.InlineFragment):
-        return selection.selection_set.selections
+        return [
+            graphql_field
+            for subselection in selection.selection_set.selections
+            for graphql_field in _graphql_selection_to_graphql_fields(subselection)
+        ]
         
     else:
         raise Exception("Unhandled selection type: {}".format(type(selection)))

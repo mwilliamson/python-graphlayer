@@ -241,6 +241,39 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
             ),
         ),
     ))
+    
+
+def test_inline_fragments_are_recursively_merged():
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("value", type=g.IntType),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            ... on Root {
+                ... on Root {
+                    one: value
+                }
+            }
+            ... on Root {
+                ... on Root {
+                    two: value
+                }
+            }
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.value(),
+            two=Root.value(),
+        ),
+    ))
 
 
 def is_query(query):
