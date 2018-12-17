@@ -3,6 +3,7 @@ from precisely import assert_that, has_attrs, is_mapping
 import graphlayer as g
 from graphlayer import schema
 from graphlayer.graphql import document_text_to_query
+from graphlayer.iterables import to_dict
 
 
 def test_simple_query_is_converted_to_object_query():
@@ -21,15 +22,11 @@ def test_simple_query_is_converted_to_object_query():
     
     object_query = document_text_to_query(graphql_query, query_type=Root)
     
-    assert_that(object_query, is_object_query(
-        type=Root,
-        fields=is_mapping({
-            "one": is_field_query(
-                field=is_field(name="one"),
-                type_query=schema.scalar_query,
-            ),
-        }),
-    ))
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.one(),
+        ),
+    )),
 
 
 def test_fields_can_have_alias():
@@ -48,14 +45,10 @@ def test_fields_can_have_alias():
     
     object_query = document_text_to_query(graphql_query, query_type=Root)
     
-    assert_that(object_query, is_object_query(
-        type=Root,
-        fields=is_mapping({
-            "value": is_field_query(
-                field=is_field(name="one"),
-                type_query=schema.scalar_query,
-            ),
-        }),
+    assert_that(object_query, is_query(
+        Root(
+            value=Root.one(),
+        ),
     ))
 
 
@@ -75,17 +68,31 @@ def test_field_names_are_converted_to_snake_case():
     
     object_query = document_text_to_query(graphql_query, query_type=Root)
     
-    assert_that(object_query, is_object_query(
-        type=Root,
-        fields=is_mapping({
-            "oneValue": is_field_query(
-                field=is_field(name="one_value"),
-                type_query=schema.scalar_query,
-            ),
-        }),
+    assert_that(object_query, is_query(
+        Root(
+            oneValue=Root.one_value(),
+        ),
     ))
 
 
-is_object_query = has_attrs
-is_field_query = has_attrs
-is_field = has_attrs
+def is_query(query):
+    if query == schema.scalar_query:
+        return schema.scalar_query
+    
+    elif isinstance(query, schema.FieldQuery):
+        return has_attrs(
+            field=query.field,
+            type_query=is_query(query.type_query),
+        )
+        
+    elif isinstance(query, schema.ObjectQuery):
+        return has_attrs(
+            type=query.type,
+            fields=is_mapping(to_dict(
+                (name, is_query(field_query))
+                for name, field_query in query.fields.items()
+            )),
+        )
+        
+    else:
+        raise Exception("Unhandled query type: {}".format(type(query)))
