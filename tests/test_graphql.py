@@ -29,5 +29,29 @@ def test_simple_query_is_converted_to_object_query():
     ))
 
 
+def test_fields_can_have_alias():
+    Root = g.ObjectType(
+        "Root",
+        (
+            g.field("one", type=g.IntType),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            value: one
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_object_query(
+        type=Root,
+        fields=is_mapping({
+            "value": is_field_query(type_query=schema.scalar_query),
+        }),
+    ))
+
+
 is_object_query = has_attrs
 is_field_query = has_attrs

@@ -10,7 +10,14 @@ def document_text_to_query(document_text, query_type):
         document_ast.definitions,
     )
     fields = to_dict(
-        (selection.name.value, getattr(query_type, selection.name.value)())
+        (_field_key(selection), getattr(query_type, selection.name.value)())
         for selection in operation.selection_set.selections
     )
     return query_type(**fields)
+
+
+def _field_key(selection):
+    if selection.alias is None:
+        return selection.name.value
+    else:
+        return selection.alias.value
