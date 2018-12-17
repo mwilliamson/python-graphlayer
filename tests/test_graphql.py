@@ -120,6 +120,39 @@ def test_fields_can_be_nested():
     ))
 
 
+def test_inline_fragments_are_expanded():
+    Root = g.ObjectType(
+        "Root",
+        (
+            g.field("value", type=g.IntType),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            one: value
+            ... on Root {
+                two: value
+            }
+            three: value
+            ... on Root {
+                four: value
+            }
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.value(),
+            two=Root.value(),
+            three=Root.value(),
+            four=Root.value(),
+        ),
+    ))
+
+
 def is_query(query):
     if query == schema.scalar_query:
         return schema.scalar_query
