@@ -348,6 +348,8 @@ def test_graphql_args_are_read():
     (g.Float, "4.2", 4.2),
     (g.Int, "42", 42),
     (g.String, '"value"', "value"),
+    (g.NullableType(g.Int), "42", 42),
+    #~ (g.NullableType(g.Int), "null", None),
 ])
 def test_graphql_args_are_converted(arg_type, arg_string, arg_value):
     Root = g.ObjectType(
