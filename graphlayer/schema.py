@@ -16,7 +16,12 @@ Int = ScalarType("Int")
 String = ScalarType("String")
 
 
-scalar_query = True
+class ScalarQuery(object):
+    def to_json_value(self, value):
+        return value
+
+
+scalar_query = ScalarQuery()
 
 
 class ListType(object):
@@ -47,6 +52,13 @@ class ListQuery(object):
         self.type = type
         self.element_query = element_query
 
+    def to_json_value(self, value):
+        return [
+            self.element_query.to_json_value(element)
+            for element in value
+        ]
+
+
 
 class NullableType(object):
     def __init__(self, element_type):
@@ -76,6 +88,12 @@ class NullableQuery(object):
         self.type = type
         self.element_query = element_query
 
+    def to_json_value(self, value):
+        if value is None:
+            return None
+        else:
+            return self.element_query.to_json_value(value)
+
 
 class ObjectType(object):
     def __init__(self, name, fields):
@@ -84,7 +102,7 @@ class ObjectType(object):
     
     def __call__(self, **fields):
         return ObjectQuery(self, fields)
-    
+
     def __repr__(self):
         return "ObjectType(name={!r})".format(self._name)
 
@@ -124,6 +142,12 @@ class ObjectQuery(object):
     def __init__(self, type, fields):
         self.type = type
         self.fields = fields
+
+    def to_json_value(self, value):
+        return iterables.to_dict(
+            (key, self.fields[key].type_query.to_json_value(value))
+            for key, value in value._values.items()
+        )
 
 
 class Args(object):
