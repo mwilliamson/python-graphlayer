@@ -9,3 +9,15 @@ class ObjectResult(object):
     
     def __bool__(self):
         return bool(self._values)
+    
+    def __hash__(self):
+        return hash(self._values)
+    
+    def __eq__(self, other):
+        if isinstance(other, ObjectResult):
+            return self._values == other._values
+        else:
+            return NotImplemented
+    
+    def __ne__(self, other):
+        return not (self == other)

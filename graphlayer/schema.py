@@ -24,6 +24,31 @@ class ScalarQuery(object):
 scalar_query = ScalarQuery()
 
 
+class InputObjectType(object):
+    def __init__(self, name, fields):
+        self.name = name
+        self.fields = Fields(name, fields)
+    
+    def __call__(self, **fields):
+        return ObjectResult(self, fields)
+
+    def __repr__(self):
+        return "InputObjectType(name={!r})".format(self.name)
+
+
+def input_field(name, type):
+    return InputField(name, type)
+
+
+class InputField(object):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+    
+    def __repr__(self):
+        return "InputField(name={!r}, type={!r})".format(self.name, self.type)
+
+
 class ListType(object):
     def __init__(self, element_type):
         self.element_type = element_type
