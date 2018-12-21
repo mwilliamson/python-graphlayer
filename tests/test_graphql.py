@@ -421,8 +421,8 @@ def test_graphql_field_args_are_read():
     assert_that(object_query, is_query(
         Root(
             one=Root.fields.one(
-                Root.fields.one.arg0("one"),
-                Root.fields.one.arg1("two"),
+                Root.fields.one.params.arg0("one"),
+                Root.fields.one.params.arg1("two"),
             ),
         ),
     ))
@@ -457,7 +457,7 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     assert_that(object_query, is_query(
         Root(
             one=Root.fields.one(
-                Root.fields.one.arg(arg_value),
+                Root.fields.one.params.arg(arg_value),
             ),
         ),
     ))
@@ -484,7 +484,7 @@ def test_graphql_query_args_are_read():
     assert_that(object_query, is_query(
         Root(
             one=Root.fields.one(
-                Root.fields.one.arg(42),
+                Root.fields.one.params.arg(42),
             ),
         ),
     ))

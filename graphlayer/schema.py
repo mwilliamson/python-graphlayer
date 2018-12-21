@@ -162,10 +162,7 @@ class Field(object):
     def __init__(self, name, type, params):
         self.name = name
         self.type = type
-        self._params = params
-    
-    def __getattr__(self, param_name):
-        return iterables.find(lambda param: param.name == param_name, self._params)
+        self.params = Params(params)
     
     def __call__(self, *args, **kwargs):
         field_args = ObjectResult(iterables.to_dict(
@@ -176,6 +173,14 @@ class Field(object):
     
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
+
+
+class Params(object):
+    def __init__(self, params):
+        self._params = params
+    
+    def __getattr__(self, param_name):
+        return iterables.find(lambda param: param.name == param_name, self._params)
 
 
 class FieldQuery(object):

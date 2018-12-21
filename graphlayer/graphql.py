@@ -105,7 +105,7 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     field_name = _camel_case_to_snake_case(graphql_field.name.value)
     field = _get_field(graph_type, field_name)
     args = [
-        getattr(field, arg.name.value)(_read_value(arg.value, variables=variables))
+        getattr(field.params, arg.name.value)(_read_value(arg.value, variables=variables))
         for arg in graphql_field.arguments
     ]
     subfields = to_dict(_read_selection_set(

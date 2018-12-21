@@ -100,7 +100,7 @@ def test_can_pass_arguments_to_expression():
     resolvers = [book_nodes.resolvers]
     
     query = gsql.select(g.ListType(Book)(
-        title=Book.fields.title(Book.fields.title.truncate(8)),
+        title=Book.fields.title(Book.fields.title.params.truncate(8)),
     ))
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
@@ -173,7 +173,7 @@ def test_can_pass_arguments_from_root():
     
     query = Root(
         books=Root.fields.books(
-            Root.fields.books.id(1),
+            Root.fields.books.params.id(1),
             
             title=Book.fields.title(),
         ),
