@@ -344,6 +344,7 @@ def test_graphql_args_are_read():
 
 
 @pytest.mark.parametrize("arg_type, arg_string, arg_value", [
+    (g.Boolean, "true", True),
     (g.Int, "42", 42),
     (g.String, '"value"', "value"),
 ])

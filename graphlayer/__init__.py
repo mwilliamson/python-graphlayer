@@ -2,7 +2,7 @@ from .core import create_graph, dependencies, define_graph, resolver
 from .fields import many, single, single_or_null
 from .representations import ObjectResult
 from .resolvers import constant_object_resolver
-from .schema import field, Int, ListType, NullableType, ObjectType, param, String
+from .schema import Boolean, field, Int, ListType, NullableType, ObjectType, param, String
 
 
 __all__ = [
@@ -19,6 +19,7 @@ __all__ = [
     
     "ObjectResult",
     
+    "Boolean",
     "field",
     "Int",
     "ListType",

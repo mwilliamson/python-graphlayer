@@ -10,6 +10,7 @@ class ScalarType(object):
         return scalar_query
 
 
+Boolean = ScalarType("Boolean")
 Int = ScalarType("Int")
 String = ScalarType("String")
 
