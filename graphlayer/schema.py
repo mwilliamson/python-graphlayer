@@ -154,18 +154,18 @@ class Args(object):
     pass
 
 
-def field(name, type, args=None):
-    return Field(name=name, type=type, args=args)
+def field(name, type, params=None):
+    return Field(name=name, type=type, params=params)
 
 
 class Field(object):
-    def __init__(self, name, type, args):
+    def __init__(self, name, type, params):
         self.name = name
         self.type = type
-        self._args = args
+        self._params = params
     
-    def __getattr__(self, arg_name):
-        return iterables.find(lambda arg: arg.name == arg_name, self._args)
+    def __getattr__(self, param_name):
+        return iterables.find(lambda param: param.name == param_name, self._params)
     
     def __call__(self, *args, **kwargs):
         field_args = ObjectResult(iterables.to_dict(

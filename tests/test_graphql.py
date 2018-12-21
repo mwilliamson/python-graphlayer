@@ -403,7 +403,7 @@ def test_graphql_field_args_are_read():
     Root = g.ObjectType(
         "Root",
         fields=(
-            g.field("one", type=g.Int, args=[
+            g.field("one", type=g.Int, params=[
                 g.param("arg0", type=g.String),
                 g.param("arg1", type=g.String),
             ]),
@@ -440,7 +440,7 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     Root = g.ObjectType(
         "Root",
         fields=(
-            g.field("one", type=g.Int, args=[
+            g.field("one", type=g.Int, params=[
                 g.param("arg", type=arg_type),
             ]),
         ),
@@ -467,7 +467,7 @@ def test_graphql_query_args_are_read():
     Root = g.ObjectType(
         "Root",
         fields=(
-            g.field("one", type=g.Int, args=[
+            g.field("one", type=g.Int, params=[
                 g.param("arg", type=g.Int),
             ]),
         ),
