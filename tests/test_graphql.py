@@ -365,7 +365,7 @@ def test_named_fragments_are_expanded():
     ))
 
 
-def test_graphql_args_are_read():
+def test_graphql_field_args_are_read():
     Root = g.ObjectType(
         "Root",
         fields=(
@@ -402,7 +402,7 @@ def test_graphql_args_are_read():
     (g.NullableType(g.Int), "42", 42),
     #~ (g.NullableType(g.Int), "null", None),
 ])
-def test_graphql_args_are_converted(arg_type, arg_string, arg_value):
+def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     Root = g.ObjectType(
         "Root",
         fields=(
@@ -424,6 +424,33 @@ def test_graphql_args_are_converted(arg_type, arg_string, arg_value):
         Root(
             one=Root.one(
                 Root.one.arg(arg_value),
+            ),
+        ),
+    ))
+
+
+def test_graphql_query_args_are_read():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, args=[
+                g.param("arg", type=g.Int),
+            ]),
+        ),
+    )
+    
+    graphql_query = """
+        query ($value: Int!) {
+            one(arg: $value)
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root, variables={"value": 42})
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.one(
+                Root.one.arg(42),
             ),
         ),
     ))

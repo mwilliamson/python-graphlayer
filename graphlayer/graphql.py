@@ -6,7 +6,10 @@ from graphql.language import ast as graphql_ast, parser as graphql_parser
 from .iterables import find, to_dict, to_multidict
 
 
-def document_text_to_query(document_text, query_type, mutation_type=None):
+def document_text_to_query(document_text, query_type, mutation_type=None, variables=None):
+    if variables is None:
+        variables = {}
+    
     document_ast = graphql_parser.parse(document_text)
     
     operation = find(
@@ -33,16 +36,17 @@ def document_text_to_query(document_text, query_type, mutation_type=None):
         operation.selection_set,
         graph_type=root_type,
         fragments=fragments,
+        variables=variables,
     ))
     return root_type(**fields)
 
 
-def _read_selection_set(selection_set, graph_type, fragments):
+def _read_selection_set(selection_set, graph_type, fragments, variables):
     if selection_set is None:
         return ()
     else:
         return [
-            _read_graphql_field(graphql_field, graph_type=graph_type, fragments=fragments)
+            _read_graphql_field(graphql_field, graph_type=graph_type, fragments=fragments, variables=variables)
             for graphql_field in _flatten_graphql_selections(selection_set.selections, fragments=fragments)
         ]
 
@@ -95,20 +99,25 @@ def _graphql_fragment_to_graphql_fields(fragment, fragments):
     ]
 
 
-def _read_graphql_field(graphql_field, graph_type, fragments):
+def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     key = _field_key(graphql_field)
     field_name = _camel_case_to_snake_case(graphql_field.name.value)
     field = getattr(graph_type, field_name)
     args = [
-        getattr(field, arg.name.value)(_read_value(arg.value))
+        getattr(field, arg.name.value)(_read_value(arg.value, variables=variables))
         for arg in graphql_field.arguments
     ]
-    subfields = to_dict(_read_selection_set(graphql_field.selection_set, graph_type=field.type, fragments=fragments))
+    subfields = to_dict(_read_selection_set(
+        graphql_field.selection_set,
+        graph_type=field.type,
+        fragments=fragments,
+        variables=variables,
+    ))
     field_query = field(*args, **subfields)
     return (key, field_query)
 
 
-def _read_value(value):
+def _read_value(value, variables):
     if isinstance(value, graphql_ast.BooleanValue):
         return value.value
     elif isinstance(value, graphql_ast.FloatValue):
@@ -117,6 +126,9 @@ def _read_value(value):
         return int(value.value)
     elif isinstance(value, graphql_ast.StringValue):
         return value.value
+    elif isinstance(value, graphql_ast.Variable):
+        name = value.name.value
+        return variables[name]
     else:
         raise ValueError("unhandled value: {}".format(type(value)))
 
