@@ -250,7 +250,7 @@ def sql_table(type, model, fields):
             for row in rows
         ]
         
-    return _Subgraph(resolvers=[resolve_sql_query])
+    return _Subgraph(resolvers=(resolve_sql_query, ))
     
 
 class _Subgraph(object):
