@@ -1,8 +1,16 @@
-from precisely import assert_that, equal_to
+from precisely import assert_that, equal_to, has_attrs
 import pytest
 
 from graphlayer import schema
 from graphlayer.representations import Object
+
+
+def test_when_param_does_not_exist_on_params_then_error_is_raised():
+    params = schema.Params("book", {})
+    
+    error = pytest.raises(ValueError, lambda: params.author)
+    
+    assert_that(str(error.value), equal_to("book has no param author"))
 
 
 def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
@@ -13,6 +21,27 @@ def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
     error = pytest.raises(ValueError, lambda: book.fields.author)
     
     assert_that(str(error.value), equal_to("Book has no field author"))
+
+
+def test_when_field_arg_is_not_set_then_default_is_used():
+    Root = schema.ObjectType(
+        "Root",
+        fields=(
+            schema.field("one", type=schema.Int, params=[
+                schema.param("arg0", type=schema.Int, default=None),
+                schema.param("arg1", type=schema.Int, default=42),
+            ]),
+        ),
+    )
+    
+    object_query = Root(
+        one=Root.fields.one(),
+    )
+    assert_that(object_query.fields["one"].args, has_attrs(
+        arg0=None,
+        arg1=42,
+    ))
+
 
 
 class TestToJsonValue(object):

@@ -2,6 +2,9 @@ from . import iterables
 from .representations import Object
 
 
+_undefined = object()
+
+
 class ScalarType(object):
     def __init__(self, name):
         self.name = name
@@ -180,6 +183,8 @@ class Args(object):
 
 
 def field(name, type, params=None):
+    if params is None:
+        params = ()
     return Field(name=name, type=type, params=params)
 
 
@@ -187,13 +192,18 @@ class Field(object):
     def __init__(self, name, type, params):
         self.name = name
         self.type = type
-        self.params = Params(params)
+        self.params = Params(name, params)
     
     def __call__(self, *args, **kwargs):
-        field_args = Object(iterables.to_dict(
+        explicit_args = iterables.to_dict(
             (arg.parameter.name, arg.value)
             for arg in args
+        )
+        field_args = Object(iterables.to_dict(
+            (param.name, explicit_args.get(param.name, param.default))
+            for param in self.params
         ))
+        # TODO: handle extra args
         return FieldQuery(field=self, type_query=self.type(**kwargs), args=field_args)
     
     def __repr__(self):
@@ -201,11 +211,19 @@ class Field(object):
 
 
 class Params(object):
-    def __init__(self, params):
+    def __init__(self, field_name, params):
+        self._field_name = field_name
         self._params = params
     
+    def __iter__(self):
+        return iter(self._params)
+    
     def __getattr__(self, param_name):
-        return iterables.find(lambda param: param.name == param_name, self._params)
+        param = iterables.find(lambda param: param.name == param_name, self._params, default=None)
+        if param is None:
+            raise ValueError("{} has no param {}".format(self._field_name, param_name))
+        else:
+            return param
 
 
 class FieldQuery(object):
@@ -215,14 +233,15 @@ class FieldQuery(object):
         self.args = args
 
 
-def param(name, type):
-    return Parameter(name=name, type=type)
+def param(name, type, default=_undefined):
+    return Parameter(name=name, type=type, default=default)
 
 
 class Parameter(object):
-    def __init__(self, name, type):
+    def __init__(self, name, type, default):
         self.name = name
         self.type = type
+        self.default = default
     
     def __call__(self, value):
         return Argument(parameter=self, value=value)

@@ -473,6 +473,30 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     ))
 
 
+def test_when_arg_is_not_set_then_default_is_used():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, params=[
+                g.param("arg0", type=g.Int, default=None),
+                g.param("arg1", type=g.Int, default=42),
+            ]),
+        ),
+    )
+    
+    graphql_query = """
+        query ($value: Int!) {
+            one
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    assert_that(object_query.fields["one"].args, has_attrs(
+        arg0=None,
+        arg1=42,
+    ))
+
+
 def test_graphql_query_args_are_read():
     Root = g.ObjectType(
         "Root",
