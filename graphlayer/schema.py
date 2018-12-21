@@ -10,8 +10,8 @@ class ScalarType(object):
         return scalar_query
 
 
-IntType = ScalarType("Int")
-StringType = ScalarType("String")
+Int = ScalarType("Int")
+String = ScalarType("String")
 
 
 scalar_query = True

@@ -30,7 +30,7 @@ def test_can_get_fields_backed_by_expressions():
     Book = g.ObjectType(
         "Book",
         fields=lambda: [
-            g.field("title", type=g.StringType),
+            g.field("title", type=g.String),
         ],
     )
     
@@ -83,8 +83,8 @@ def test_can_pass_arguments_to_expression():
     Book = g.ObjectType(
         "Book",
         fields=lambda: [
-            g.field("title", type=g.StringType, args=[
-                g.param("truncate", g.IntType),
+            g.field("title", type=g.String, args=[
+                g.param("truncate", g.Int),
             ]),
         ],
     )
@@ -136,7 +136,7 @@ def test_can_pass_arguments_from_root():
         "Root",
         fields=lambda: [
             g.field("books", type=g.ListType(Book), args=[
-                g.param("id", g.IntType),
+                g.param("id", g.Int),
             ]),
         ],
     )
@@ -144,7 +144,7 @@ def test_can_pass_arguments_from_root():
     Book = g.ObjectType(
         "Book",
         fields=lambda: [
-            g.field("title", type=g.StringType),
+            g.field("title", type=g.String),
         ],
     )
     
@@ -228,14 +228,14 @@ def test_can_recursively_resolve_selected_fields():
         "Book",
         fields=lambda: [
             g.field("author", type=Author),
-            g.field("title", type=g.StringType),
+            g.field("title", type=g.String),
         ],
     )
     
     Author = g.ObjectType(
         "Author",
         fields=lambda: [
-            g.field("name", type=g.StringType),
+            g.field("name", type=g.String),
         ],
     )
     
@@ -321,14 +321,14 @@ def test_can_resolve_many_to_one_field():
     Left = g.ObjectType(
         "Left",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
             g.field("right", type=Right),
         ],
     )
     Right = g.ObjectType(
         "Right",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
         ],
     )
     
@@ -408,14 +408,14 @@ def test_can_resolve_many_to_one_or_zero_field():
     Left = g.ObjectType(
         "Left",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
             g.field("right", type=g.NullableType(Right)),
         ],
     )
     Right = g.ObjectType(
         "Right",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
         ],
     )
     
@@ -500,14 +500,14 @@ def test_can_resolve_one_to_many_field():
     Left = g.ObjectType(
         "Left",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
             g.field("rights", type=g.ListType(Right)),
         ],
     )
     Right = g.ObjectType(
         "Right",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
         ],
     )
     
@@ -608,14 +608,14 @@ def test_can_resolve_join_through_association_table():
     Left = g.ObjectType(
         "Left",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
             g.field("rights", type=g.ListType(Right)),
         ],
     )
     Right = g.ObjectType(
         "Right",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
         ],
     )
     
@@ -705,14 +705,14 @@ def test_can_join_tables_using_multi_column_key():
     Left = g.ObjectType(
         "Left",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
             g.field("right", type=Right),
         ],
     )
     Right = g.ObjectType(
         "Right",
         fields=lambda: [
-            g.field("value", type=g.StringType),
+            g.field("value", type=g.String),
         ],
     )
     

@@ -10,7 +10,7 @@ def test_simple_query_is_converted_to_object_query():
     Root = g.ObjectType(
         "Root",
         (
-            g.field("one", type=g.IntType),
+            g.field("one", type=g.Int),
         ),
     )
     
@@ -33,7 +33,7 @@ def test_fields_can_have_alias():
     Root = g.ObjectType(
         "Root",
         (
-            g.field("one", type=g.IntType),
+            g.field("one", type=g.Int),
         ),
     )
     
@@ -56,7 +56,7 @@ def test_field_names_are_converted_to_snake_case():
     Root = g.ObjectType(
         "Root",
         (
-            g.field("one_value", type=g.IntType),
+            g.field("one_value", type=g.Int),
         ),
     )
     
@@ -93,7 +93,7 @@ def test_fields_can_be_nested():
     Two = g.ObjectType(
         "Two",
         fields=lambda: (
-            g.field("three", type=g.IntType),
+            g.field("three", type=g.Int),
         ),
     )
     
@@ -124,7 +124,7 @@ def test_inline_fragments_are_expanded():
     Root = g.ObjectType(
         "Root",
         (
-            g.field("value", type=g.IntType),
+            g.field("value", type=g.Int),
         ),
     )
     
@@ -164,8 +164,8 @@ def test_inline_fragments_are_merged():
     User = g.ObjectType(
         "User",
         fields=(
-            g.field("name", type=g.StringType),
-            g.field("address", type=g.StringType),
+            g.field("name", type=g.String),
+            g.field("address", type=g.String),
         ),
     )
     
@@ -207,9 +207,9 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
     User = g.ObjectType(
         "User",
         fields=(
-            g.field("name", type=g.StringType),
-            g.field("address", type=g.StringType),
-            g.field("role", type=g.StringType),
+            g.field("name", type=g.String),
+            g.field("address", type=g.String),
+            g.field("role", type=g.String),
         ),
     )
     
@@ -247,7 +247,7 @@ def test_inline_fragments_are_recursively_merged():
     Root = g.ObjectType(
         "Root",
         fields=lambda: (
-            g.field("value", type=g.IntType),
+            g.field("value", type=g.Int),
         ),
     )
     
@@ -280,7 +280,7 @@ def test_named_fragments_are_expanded():
     Root = g.ObjectType(
         "Root",
         (
-            g.field("value", type=g.IntType),
+            g.field("value", type=g.Int),
         ),
     )
     
@@ -317,9 +317,9 @@ def test_graphql_args_are_converted():
     Root = g.ObjectType(
         "Root",
         fields=(
-            g.field("one", type=g.IntType, args=[
-                g.param("arg0", type=g.IntType),
-                g.param("arg1", type=g.IntType),
+            g.field("one", type=g.Int, args=[
+                g.param("arg0", type=g.Int),
+                g.param("arg1", type=g.Int),
             ]),
         ),
     )

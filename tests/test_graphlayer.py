@@ -8,8 +8,8 @@ def test_can_get_scalar_from_root():
     Root = g.ObjectType(
         "Root",
         fields=[
-            g.field("one", type=g.IntType),
-            g.field("two", type=g.IntType),
+            g.field("one", type=g.Int),
+            g.field("two", type=g.Int),
         ],
     )
     
@@ -39,8 +39,8 @@ def test_constant_object_resolver():
     Root = g.ObjectType(
         "Root",
         fields=[
-            g.field("one", type=g.IntType),
-            g.field("two", type=g.IntType),
+            g.field("one", type=g.Int),
+            g.field("two", type=g.Int),
         ],
     )
     
@@ -67,7 +67,7 @@ def test_can_recursively_resolve():
     Book = g.ObjectType(
         "Book",
         fields=lambda: [
-            g.field("title", type=g.StringType),
+            g.field("title", type=g.String),
         ],
     )
     
@@ -121,14 +121,14 @@ def test_can_recursively_resolve_selected_fields():
         "Book",
         fields=lambda: [
             g.field("author", type=Author),
-            g.field("title", type=g.StringType),
+            g.field("title", type=g.String),
         ],
     )
     
     Author = g.ObjectType(
         "Author",
         fields=lambda: [
-            g.field("name", type=g.StringType),
+            g.field("name", type=g.String),
         ],
     )
     
