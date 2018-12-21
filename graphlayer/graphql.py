@@ -133,6 +133,11 @@ def _read_value(value, variables):
         return float(value.value)
     elif isinstance(value, graphql_ast.IntValue):
         return int(value.value)
+    elif isinstance(value, graphql_ast.ListValue):
+        return [
+            _read_value(element, variables=variables)
+            for element in value.values
+        ]
     elif isinstance(value, graphql_ast.ObjectValue):
         return ObjectResult(to_dict(
             (field.name.value, _read_value(field.value, variables=variables))

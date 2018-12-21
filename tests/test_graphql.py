@@ -435,6 +435,8 @@ def test_graphql_field_args_are_read():
     (g.String, '"value"', "value"),
     (g.NullableType(g.Int), "42", 42),
     #~ (g.NullableType(g.Int), "null", None),
+    (g.ListType(g.Int), "[]", []),
+    (g.ListType(g.Int), "[1, 2, 3]", [1, 2, 3]),
     (
         g.InputObjectType("User", fields=(
             g.input_field("name", type=g.String),
