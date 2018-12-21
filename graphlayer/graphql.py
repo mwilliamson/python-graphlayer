@@ -146,9 +146,13 @@ def _read_value(value, value_type, variables):
             for element in value.values
         ]
     elif isinstance(value, graphql_ast.ObjectValue):
+        def get_field_value(field_input):
+            field = getattr(value_type.fields, field_input.name.value)
+            return _read_value(field_input.value, variables=variables, value_type=field.type)
+        
         return value_type(**to_dict(
-            (field.name.value, _read_value(field.value, variables=variables, value_type=None))
-            for field in value.fields
+            (field_input.name.value, get_field_value(field_input))
+            for field_input in value.fields
         ))
     elif isinstance(value, graphql_ast.StringValue):
         return value.value
