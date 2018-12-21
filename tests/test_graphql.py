@@ -497,6 +497,37 @@ def test_when_arg_is_not_set_then_default_is_used():
     ))
 
 
+def test_when_field_value_is_not_set_then_default_is_used():
+    Input = schema.InputObjectType(
+        "Input",
+        fields=(
+            schema.input_field("field0", type=schema.Int, default=None),
+            schema.input_field("field1", type=schema.Int, default=42),
+        ),
+    )
+    
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, params=[
+                g.param("arg", type=Input),
+            ]),
+        ),
+    )
+    
+    graphql_query = """
+        query ($value: Int!) {
+            one(arg: {})
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    assert_that(object_query.fields["one"].args.arg, has_attrs(
+        field0=None,
+        field1=42,
+    ))
+
+
 def test_graphql_query_args_are_read():
     Root = g.ObjectType(
         "Root",

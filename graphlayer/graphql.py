@@ -5,7 +5,6 @@ from graphql.language import ast as graphql_ast, parser as graphql_parser
 
 from . import schema
 from .iterables import find, to_dict, to_multidict
-from .representations import Object
 
 
 def document_text_to_query(document_text, query_type, mutation_type=None, variables=None):
@@ -105,8 +104,14 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     key = _field_key(graphql_field)
     field_name = _camel_case_to_snake_case(graphql_field.name.value)
     field = _get_field(graph_type, field_name)
+    
+    def get_arg_value(arg):
+        param = getattr(field.params, arg.name.value)
+        value = _read_value(arg.value, variables=variables, value_type=param.type)
+        return param(value)
+    
     args = [
-        getattr(field.params, arg.name.value)(_read_value(arg.value, variables=variables))
+        get_arg_value(arg)
         for arg in graphql_field.arguments
     ]
     subfields = to_dict(_read_selection_set(
@@ -126,7 +131,7 @@ def _get_field(graph_type, field_name):
     return getattr(graph_type.fields, field_name)
 
 
-def _read_value(value, variables):
+def _read_value(value, value_type, variables):
     if isinstance(value, graphql_ast.BooleanValue):
         return value.value
     elif isinstance(value, graphql_ast.FloatValue):
@@ -135,12 +140,13 @@ def _read_value(value, variables):
         return int(value.value)
     elif isinstance(value, graphql_ast.ListValue):
         return [
-            _read_value(element, variables=variables)
+            _read_value(element, variables=variables, value_type=None)
             for element in value.values
         ]
     elif isinstance(value, graphql_ast.ObjectValue):
-        return Object(to_dict(
-            (field.name.value, _read_value(field.value, variables=variables))
+        print(value_type)
+        return value_type(**to_dict(
+            (field.name.value, _read_value(field.value, variables=variables, value_type=None))
             for field in value.fields
         ))
     elif isinstance(value, graphql_ast.StringValue):
