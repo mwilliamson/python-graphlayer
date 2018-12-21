@@ -25,7 +25,7 @@ def test_simple_query_is_converted_to_object_query():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.one(),
+            one=Root.fields.one(),
         ),
     ))
 
@@ -54,7 +54,7 @@ def test_simple_mutation_is_converted_to_object_query():
     
     assert_that(object_query, is_query(
         MutationRoot(
-            mutationValue=MutationRoot.mutation_value(),
+            mutationValue=MutationRoot.fields.mutation_value(),
         ),
     ))
 
@@ -99,7 +99,7 @@ def test_fields_can_have_alias():
     
     assert_that(object_query, is_query(
         Root(
-            value=Root.one(),
+            value=Root.fields.one(),
         ),
     ))
 
@@ -122,7 +122,7 @@ def test_field_names_are_converted_to_snake_case():
     
     assert_that(object_query, is_query(
         Root(
-            oneValue=Root.one_value(),
+            oneValue=Root.fields.one_value(),
         ),
     ))
 
@@ -163,9 +163,9 @@ def test_fields_can_be_nested():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.one(
-                two=One.two(
-                    three=Two.three(),
+            one=Root.fields.one(
+                two=One.fields.two(
+                    three=Two.fields.three(),
                 ),
             ),
         ),
@@ -197,10 +197,10 @@ def test_inline_fragments_are_expanded():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.value(),
-            two=Root.value(),
-            three=Root.value(),
-            four=Root.value(),
+            one=Root.fields.value(),
+            two=Root.fields.value(),
+            three=Root.fields.value(),
+            four=Root.fields.value(),
         ),
     ))
 
@@ -240,9 +240,9 @@ def test_inline_fragments_are_merged():
     
     assert_that(object_query, is_query(
         Root(
-            user=Root.user(
-                name=User.name(),
-                address=User.address(),
+            user=Root.fields.user(
+                name=User.fields.name(),
+                address=User.fields.address(),
             ),
         ),
     ))
@@ -286,10 +286,10 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
     
     assert_that(object_query, is_query(
         Root(
-            user=Root.user(
-                name=User.name(),
-                address=User.address(),
-                role=User.role(),
+            user=Root.fields.user(
+                name=User.fields.name(),
+                address=User.fields.address(),
+                role=User.fields.role(),
             ),
         ),
     ))
@@ -322,8 +322,8 @@ def test_inline_fragments_are_recursively_merged():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.value(),
-            two=Root.value(),
+            one=Root.fields.value(),
+            two=Root.fields.value(),
         ),
     ))
 
@@ -357,10 +357,10 @@ def test_named_fragments_are_expanded():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.value(),
-            two=Root.value(),
-            three=Root.value(),
-            four=Root.value(),
+            one=Root.fields.value(),
+            two=Root.fields.value(),
+            three=Root.fields.value(),
+            four=Root.fields.value(),
         ),
     ))
 
@@ -386,9 +386,9 @@ def test_graphql_field_args_are_read():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.one(
-                Root.one.arg0("one"),
-                Root.one.arg1("two"),
+            one=Root.fields.one(
+                Root.fields.one.arg0("one"),
+                Root.fields.one.arg1("two"),
             ),
         ),
     ))
@@ -422,8 +422,8 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.one(
-                Root.one.arg(arg_value),
+            one=Root.fields.one(
+                Root.fields.one.arg(arg_value),
             ),
         ),
     ))
@@ -449,8 +449,8 @@ def test_graphql_query_args_are_read():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.one(
-                Root.one.arg(42),
+            one=Root.fields.one(
+                Root.fields.one.arg(42),
             ),
         ),
     ))

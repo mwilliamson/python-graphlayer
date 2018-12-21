@@ -9,6 +9,6 @@ def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
         schema.field("title", schema.String),
     ))
     
-    error = pytest.raises(ValueError, lambda: book.author)
+    error = pytest.raises(ValueError, lambda: book.fields.author)
     
     assert_that(str(error.value), equal_to("Book has no field author"))

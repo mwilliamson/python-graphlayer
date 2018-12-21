@@ -28,7 +28,7 @@ def test_can_get_scalar_from_root():
     resolvers = [resolve_root]
     
     query = Root(
-        value=Root.one(),
+        value=Root.fields.one(),
     )
     result = g.create_graph(resolvers).resolve(query)
     
@@ -49,7 +49,7 @@ def test_constant_object_resolver():
     resolvers = [resolve_root]
     
     query = Root(
-        value=Root.one(),
+        value=Root.fields.one(),
     )
     result = g.create_graph(resolvers).resolve(query)
     
@@ -95,8 +95,8 @@ def test_can_recursively_resolve():
     resolvers = [resolve_root, resolve_book]
     
     query = Root(
-        books=Root.books(
-            title=Book.title(),
+        books=Root.fields.books(
+            title=Book.fields.title(),
         ),
     )
     result = g.create_graph(resolvers).resolve(query)
@@ -191,11 +191,11 @@ def test_can_recursively_resolve_selected_fields():
     resolvers = [resolve_root, resolve_book, resolve_author]
     
     query = Root(
-        books=Root.books(
-            author=Book.author(
-                name=Author.name(),
+        books=Root.fields.books(
+            author=Book.fields.author(
+                name=Author.fields.name(),
             ),
-            title=Book.title(),
+            title=Book.fields.title(),
         ),
     )
     result = g.create_graph(resolvers).resolve(query)

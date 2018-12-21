@@ -80,6 +80,18 @@ class NullableQuery(object):
 class ObjectType(object):
     def __init__(self, name, fields):
         self._name = name
+        self.fields = Fields(name, fields)
+    
+    def __call__(self, **fields):
+        return ObjectQuery(self, fields)
+    
+    def __repr__(self):
+        return "ObjectType(name={!r})".format(self._name)
+
+
+class Fields(object):
+    def __init__(self, type_name, fields):
+        self._type_name = type_name
         if not callable(fields):
             fields = _lambdaise(fields)
         self._fields = _memoize(fields)
@@ -87,15 +99,9 @@ class ObjectType(object):
     def __getattr__(self, field_name):
         field = iterables.find(lambda field: field.name == field_name, self._fields(), default=None)
         if field is None:
-            raise ValueError("{} has no field {}".format(self._name, field_name))
+            raise ValueError("{} has no field {}".format(self._type_name, field_name))
         else:
             return field
-    
-    def __call__(self, **fields):
-        return ObjectQuery(self, fields)
-    
-    def __repr__(self):
-        return "ObjectType(name={!r})".format(self._name)
 
 
 def _memoize(func):

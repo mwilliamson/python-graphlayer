@@ -102,7 +102,7 @@ def _graphql_fragment_to_graphql_fields(fragment, fragments):
 def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     key = _field_key(graphql_field)
     field_name = _camel_case_to_snake_case(graphql_field.name.value)
-    field = getattr(graph_type, field_name)
+    field = getattr(graph_type.fields, field_name)
     args = [
         getattr(field, arg.name.value)(_read_value(arg.value, variables=variables))
         for arg in graphql_field.arguments
