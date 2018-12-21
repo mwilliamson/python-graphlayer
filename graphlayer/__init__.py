@@ -1,6 +1,6 @@
 from .core import create_graph, dependencies, define_graph, resolver
 from .fields import many, single, single_or_null
-from .representations import ObjectResult
+from .representations import Object
 from .resolvers import constant_object_resolver
 from .schema import Boolean, field, Float, input_field, InputObjectType, Int, ListType, NullableType, ObjectType, param, String
 
@@ -17,7 +17,7 @@ __all__ = [
 
     "constant_object_resolver",
     
-    "ObjectResult",
+    "Object",
     
     "Boolean",
     "field",

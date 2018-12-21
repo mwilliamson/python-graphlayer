@@ -244,7 +244,7 @@ def sql_table(type, model, fields):
         def read_row(row):
             return process_row(
                 row[len(query_expressions):],
-                g.ObjectResult(iterables.to_dict(
+                g.Object(iterables.to_dict(
                     (key, read(row[row_slice]))
                     for key, row_slice, read in readers
                 ))

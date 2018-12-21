@@ -2,7 +2,7 @@ from precisely import assert_that, equal_to
 import pytest
 
 from graphlayer import schema
-from graphlayer.representations import ObjectResult
+from graphlayer.representations import Object
 
 
 def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
@@ -37,7 +37,7 @@ class TestToJsonValue(object):
             schema.field("title", schema.String),
         ))
         query = Book(book_title=Book.fields.title())
-        value = ObjectResult(dict(book_title="Orbiting the Giant Hairball"))
+        value = Object(dict(book_title="Orbiting the Giant Hairball"))
         assert_that(query.to_json_value(value), equal_to({
             "book_title": "Orbiting the Giant Hairball",
         }))
@@ -50,8 +50,8 @@ class TestToJsonValue(object):
             schema.field("author", Author),
         ))
         query = Book(author=Book.fields.author(name=Author.fields.name()))
-        value = ObjectResult(dict(
-            author=ObjectResult(dict(
+        value = Object(dict(
+            author=Object(dict(
                 name="Gordon A. Mackenzie",
             )),
         ))
@@ -75,7 +75,7 @@ class TestToJsonValue(object):
         ))
         NullableBook = schema.NullableType(Book)
         query = NullableBook(book_title=Book.fields.title())
-        value = ObjectResult(dict(book_title="Orbiting the Giant Hairball"))
+        value = Object(dict(book_title="Orbiting the Giant Hairball"))
         assert_that(query.to_json_value(value), equal_to({
             "book_title": "Orbiting the Giant Hairball",
         }))
@@ -86,7 +86,7 @@ class TestToJsonValue(object):
         ))
         BookList = schema.ListType(Book)
         query = BookList(book_title=Book.fields.title())
-        value = ObjectResult(dict(book_title="Orbiting the Giant Hairball"))
+        value = Object(dict(book_title="Orbiting the Giant Hairball"))
         assert_that(query.to_json_value([value]), equal_to([
             {
                 "book_title": "Orbiting the Giant Hairball",

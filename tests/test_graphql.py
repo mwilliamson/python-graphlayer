@@ -443,7 +443,7 @@ def test_graphql_field_args_are_read():
             g.input_field("name", type=g.String),
         )),
         '{id: 42, name: "Bob"}',
-        g.ObjectResult({"id": 42, "name": "Bob"}),
+        g.Object({"id": 42, "name": "Bob"}),
     ),
 ])
 def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):

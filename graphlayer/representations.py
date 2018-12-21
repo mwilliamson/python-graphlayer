@@ -1,4 +1,4 @@
-class ObjectResult(object):
+class Object(object):
     def __init__(self, values):
         self._values = values
         for key in values:
@@ -14,7 +14,7 @@ class ObjectResult(object):
         return hash(self._values)
     
     def __eq__(self, other):
-        if isinstance(other, ObjectResult):
+        if isinstance(other, Object):
             return self._values == other._values
         else:
             return NotImplemented

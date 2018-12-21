@@ -5,7 +5,7 @@ from graphql.language import ast as graphql_ast, parser as graphql_parser
 
 from . import schema
 from .iterables import find, to_dict, to_multidict
-from .representations import ObjectResult
+from .representations import Object
 
 
 def document_text_to_query(document_text, query_type, mutation_type=None, variables=None):
@@ -139,7 +139,7 @@ def _read_value(value, variables):
             for element in value.values
         ]
     elif isinstance(value, graphql_ast.ObjectValue):
-        return ObjectResult(to_dict(
+        return Object(to_dict(
             (field.name.value, _read_value(field.value, variables=variables))
             for field in value.fields
         ))

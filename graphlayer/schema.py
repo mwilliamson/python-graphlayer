@@ -1,5 +1,5 @@
 from . import iterables
-from .representations import ObjectResult
+from .representations import Object
 
 
 class ScalarType(object):
@@ -30,7 +30,7 @@ class InputObjectType(object):
         self.fields = Fields(name, fields)
     
     def __call__(self, **fields):
-        return ObjectResult(self, fields)
+        return Object(self, fields)
 
     def __repr__(self):
         return "InputObjectType(name={!r})".format(self.name)
@@ -190,7 +190,7 @@ class Field(object):
         self.params = Params(params)
     
     def __call__(self, *args, **kwargs):
-        field_args = ObjectResult(iterables.to_dict(
+        field_args = Object(iterables.to_dict(
             (arg.parameter.name, arg.value)
             for arg in args
         ))
