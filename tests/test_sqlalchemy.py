@@ -152,7 +152,7 @@ def test_can_pass_arguments_from_root():
     
     @resolve_root.field(Root.books)
     def root_books_args(graph, query, args):
-        return graph.resolve(book_nodes.select(query).where(book_nodes.id(args.id)))
+        return graph.resolve(BookQuery.select(query).where(BookQuery.id(args.id)))
     
     book_nodes = gsql.sql_table(
         Book,
@@ -162,9 +162,12 @@ def test_can_pass_arguments_from_root():
         },
     )
     
-    @book_nodes.add("id")
-    def book_nodes_id(id):
-        return BookRow.c_id == id
+    class BookQuery(object):
+        select = gsql.select
+
+        @staticmethod
+        def id(id):
+            return BookRow.c_id == id
     
     resolvers = [resolve_root, book_nodes.resolvers]
     

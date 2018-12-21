@@ -259,10 +259,3 @@ class _Subgraph(object):
     
     def select(self, query):
         return select(query)
-    
-    def add(self, name):
-        def add(value):
-            setattr(self, name, value)
-            return value
-        
-        return add
