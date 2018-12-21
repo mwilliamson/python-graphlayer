@@ -132,7 +132,9 @@ def _get_field(graph_type, field_name):
 
 
 def _read_value(value, value_type, variables):
-    if isinstance(value, graphql_ast.BooleanValue):
+    if isinstance(value_type, schema.NullableType):
+        return _read_value(value, value_type=value_type.element_type, variables=variables)
+    elif isinstance(value, graphql_ast.BooleanValue):
         return value.value
     elif isinstance(value, graphql_ast.FloatValue):
         return float(value.value)
