@@ -41,7 +41,7 @@ class Graph(object):
 
 
 def _flatten(value):
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return [
             subelement
             for element in value
