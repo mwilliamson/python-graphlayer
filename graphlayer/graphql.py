@@ -140,11 +140,10 @@ def _read_value(value, value_type, variables):
         return int(value.value)
     elif isinstance(value, graphql_ast.ListValue):
         return [
-            _read_value(element, variables=variables, value_type=None)
+            _read_value(element, variables=variables, value_type=value_type.element_type)
             for element in value.values
         ]
     elif isinstance(value, graphql_ast.ObjectValue):
-        print(value_type)
         return value_type(**to_dict(
             (field.name.value, _read_value(field.value, variables=variables, value_type=None))
             for field in value.fields
