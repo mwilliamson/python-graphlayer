@@ -150,7 +150,12 @@ def select(query):
     if isinstance(query, _SqlQuery):
         return query
     else:
-        return _SqlQuery(query, index_expressions=None, where_clauses=())
+        if isinstance(query, ListQuery):
+            element_query = query.element_query
+        else:
+            element_query = query
+
+        return _SqlQuery(element_query, index_expressions=None, where_clauses=())
 
 
 _sql_query_type_key = object()
@@ -183,7 +188,7 @@ class _SqlQuery(object):
 
 
 def sql_table(type, model, fields):
-    @g.resolver(_sql_query_type(g.ListType(type)))
+    @g.resolver(_sql_query_type(type))
     @g.dependencies(session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, session):
         where = sqlalchemy.and_(*query.where_clauses)
@@ -225,14 +230,14 @@ def sql_table(type, model, fields):
         row_slices = []
         readers = []
         
-        for field_query in query.element_query.fields.values():
+        for field_query in query.fields.values():
             expressions = get_field(field_query).expressions()
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions))) 
             query_expressions += expressions
         
         rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
         
-        for (key, field_query), row_slice in zip(query.element_query.fields.items(), row_slices):
+        for (key, field_query), row_slice in zip(query.fields.items(), row_slices):
             reader = get_field(field_query).create_reader(graph, field_query, base_query, session=session)
             readers.append((key, row_slice, reader))
         
