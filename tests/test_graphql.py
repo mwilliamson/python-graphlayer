@@ -1,4 +1,5 @@
 from precisely import assert_that, has_attrs, is_mapping
+import pytest
 
 import graphlayer as g
 from graphlayer import schema
@@ -313,20 +314,20 @@ def test_named_fragments_are_expanded():
     ))
 
 
-def test_graphql_args_are_converted():
+def test_graphql_args_are_read():
     Root = g.ObjectType(
         "Root",
         fields=(
             g.field("one", type=g.Int, args=[
-                g.param("arg0", type=g.Int),
-                g.param("arg1", type=g.Int),
+                g.param("arg0", type=g.String),
+                g.param("arg1", type=g.String),
             ]),
         ),
     )
     
     graphql_query = """
         query {
-            one(arg0: 42, arg1: 47)
+            one(arg0: "one", arg1: "two")
         }
     """
     
@@ -335,12 +336,42 @@ def test_graphql_args_are_converted():
     assert_that(object_query, is_query(
         Root(
             one=Root.one(
-                Root.one.arg0(42),
-                Root.one.arg1(47),
+                Root.one.arg0("one"),
+                Root.one.arg1("two"),
             ),
         ),
     ))
 
+
+@pytest.mark.parametrize("arg_type, arg_string, arg_value", [
+    (g.Int, "42", 42),
+    (g.String, '"value"', "value"),
+])
+def test_graphql_args_are_converted(arg_type, arg_string, arg_value):
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, args=[
+                g.param("arg", type=arg_type),
+            ]),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            one(arg: %s)
+        }
+    """ % (arg_string, )
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.one(
+                Root.one.arg(arg_value),
+            ),
+        ),
+    ))
 
 
 def is_query(query):
