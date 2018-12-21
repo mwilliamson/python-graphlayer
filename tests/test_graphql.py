@@ -1,4 +1,4 @@
-from precisely import assert_that, has_attrs, is_mapping
+from precisely import assert_that, equal_to, has_attrs, is_mapping
 import pytest
 
 import graphlayer as g
@@ -28,6 +28,57 @@ def test_simple_query_is_converted_to_object_query():
             one=Root.one(),
         ),
     ))
+
+
+def test_simple_mutation_is_converted_to_object_query():
+    QueryRoot = g.ObjectType(
+        "Query",
+        (
+            g.field("query_value", type=g.Int),
+        ),
+    )
+    MutationRoot = g.ObjectType(
+        "Mutation",
+        (
+            g.field("mutation_value", type=g.Int),
+        ),
+    )
+    
+    graphql_query = """
+        mutation {
+            mutationValue
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=QueryRoot, mutation_type=MutationRoot)
+    
+    assert_that(object_query, is_query(
+        MutationRoot(
+            mutationValue=MutationRoot.mutation_value(),
+        ),
+    ))
+
+
+def test_given_no_mutation_type_is_defined_when_operation_is_mutation_then_error_is_raised():
+    QueryRoot = g.ObjectType(
+        "Query",
+        (
+            g.field("query_value", type=g.Int),
+        ),
+    )
+    
+    graphql_query = """
+        mutation {
+            queryValue
+        }
+    """
+    
+    error = pytest.raises(
+        ValueError,
+        lambda: document_text_to_query(graphql_query, query_type=QueryRoot),
+    )
+    
+    assert_that(str(error.value), equal_to("unsupported operation: mutation"))
 
 
 def test_fields_can_have_alias():

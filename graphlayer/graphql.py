@@ -6,13 +6,20 @@ from graphql.language import ast as graphql_ast, parser as graphql_parser
 from .iterables import find, to_dict, to_multidict
 
 
-def document_text_to_query(document_text, query_type):
+def document_text_to_query(document_text, query_type, mutation_type=None):
     document_ast = graphql_parser.parse(document_text)
     
     operation = find(
         lambda definition: isinstance(definition, graphql_ast.OperationDefinition),
         document_ast.definitions,
     )
+    
+    if operation.operation == "query":
+        root_type = query_type
+    elif operation.operation == "mutation" and mutation_type is not None:
+        root_type = mutation_type
+    else:
+        raise ValueError("unsupported operation: {}".format(operation.operation))
     
     fragments = to_dict(
         (fragment.name.value, fragment)
@@ -24,10 +31,10 @@ def document_text_to_query(document_text, query_type):
     
     fields = to_dict(_read_selection_set(
         operation.selection_set,
-        graph_type=query_type,
+        graph_type=root_type,
         fragments=fragments,
     ))
-    return query_type(**fields)
+    return root_type(**fields)
 
 
 def _read_selection_set(selection_set, graph_type, fragments):
