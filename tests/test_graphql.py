@@ -172,6 +172,40 @@ def test_fields_can_be_nested():
     ))
 
 
+def test_can_request_fields_of_list():
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("one", type=g.ListType(One)),
+        ),
+    )
+    
+    One = g.ObjectType(
+        "One",
+        fields=lambda: (
+            g.field("two", type=g.Int),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            one {
+                two
+            }
+        }
+    """
+    
+    object_query = document_text_to_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.fields.one(
+                two=One.fields.two(),
+            ),
+        ),
+    ))
+
+
 def test_inline_fragments_are_expanded():
     Root = g.ObjectType(
         "Root",
@@ -465,6 +499,12 @@ def is_query(query):
             field=query.field,
             type_query=is_query(query.type_query),
             args=has_attrs(_values=is_mapping(query.args._values)),
+        )
+        
+    elif isinstance(query, schema.ListQuery):
+        return has_attrs(
+            type=query.type,
+            element_query=is_query(query.element_query),
         )
         
     elif isinstance(query, schema.ObjectQuery):

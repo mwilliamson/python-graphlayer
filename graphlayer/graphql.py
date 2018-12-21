@@ -3,6 +3,7 @@ import re
 
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 
+from . import schema
 from .iterables import find, to_dict, to_multidict
 
 
@@ -102,7 +103,7 @@ def _graphql_fragment_to_graphql_fields(fragment, fragments):
 def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     key = _field_key(graphql_field)
     field_name = _camel_case_to_snake_case(graphql_field.name.value)
-    field = getattr(graph_type.fields, field_name)
+    field = _get_field(graph_type, field_name)
     args = [
         getattr(field, arg.name.value)(_read_value(arg.value, variables=variables))
         for arg in graphql_field.arguments
@@ -115,6 +116,13 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     ))
     field_query = field(*args, **subfields)
     return (key, field_query)
+
+
+def _get_field(graph_type, field_name):
+    while not isinstance(graph_type, schema.ObjectType):
+        graph_type = graph_type.element_type
+
+    return getattr(graph_type.fields, field_name)
 
 
 def _read_value(value, variables):
