@@ -97,14 +97,14 @@ class NullableQuery(object):
 
 class ObjectType(object):
     def __init__(self, name, fields):
-        self._name = name
+        self.name = name
         self.fields = Fields(name, fields)
     
     def __call__(self, **fields):
         return ObjectQuery(self, fields)
 
     def __repr__(self):
-        return "ObjectType(name={!r})".format(self._name)
+        return "ObjectType(name={!r})".format(self.name)
 
 
 class Fields(object):
