@@ -32,21 +32,35 @@ class InputObjectType(object):
         self.name = name
         self.fields = Fields(name, fields)
     
-    def __call__(self, **fields):
-        return Object(self, fields)
+    def __call__(self, **explicit_field_values):
+        def get_field_value(field):
+            value = explicit_field_values.get(field.name, field.default)
+            
+            if value is _undefined:
+                raise ValueError("missing value for {}".format(field.name))
+            else:
+                return value
+        
+        field_values = iterables.to_dict(
+            (field.name, get_field_value(field))
+            for field in self.fields
+        )
+        # TODO: handle extra field values
+        return Object(field_values)
 
     def __repr__(self):
         return "InputObjectType(name={!r})".format(self.name)
 
 
-def input_field(name, type):
-    return InputField(name, type)
+def input_field(name, type, default=_undefined):
+    return InputField(name, type, default)
 
 
 class InputField(object):
-    def __init__(self, name, type):
+    def __init__(self, name, type, default):
         self.name = name
         self.type = type
+        self.default = default
     
     def __repr__(self):
         return "InputField(name={!r}, type={!r})".format(self.name, self.type)
@@ -141,6 +155,9 @@ class Fields(object):
         if not callable(fields):
             fields = _lambdaise(fields)
         self._fields = _memoize(fields)
+    
+    def __iter__(self):
+        return iter(self._fields())
     
     def __getattr__(self, field_name):
         field = iterables.find(lambda field: field.name == field_name, self._fields(), default=None)

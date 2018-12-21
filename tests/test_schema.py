@@ -23,6 +23,34 @@ def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
     assert_that(str(error.value), equal_to("Book has no field author"))
 
 
+def test_given_input_field_has_default_when_input_field_is_not_set_then_default_is_used():
+    Input = schema.InputObjectType(
+        "Input",
+        fields=(
+            schema.input_field("field0", type=schema.Int, default=None),
+            schema.input_field("field1", type=schema.Int, default=42),
+        ),
+    )
+    
+    input_value = Input()
+    assert_that(input_value, has_attrs(
+        field0=None,
+        field1=42,
+    ))
+
+
+def test_given_input_field_has_no_default_when_input_field_is_not_set_then_error_is_raised():
+    Input = schema.InputObjectType(
+        "Input",
+        fields=(
+            schema.input_field("field0", type=schema.Int),
+        ),
+    )
+    
+    error = pytest.raises(ValueError, lambda: Input())
+    assert_that(str(error.value), equal_to("missing value for field0"))
+
+
 def test_given_field_arg_has_default_when_field_arg_is_not_set_then_default_is_used():
     Root = schema.ObjectType(
         "Root",
