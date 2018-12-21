@@ -23,7 +23,7 @@ def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
     assert_that(str(error.value), equal_to("Book has no field author"))
 
 
-def test_when_field_arg_is_not_set_then_default_is_used():
+def test_given_field_arg_has_default_when_field_arg_is_not_set_then_default_is_used():
     Root = schema.ObjectType(
         "Root",
         fields=(
@@ -34,14 +34,25 @@ def test_when_field_arg_is_not_set_then_default_is_used():
         ),
     )
     
-    object_query = Root(
-        one=Root.fields.one(),
-    )
-    assert_that(object_query.fields["one"].args, has_attrs(
+    field_query = Root.fields.one()
+    assert_that(field_query.args, has_attrs(
         arg0=None,
         arg1=42,
     ))
 
+
+def test_given_field_arg_has_no_default_when_field_arg_is_not_set_then_error_is_raised():
+    Root = schema.ObjectType(
+        "Root",
+        fields=(
+            schema.field("one", type=schema.Int, params=[
+                schema.param("arg0", type=schema.Int),
+            ]),
+        ),
+    )
+    
+    error = pytest.raises(ValueError, lambda: Root.fields.one())
+    assert_that(str(error.value), equal_to("missing value for arg0"))
 
 
 class TestToJsonValue(object):

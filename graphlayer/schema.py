@@ -199,8 +199,17 @@ class Field(object):
             (arg.parameter.name, arg.value)
             for arg in args
         )
+        
+        def get_arg(param):
+            value = explicit_args.get(param.name, param.default)
+            
+            if value is _undefined:
+                raise ValueError("missing value for {}".format(param.name))
+            else:
+                return value
+        
         field_args = Object(iterables.to_dict(
-            (param.name, explicit_args.get(param.name, param.default))
+            (param.name, get_arg(param))
             for param in self.params
         ))
         # TODO: handle extra args
