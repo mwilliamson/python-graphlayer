@@ -11,6 +11,7 @@ class ScalarType(object):
 
 
 Boolean = ScalarType("Boolean")
+Float = ScalarType("Float")
 Int = ScalarType("Int")
 String = ScalarType("String")
 

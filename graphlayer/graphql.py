@@ -104,6 +104,8 @@ def _read_graphql_field(graphql_field, graph_type, fragments):
 def _read_value(value):
     if isinstance(value, graphql_ast.BooleanValue):
         return value.value
+    elif isinstance(value, graphql_ast.FloatValue):
+        return float(value.value)
     elif isinstance(value, graphql_ast.IntValue):
         return int(value.value)
     elif isinstance(value, graphql_ast.StringValue):
