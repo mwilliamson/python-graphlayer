@@ -1,9 +1,15 @@
-def find(predicate, iterable):
+_undefined = object()
+
+
+def find(predicate, iterable, default=_undefined):
     for element in iterable:
         if predicate(element):
             return element
     
-    raise ValueError("could not find matching element")
+    if default is _undefined:
+        raise ValueError("could not find matching element")
+    else:
+        return default
     
 
 def to_dict(iterable):

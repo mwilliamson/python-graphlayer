@@ -85,7 +85,11 @@ class ObjectType(object):
         self._fields = _memoize(fields)
     
     def __getattr__(self, field_name):
-        return iterables.find(lambda field: field.name == field_name, self._fields())
+        field = iterables.find(lambda field: field.name == field_name, self._fields(), default=None)
+        if field is None:
+            raise ValueError("{} has no field {}".format(self._name, field_name))
+        else:
+            return field
     
     def __call__(self, **fields):
         return ObjectQuery(self, fields)
