@@ -439,10 +439,11 @@ def test_graphql_field_args_are_read():
     (g.ListType(g.Int), "[1, 2, 3]", [1, 2, 3]),
     (
         g.InputObjectType("User", fields=(
+            g.input_field("id", type=g.Int),
             g.input_field("name", type=g.String),
         )),
-        '{name: "Bob"}',
-        g.ObjectResult({"name": "Bob"}),
+        '{id: 42, name: "Bob"}',
+        g.ObjectResult({"id": 42, "name": "Bob"}),
     ),
 ])
 def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
