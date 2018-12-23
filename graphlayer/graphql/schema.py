@@ -22,6 +22,15 @@ def to_graphql_type(graph_type):
         elif graph_type == schema.String:
             return graphql.GraphQLNonNull(graphql.GraphQLString)
         
+        elif isinstance(graph_type, schema.InputObjectType):
+            return graphql.GraphQLNonNull(graphql.GraphQLInputObjectType(
+                name=graph_type.name,
+                fields=lambda: iterables.to_dict(
+                    (field.name, to_graphql_input_field(field))
+                    for field in graph_type.fields
+                ),
+            ))
+        
         elif isinstance(graph_type, schema.ListType):
             return graphql.GraphQLList(to_graphql_type(graph_type.element_type))
         
@@ -39,6 +48,11 @@ def to_graphql_type(graph_type):
         
         else:
             raise ValueError("unsupported type: {}".format(graph_type))
+
+    def to_graphql_input_field(graph_field):
+        return graphql.GraphQLInputObjectField(
+            type=to_graphql_type(graph_field.type),
+        )
 
     def to_graphql_field(graph_field):
         return graphql.GraphQLField(

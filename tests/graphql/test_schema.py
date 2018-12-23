@@ -77,10 +77,43 @@ def test_field_param_is_converted_to_non_null_graphql_arg():
     ))
 
 
+
+def test_input_object_type_is_converted_to_non_null_graphql_input_object_type():
+    graph_type = g.InputObjectType("Obj", fields=(
+        g.input_field("value", type=g.String),
+    ))
+    
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_input_object_type(
+            name="Obj",
+            fields=is_mapping({
+                "value": is_graphql_input_field(type=is_graphql_non_null(is_graphql_string)),
+            }),
+        ),
+    ))
+    
+
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
 is_graphql_float = equal_to(graphql.GraphQLFloat)
 is_graphql_int = equal_to(graphql.GraphQLInt)
 is_graphql_string = equal_to(graphql.GraphQLString)
+
+
+def is_graphql_input_field(type):
+    return all_of(
+        is_instance(graphql.GraphQLInputObjectField),
+        has_attrs(type=type),
+    )
+
+
+def is_graphql_input_object_type(name, fields):
+    return all_of(
+        is_instance(graphql.GraphQLInputObjectType),
+        has_attrs(
+            name=name,
+            fields=fields,
+        ),
+    )
 
 
 def is_graphql_list(element_matcher):
