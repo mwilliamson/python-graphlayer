@@ -1,5 +1,5 @@
 import graphql
-from precisely import all_of, assert_that, equal_to, has_attrs, is_instance
+from precisely import all_of, assert_that, equal_to, has_attrs, is_instance, is_mapping
 
 import graphlayer as g
 from graphlayer.graphql.schema import to_graphql_type
@@ -29,6 +29,21 @@ def test_nullable_type_is_converted_to_graphql_type_without_non_null():
     assert_that(to_graphql_type(g.NullableType(g.Boolean)), is_graphql_boolean)
 
 
+def test_object_type_is_converted_to_non_null_graphql_object_type():
+    graph_type = g.ObjectType("Obj", fields=(
+        g.field("value", type=g.String),
+    ))
+    
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_object_type(
+            name="Obj",
+            fields=is_mapping({
+                "value": is_graphql_field(type=is_graphql_non_null(is_graphql_string)),
+            }),
+        ),
+    ))
+
+
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
 is_graphql_float = equal_to(graphql.GraphQLFloat)
 is_graphql_int = equal_to(graphql.GraphQLInt)
@@ -38,12 +53,29 @@ is_graphql_string = equal_to(graphql.GraphQLString)
 def is_graphql_list(element_matcher):
     return all_of(
         is_instance(graphql.GraphQLList),
-        has_attrs(of_type=element_matcher)
+        has_attrs(of_type=element_matcher),
     )
 
 
 def is_graphql_non_null(element_matcher):
     return all_of(
         is_instance(graphql.GraphQLNonNull),
-        has_attrs(of_type=element_matcher)
+        has_attrs(of_type=element_matcher),
+    )
+
+
+def is_graphql_object_type(name, fields):
+    return all_of(
+        is_instance(graphql.GraphQLObjectType),
+        has_attrs(
+            name=name,
+            fields=fields,
+        ),
+    )
+
+
+def is_graphql_field(type):
+    return all_of(
+        is_instance(graphql.GraphQLField),
+        has_attrs(type=type),
     )
