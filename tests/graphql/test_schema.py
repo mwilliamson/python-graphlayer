@@ -108,6 +108,22 @@ def test_input_object_type_is_converted_to_non_null_graphql_input_object_type():
             }),
         ),
     ))
+
+
+def test_when_input_field_has_default_then_input_field_type_is_nullable():
+    graph_type = g.InputObjectType("Obj", fields=(
+        g.input_field("value", type=g.String, default=""),
+    ))
+    
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_input_object_type(
+            name="Obj",
+            fields=is_mapping({
+                "value": is_graphql_input_field(type=is_graphql_string),
+            }),
+        ),
+    ))
+    
     
 
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)

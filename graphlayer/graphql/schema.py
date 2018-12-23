@@ -50,9 +50,12 @@ def to_graphql_type(graph_type):
             raise ValueError("unsupported type: {}".format(graph_type))
 
     def to_graphql_input_field(graph_field):
-        return graphql.GraphQLInputObjectField(
-            type=to_graphql_type(graph_field.type),
-        )
+        graphql_type = to_graphql_type(graph_field.type)
+        
+        if graph_field.has_default and isinstance(graphql_type, graphql.GraphQLNonNull):
+            graphql_type = graphql_type.of_type
+        
+        return graphql.GraphQLInputObjectField(type=graphql_type)
 
     def to_graphql_field(graph_field):
         return graphql.GraphQLField(

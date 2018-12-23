@@ -62,6 +62,10 @@ class InputField(object):
         self.type = type
         self.default = default
     
+    @property
+    def has_default(self):
+        return self.default is not _undefined
+    
     def __repr__(self):
         return "InputField(name={!r}, type={!r})".format(self.name, self.type)
 
