@@ -1,6 +1,8 @@
-from .. import iterables, schema
+import re
 
 import graphql
+
+from .. import iterables, schema
 
 
 def to_graphql_type(graph_type):
@@ -26,7 +28,7 @@ def to_graphql_type(graph_type):
             return graphql.GraphQLNonNull(graphql.GraphQLInputObjectType(
                 name=graph_type.name,
                 fields=lambda: iterables.to_dict(
-                    (field.name, to_graphql_input_field(field))
+                    (_snake_case_to_camel_case(field.name), to_graphql_input_field(field))
                     for field in graph_type.fields
                 ),
             ))
@@ -41,7 +43,7 @@ def to_graphql_type(graph_type):
             return graphql.GraphQLNonNull(graphql.GraphQLObjectType(
                 name=graph_type.name,
                 fields=lambda: iterables.to_dict(
-                    (field.name, to_graphql_field(field))
+                    (_snake_case_to_camel_case(field.name), to_graphql_field(field))
                     for field in graph_type.fields
                 ),
             ))
@@ -75,3 +77,7 @@ def to_graphql_type(graph_type):
         return graphql.GraphQLArgument(type=graphql_type)
 
     return to_graphql_type(graph_type)
+
+
+def _snake_case_to_camel_case(value):
+    return value[0].lower() + re.sub(r"_(.)", lambda match: match.group(1).upper(), value[1:]).rstrip("_")
