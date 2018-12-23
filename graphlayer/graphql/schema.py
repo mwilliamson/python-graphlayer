@@ -41,6 +41,12 @@ def to_graphql_type(graph_type):
             raise ValueError("unsupported type: {}".format(graph_type))
 
     def to_graphql_field(graph_field):
-        return graphql.GraphQLField(type=to_graphql_type(graph_field.type))
+        return graphql.GraphQLField(
+            type=to_graphql_type(graph_field.type),
+            args=iterables.to_dict(
+                (param.name, graphql.GraphQLArgument(type=to_graphql_type(param.type)))
+                for param in graph_field.params
+            ),
+        )
 
     return to_graphql_type(graph_type)

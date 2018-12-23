@@ -59,6 +59,24 @@ def test_recursive_object_type_is_converted_to_non_null_graphql_object_type():
     ))
 
 
+def test_field_param_is_converted_to_non_null_graphql_arg():
+    graph_type = g.ObjectType("Obj", fields=(
+        g.field("value", type=g.String, params=(
+            g.param("arg", g.Int),
+        )),
+    ))
+    
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_object_type(
+            fields=is_mapping({
+                "value": is_graphql_field(args=is_mapping({
+                    "arg": is_graphql_argument(type=is_graphql_non_null(is_graphql_int)),
+                })),
+            }),
+        ),
+    ))
+
+
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
 is_graphql_float = equal_to(graphql.GraphQLFloat)
 is_graphql_int = equal_to(graphql.GraphQLInt)
@@ -79,7 +97,10 @@ def is_graphql_non_null(element_matcher):
     )
 
 
-def is_graphql_object_type(name, fields=None):
+def is_graphql_object_type(name=None, fields=None):
+    if name is None:
+        name = anything
+    
     if fields is None:
         fields = anything
     
@@ -92,8 +113,22 @@ def is_graphql_object_type(name, fields=None):
     )
 
 
-def is_graphql_field(type):
+def is_graphql_field(type=None, args=None):
+    if type is None:
+        type = anything
+    
+    if args is None:
+        args = anything
+    
     return all_of(
         is_instance(graphql.GraphQLField),
+        has_attrs(type=type, args=args),
+    )
+
+
+def is_graphql_argument(type):
+    return all_of(
+        is_instance(graphql.GraphQLArgument),
         has_attrs(type=type),
     )
+
