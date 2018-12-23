@@ -15,7 +15,7 @@ setup(
     author='Michael Williamson',
     author_email='mike@zwobble.org',
     url='http://github.com/mwilliamson/python-graphlayer',
-    packages=['graphlayer'],
+    packages=['graphlayer', 'graphlayer.graphql'],
     keywords="graphql graph join ",
     classifiers=[
         'Development Status :: 4 - Beta',
