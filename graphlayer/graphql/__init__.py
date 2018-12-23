@@ -1,4 +1,8 @@
+import graphql
+from graphql.execution import execute as graphql_execute
+
 from . import parser
+from .schema import to_graphql_type
 
 
 def execute(*, graph, query_type, mutation_type=None, document_text, variables=None):
@@ -9,6 +13,38 @@ def execute(*, graph, query_type, mutation_type=None, document_text, variables=N
         variables=variables,
     )
     
-    result = graph.resolve(query)
+    result = graph.resolve(query.graph_query)
     
-    return query.to_json_value(result)
+    json_result = query.graph_query.to_json_value(result)
+    
+    if query.graphql_schema_document is not None:
+        schema_result = _execute_graphql_schema(
+            graphql_schema_document=query.graphql_schema_document,
+            query_type=query_type,
+            mutation_type=mutation_type,
+        )
+        json_result = json_result.copy()
+        json_result.update(schema_result)
+    
+    return json_result
+
+
+def _execute_graphql_schema(graphql_schema_document, query_type, mutation_type):
+    graphql_query_type = to_graphql_type(query_type).of_type
+    if mutation_type is None:
+        graphql_mutation_type = None
+    else:
+        graphql_mutation_type = to_graphql_type(query_type).of_type
+        
+    schema = graphql.GraphQLSchema(
+        query=graphql_query_type,
+        mutation=graphql_mutation_type,
+    )
+    
+    # TODO: handle errors
+    return graphql_execute(
+        schema,
+        graphql_schema_document,
+        # TODO: variables
+        variable_values={},
+    ).data

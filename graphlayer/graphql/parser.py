@@ -4,7 +4,13 @@ import re
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 
 from .. import schema
-from ..iterables import find, to_dict, to_multidict
+from ..iterables import find, partition, to_dict, to_multidict
+
+
+class GraphQLQuery(object):
+    def __init__(self, graph_query, graphql_schema_document):
+        self.graph_query = graph_query
+        self.graphql_schema_document = graphql_schema_document
 
 
 def document_text_to_query(document_text, query_type, mutation_type=None, variables=None):
@@ -13,9 +19,9 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
     
     document_ast = graphql_parser.parse(document_text)
     
-    operation = find(
-        lambda definition: isinstance(definition, graphql_ast.OperationDefinition),
-        document_ast.definitions,
+    operation_index, operation = find(
+        lambda definition: isinstance(definition[1], graphql_ast.OperationDefinition),
+        enumerate(document_ast.definitions),
     )
     
     if operation.operation == "query":
@@ -35,13 +41,42 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
     
     selection_set = _flatten_graphql_selection_set(operation.selection_set, fragments=fragments)
     
+    schema_selections, non_schema_selections = partition(
+        lambda selection: selection.name.value == "__schema",
+        selection_set.selections,
+    )
+
+    if len(schema_selections) == 0:
+        schema_document = None
+    else:
+        schema_operation = _copy_with(
+            operation,
+            selection_set=_copy_with(
+                operation.selection_set,
+                selections=schema_selections,
+            ),
+        )
+
+        schema_definitions = copy(document_ast.definitions)
+        schema_definitions[operation_index] = schema_operation
+
+        schema_document = _copy_with(
+            document_ast,
+            definitions=schema_definitions,
+        )
+    
     fields = to_dict(_read_selection_set(
-        selection_set,
+        _copy_with(selection_set, selections=non_schema_selections),
         graph_type=root_type,
         fragments=fragments,
         variables=variables,
     ))
-    return root_type(**fields)
+    graph_query = root_type(**fields)
+    
+    return GraphQLQuery(
+        graph_query,
+        graphql_schema_document=schema_document,
+    )
 
 
 def _read_selection_set(selection_set, graph_type, fragments, variables):

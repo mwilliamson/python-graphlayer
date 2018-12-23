@@ -21,7 +21,7 @@ def test_simple_query_is_converted_to_object_query():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -50,7 +50,7 @@ def test_simple_mutation_is_converted_to_object_query():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=QueryRoot, mutation_type=MutationRoot)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=QueryRoot, mutation_type=MutationRoot)
     
     assert_that(object_query, is_query(
         MutationRoot(
@@ -75,7 +75,7 @@ def test_given_no_mutation_type_is_defined_when_operation_is_mutation_then_error
     
     error = pytest.raises(
         ValueError,
-        lambda: document_text_to_query(graphql_query, query_type=QueryRoot),
+        lambda: _document_text_to_graph_query(graphql_query, query_type=QueryRoot),
     )
     
     assert_that(str(error.value), equal_to("unsupported operation: mutation"))
@@ -95,7 +95,7 @@ def test_fields_can_have_alias():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -118,7 +118,7 @@ def test_field_names_are_converted_to_snake_case():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -159,7 +159,7 @@ def test_fields_can_be_nested():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -195,7 +195,7 @@ def test_can_request_fields_of_list():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -227,7 +227,7 @@ def test_inline_fragments_are_expanded():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -270,7 +270,7 @@ def test_inline_fragments_are_merged():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -316,7 +316,7 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -352,7 +352,7 @@ def test_inline_fragments_are_recursively_merged():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -387,7 +387,7 @@ def test_named_fragments_are_expanded():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -416,7 +416,7 @@ def test_graphql_field_args_are_read():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -462,7 +462,7 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
         }
     """ % (arg_string, )
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     
     assert_that(object_query, is_query(
         Root(
@@ -490,7 +490,7 @@ def test_when_arg_is_not_set_then_default_is_used():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     assert_that(object_query.fields["one"].args, has_attrs(
         arg0=None,
         arg1=42,
@@ -521,7 +521,7 @@ def test_when_field_value_is_not_set_then_default_is_used():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     assert_that(object_query.fields["one"].args.arg, has_attrs(
         field0=None,
         field1=42,
@@ -551,7 +551,7 @@ def test_when_field_value_in_nullable_input_object_is_not_set_then_default_is_us
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     assert_that(object_query.fields["one"].args.arg, has_attrs(
         field0=42,
     ))
@@ -580,7 +580,7 @@ def test_when_field_value_in_input_object_in_list_is_not_set_then_default_is_use
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     assert_that(object_query.fields["one"].args.arg, is_sequence(
         has_attrs(
             field0=42,
@@ -617,7 +617,7 @@ def test_when_field_value_in_input_object_in_input_object_is_not_set_then_defaul
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
     assert_that(object_query.fields["one"].args.arg, has_attrs(
         value=has_attrs(
             field0=42,
@@ -641,7 +641,7 @@ def test_graphql_query_args_are_read():
         }
     """
     
-    object_query = document_text_to_query(graphql_query, query_type=Root, variables={"value": 42})
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root, variables={"value": 42})
     
     assert_that(object_query, is_query(
         Root(
@@ -650,6 +650,10 @@ def test_graphql_query_args_are_read():
             ),
         ),
     ))
+
+
+def _document_text_to_graph_query(*args, **kwargs):
+    return document_text_to_query(*args, **kwargs).graph_query
 
 
 def is_query(query):
