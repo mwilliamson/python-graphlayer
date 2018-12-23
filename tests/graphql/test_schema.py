@@ -1,5 +1,5 @@
 import graphql
-from precisely import all_of, assert_that, equal_to, has_attrs, is_instance, is_mapping
+from precisely import all_of, anything, assert_that, equal_to, has_attrs, is_instance, is_mapping
 
 import graphlayer as g
 from graphlayer.graphql.schema import to_graphql_type
@@ -44,6 +44,21 @@ def test_object_type_is_converted_to_non_null_graphql_object_type():
     ))
 
 
+def test_recursive_object_type_is_converted_to_non_null_graphql_object_type():
+    graph_type = g.ObjectType("Obj", fields=lambda: (
+        g.field("self", type=graph_type),
+    ))
+    
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_object_type(
+            name="Obj",
+            fields=is_mapping({
+                "self": is_graphql_field(type=is_graphql_non_null(is_graphql_object_type(name="Obj"))),
+            }),
+        ),
+    ))
+
+
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
 is_graphql_float = equal_to(graphql.GraphQLFloat)
 is_graphql_int = equal_to(graphql.GraphQLInt)
@@ -64,7 +79,10 @@ def is_graphql_non_null(element_matcher):
     )
 
 
-def is_graphql_object_type(name, fields):
+def is_graphql_object_type(name, fields=None):
+    if fields is None:
+        fields = anything
+    
     return all_of(
         is_instance(graphql.GraphQLObjectType),
         has_attrs(
