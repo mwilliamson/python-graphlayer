@@ -269,6 +269,10 @@ class Parameter(object):
         self.type = type
         self.default = default
     
+    @property
+    def has_default(self):
+        return self.default is not _undefined
+    
     def __call__(self, value):
         return Argument(parameter=self, value=value)
 

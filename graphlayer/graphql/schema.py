@@ -58,9 +58,17 @@ def to_graphql_type(graph_type):
         return graphql.GraphQLField(
             type=to_graphql_type(graph_field.type),
             args=iterables.to_dict(
-                (param.name, graphql.GraphQLArgument(type=to_graphql_type(param.type)))
+                (param.name, to_graphql_argument(param))
                 for param in graph_field.params
             ),
         )
+    
+    def to_graphql_argument(param):
+        graphql_type = to_graphql_type(param.type)
+        
+        if param.has_default and isinstance(graphql_type, graphql.GraphQLNonNull):
+            graphql_type = graphql_type.of_type
+        
+        return graphql.GraphQLArgument(type=graphql_type)
 
     return to_graphql_type(graph_type)

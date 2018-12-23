@@ -77,6 +77,23 @@ def test_field_param_is_converted_to_non_null_graphql_arg():
     ))
 
 
+def test_when_param_has_default_then_param_is_converted_to_nullable_graphql_arg():
+    graph_type = g.ObjectType("Obj", fields=(
+        g.field("value", type=g.String, params=(
+            g.param("arg", g.Int, default=42),
+        )),
+    ))
+    
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_object_type(
+            fields=is_mapping({
+                "value": is_graphql_field(args=is_mapping({
+                    "arg": is_graphql_argument(type=is_graphql_int),
+                })),
+            }),
+        ),
+    ))
+
 
 def test_input_object_type_is_converted_to_non_null_graphql_input_object_type():
     graph_type = g.InputObjectType("Obj", fields=(
