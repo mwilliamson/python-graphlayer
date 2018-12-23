@@ -3,7 +3,7 @@ import pytest
 
 import graphlayer as g
 from graphlayer import schema
-from graphlayer.graphql import document_text_to_query
+from graphlayer.graphql.parser import document_text_to_query
 from graphlayer.iterables import to_dict
 
 

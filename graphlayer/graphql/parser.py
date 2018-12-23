@@ -3,8 +3,8 @@ import re
 
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 
-from . import schema
-from .iterables import find, to_dict, to_multidict
+from .. import schema
+from ..iterables import find, to_dict, to_multidict
 
 
 def document_text_to_query(document_text, query_type, mutation_type=None, variables=None):
