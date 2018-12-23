@@ -1,4 +1,6 @@
+from graphql import GraphQLError
 from precisely import assert_that, equal_to
+import pytest
 
 import graphlayer as g
 from graphlayer import graphql
@@ -62,3 +64,21 @@ def test_can_query_schema():
             },
         },
     }))
+
+
+def test_query_is_validated():
+    Root = g.ObjectType("Root", fields=(
+        g.field("value", g.String),
+    ))
+    
+    graph_definition = g.define_graph(resolvers=())
+    graph = graph_definition.create_graph({})
+    
+    query = """
+        {
+            x
+        }
+    """
+
+    error = pytest.raises(GraphQLError, lambda: graphql.execute(graph=graph, document_text=query, query_type=Root))
+    assert_that(str(error.value), equal_to(('Cannot query field "x" on type "Root".')))
