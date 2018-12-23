@@ -68,8 +68,10 @@ def _flatten_graphql_selections(selections, fragments):
 
 
 def _merge_graphql_fields(graphql_fields):
-    merged_field = copy(graphql_fields[0])
-    merged_field.selection_set = copy(merged_field.selection_set)
+    merged_field = _copy_with(
+        graphql_fields[0],
+        selection_set=copy(graphql_fields[0].selection_set),
+    )
     
     for graphql_field in graphql_fields[1:]:
         if graphql_field.selection_set is not None:
@@ -174,3 +176,10 @@ def _camel_case_to_snake_case(value):
     # From: https://stackoverflow.com/revisions/1176023/2
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', value)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def _copy_with(obj, **kwargs):
+    result = copy(obj)
+    for key, value in kwargs.items():
+        setattr(result, key, value)
+    return result
