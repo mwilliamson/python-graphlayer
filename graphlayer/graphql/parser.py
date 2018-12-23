@@ -33,8 +33,10 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
         )
     )
     
+    selection_set = _flatten_graphql_selection_set(operation.selection_set, fragments=fragments)
+    
     fields = to_dict(_read_selection_set(
-        operation.selection_set,
+        selection_set,
         graph_type=root_type,
         fragments=fragments,
         variables=variables,
@@ -48,8 +50,16 @@ def _read_selection_set(selection_set, graph_type, fragments, variables):
     else:
         return [
             _read_graphql_field(graphql_field, graph_type=graph_type, fragments=fragments, variables=variables)
-            for graphql_field in _flatten_graphql_selections(selection_set.selections, fragments=fragments)
+            for graphql_field in selection_set.selections
         ]
+
+
+def _flatten_graphql_selection_set(selection_set, fragments):
+    if selection_set is None:
+        return None
+    else:
+        selections = _flatten_graphql_selections(selection_set.selections, fragments=fragments)
+        return _copy_with(selection_set, selections=selections)
 
 
 def _flatten_graphql_selections(selections, fragments):
@@ -62,22 +72,21 @@ def _flatten_graphql_selections(selections, fragments):
     )
     
     return [
-        _merge_graphql_fields(graphql_fields_to_merge)
+        _merge_graphql_fields(graphql_fields_to_merge, fragments=fragments)
         for field_name, graphql_fields_to_merge in graphql_fields.items()
     ]
 
 
-def _merge_graphql_fields(graphql_fields):
-    merged_field = _copy_with(
-        graphql_fields[0],
-        selection_set=copy(graphql_fields[0].selection_set),
-    )
+def _merge_graphql_fields(graphql_fields, fragments):
+    selection_set = copy(graphql_fields[0].selection_set)
     
     for graphql_field in graphql_fields[1:]:
         if graphql_field.selection_set is not None:
-            merged_field.selection_set.selections += graphql_field.selection_set.selections
+            selection_set.selections += graphql_field.selection_set.selections
     
-    return merged_field
+    selection_set = _flatten_graphql_selection_set(selection_set, fragments=fragments)
+    
+    return _copy_with(graphql_fields[0], selection_set=selection_set)
 
 
 def _graphql_selection_to_graphql_fields(selection, fragments):
