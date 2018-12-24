@@ -1,3 +1,5 @@
+import enum
+
 from precisely import assert_that, equal_to, has_attrs, is_mapping, is_sequence
 import pytest
 
@@ -428,11 +430,19 @@ def test_graphql_field_args_are_read():
     ))
 
 
+class Season(enum.Enum):
+    winter = "WINTER"
+    spring = "SPRING"
+    summer = "SUMMER"
+    autumn = "AUTUMN"
+
+
 @pytest.mark.parametrize("arg_type, arg_string, arg_value", [
     (g.Boolean, "true", True),
     (g.Float, "4.2", 4.2),
     (g.Int, "42", 42),
     (g.String, '"value"', "value"),
+    (g.Enum(Season), '"WINTER"', Season.winter),
     (g.NullableType(g.Int), "42", 42),
     #~ (g.NullableType(g.Int), "null", None),
     (g.ListType(g.Int), "[]", []),

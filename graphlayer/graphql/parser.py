@@ -178,7 +178,14 @@ def _get_field(graph_type, field_name):
 
 
 def _read_value(value, value_type, variables):
-    if isinstance(value_type, schema.NullableType):
+    if isinstance(value_type, schema.Enum):
+        raw_value = _read_value(value, schema.String, variables)
+        enum_values = list(filter(
+            lambda enum_value: enum_value.value == raw_value,
+            value_type.enum,
+        ))
+        return enum_values[0]
+    elif isinstance(value_type, schema.NullableType):
         return _read_value(value, value_type=value_type.element_type, variables=variables)
     elif isinstance(value, graphql_ast.BooleanValue):
         return value.value
