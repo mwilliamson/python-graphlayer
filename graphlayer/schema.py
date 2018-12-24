@@ -188,6 +188,8 @@ def _lambdaise(value):
 
 
 class ObjectQuery(object):
+    create_object = Object
+
     def __init__(self, type, fields):
         self.type = type
         self.fields = fields

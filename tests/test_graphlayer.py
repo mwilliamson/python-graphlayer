@@ -20,7 +20,7 @@ def test_can_get_scalar_from_root():
             two=2,
         )
         
-        return g.Object(iterables.to_dict(
+        return query.create_object(iterables.to_dict(
             (key, values[field_query.field.name])
             for key, field_query in query.fields.items()
         ))
@@ -73,7 +73,7 @@ def test_can_recursively_resolve():
     
     @g.resolver(Root)
     def resolve_root(graph, query):
-        return g.Object(iterables.to_dict(
+        return query.create_object(iterables.to_dict(
             (key, graph.resolve(field_query.type_query))
             for key, field_query in query.fields.items()
         ))
@@ -85,7 +85,7 @@ def test_can_recursively_resolve():
             dict(title="Pericles, Prince of Tyre"),
         ]
         return [
-            g.Object(iterables.to_dict(
+            query.element_query.create_object(iterables.to_dict(
                 (key, book[field_query.field.name])
                 for key, field_query in query.element_query.fields.items()
             ))
@@ -134,7 +134,7 @@ def test_can_recursively_resolve_selected_fields():
     
     @g.resolver(Root)
     def resolve_root(graph, query):
-        return g.Object(iterables.to_dict(
+        return query.create_object(iterables.to_dict(
             (key, graph.resolve(field_query.type_query))
             for key, field_query in query.fields.items()
         ))
@@ -168,7 +168,7 @@ def test_can_recursively_resolve_selected_fields():
     @g.resolver(g.ListType(Book))
     def resolve_book(graph, query):
         return [
-            g.Object(iterables.to_dict(
+            query.element_query.create_object(iterables.to_dict(
                 (key, resolve_field(graph, book, field_query))
                 for key, field_query in query.element_query.fields.items()
             ))
@@ -183,7 +183,7 @@ def test_can_recursively_resolve_selected_fields():
     @g.resolver(AuthorQuery.type)
     def resolve_author(graph, query):
         author = authors[query.author_id]
-        return g.Object(iterables.to_dict(
+        return query.type_query.create_object(iterables.to_dict(
             (key, author[field_query.field.name])
             for key, field_query in query.type_query.fields.items()
         ))

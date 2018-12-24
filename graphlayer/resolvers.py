@@ -1,12 +1,11 @@
 from . import iterables
 from .core import resolver
-from .representations import Object
 
 
 def constant_object_resolver(type, values):
     @resolver(type)
     def resolve(graph, query):
-        return Object(iterables.to_dict(
+        return query.create_object(iterables.to_dict(
             (key, values[field_query.field.name])
             for key, field_query in query.fields.items()
         ))
@@ -24,7 +23,7 @@ def root_object_resolver(type):
             # TODO: argument handling in non-root types
             return field_handlers[field_query.field](graph, field_query.type_query, field_query.args)
         
-        return Object(iterables.to_dict(
+        return query.create_object(iterables.to_dict(
             (key, resolve_field(field_query))
             for key, field_query in query.fields.items()
         ))
