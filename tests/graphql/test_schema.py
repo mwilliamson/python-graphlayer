@@ -45,6 +45,21 @@ def test_enum_is_converted_to_non_null_enum_type():
     )))
 
 
+def test_interface_type_is_converted_to_non_null_graphql_interface_type():
+    graph_type = g.InterfaceType("Obj", fields=(
+        g.field("value", type=g.String),
+    ))
+
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_interface_type(
+            name="Obj",
+            fields=is_mapping({
+                "value": is_graphql_field(type=is_graphql_non_null(is_graphql_string)),
+            }),
+        ),
+    ))
+
+
 def test_list_type_is_converted_to_non_null_list_type():
     assert_that(to_graphql_type(g.ListType(g.Boolean)), is_graphql_list(is_graphql_non_null(is_graphql_boolean)))
 
@@ -213,6 +228,16 @@ def is_graphql_input_object_type(name=None, fields=None):
     
     return all_of(
         is_instance(graphql.GraphQLInputObjectType),
+        has_attrs(
+            name=name,
+            fields=fields,
+        ),
+    )
+
+
+def is_graphql_interface_type(name, fields):
+    return all_of(
+        is_instance(graphql.GraphQLInterfaceType),
         has_attrs(
             name=name,
             fields=fields,

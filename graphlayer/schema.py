@@ -87,6 +87,18 @@ class InputField(object):
         return "InputField(name={!r}, type={!r})".format(self.name, self.type)
 
 
+class InterfaceType(object):
+    def __init__(self, name, fields):
+        self.name = name
+        self.fields = Fields(name, fields)
+
+    def __call__(self, **fields):
+        return ObjectQuery(self, fields)
+
+    def __repr__(self):
+        return "InterfaceType(name={!r})".format(self.name)
+
+
 class ListType(object):
     def __init__(self, element_type):
         self.element_type = element_type

@@ -41,6 +41,12 @@ def to_graphql_type(graph_type):
                     for field in graph_type.fields
                 ),
             ))
+
+        elif isinstance(graph_type, schema.InterfaceType):
+            return graphql.GraphQLNonNull(graphql.GraphQLInterfaceType(
+                name=graph_type.name,
+                fields=to_graphql_fields(graph_type.fields),
+            ))
         
         elif isinstance(graph_type, schema.ListType):
             return graphql.GraphQLList(to_graphql_type(graph_type.element_type))
@@ -51,10 +57,7 @@ def to_graphql_type(graph_type):
         elif isinstance(graph_type, schema.ObjectType):
             return graphql.GraphQLNonNull(graphql.GraphQLObjectType(
                 name=graph_type.name,
-                fields=lambda: iterables.to_dict(
-                    (_snake_case_to_camel_case(field.name), to_graphql_field(field))
-                    for field in graph_type.fields
-                ),
+                fields=to_graphql_fields(graph_type.fields),
             ))
         
         else:
@@ -67,6 +70,12 @@ def to_graphql_type(graph_type):
             graphql_type = graphql_type.of_type
         
         return graphql.GraphQLInputObjectField(type=graphql_type)
+
+    def to_graphql_fields(graph_fields):
+        return lambda: iterables.to_dict(
+            (_snake_case_to_camel_case(field.name), to_graphql_field(field))
+            for field in graph_fields
+        )
 
     def to_graphql_field(graph_field):
         return graphql.GraphQLField(
