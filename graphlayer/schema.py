@@ -27,6 +27,19 @@ class ScalarQuery(object):
 scalar_query = ScalarQuery()
 
 
+class Enum(object):
+    def __init__(self, enum):
+        self._enum = enum
+
+    def __call__(self):
+        return EnumQuery()
+
+
+class EnumQuery(object):
+    def to_json_value(self, value):
+        return value.value
+
+
 class InputObjectType(object):
     def __init__(self, name, fields):
         self.name = name

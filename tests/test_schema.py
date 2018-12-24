@@ -1,3 +1,5 @@
+import enum
+
 from precisely import assert_that, equal_to, has_attrs
 import pytest
 
@@ -99,6 +101,17 @@ class TestToJsonValue(object):
     def test_string_is_unchanged(self):
         query = schema.String()
         assert_that(query.to_json_value("42"), equal_to("42"))
+
+    def test_enums_are_converted_to_graphql_enums(self):
+        class Season(enum.Enum):
+            winter = "WINTER"
+            spring = "SPRING"
+            summer = "SUMMER"
+            autumn = "AUTUMN"
+
+        SeasonGraphType = schema.Enum(Season)
+        query = SeasonGraphType()
+        assert_that(query.to_json_value(Season.winter), equal_to("WINTER"))
 
     def test_objects_are_converted_to_dicts(self):
         Book = schema.ObjectType("Book", fields=(
