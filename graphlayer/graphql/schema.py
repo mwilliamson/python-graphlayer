@@ -24,6 +24,15 @@ def to_graphql_type(graph_type):
         elif graph_type == schema.String:
             return graphql.GraphQLNonNull(graphql.GraphQLString)
         
+        elif isinstance(graph_type, schema.Enum):
+            # TODO: should enums map names or values?
+            values = iterables.to_dict(
+                (member.value, graphql.GraphQLEnumValue(member.value))
+                for member in graph_type.enum
+            )
+            graphql_type = graphql.GraphQLEnumType(graph_type.name, values=values)
+            return graphql.GraphQLNonNull(graphql_type)
+
         elif isinstance(graph_type, schema.InputObjectType):
             return graphql.GraphQLNonNull(graphql.GraphQLInputObjectType(
                 name=graph_type.name,

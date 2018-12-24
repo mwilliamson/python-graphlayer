@@ -29,7 +29,11 @@ scalar_query = ScalarQuery()
 
 class Enum(object):
     def __init__(self, enum):
-        self._enum = enum
+        self.enum = enum
+
+    @property
+    def name(self):
+        return self.enum.__name__
 
     def __call__(self):
         return EnumQuery()

@@ -1,5 +1,7 @@
+import enum
+
 import graphql
-from precisely import all_of, anything, assert_that, equal_to, has_attrs, is_instance, is_mapping
+from precisely import all_of, anything, assert_that, contains_exactly, equal_to, has_attrs, is_instance, is_mapping
 
 import graphlayer as g
 from graphlayer.graphql.schema import to_graphql_type
@@ -19,6 +21,28 @@ def test_int_is_converted_to_non_null_graphql_int():
 
 def test_string_is_converted_to_non_null_graphql_string():
     assert_that(to_graphql_type(g.String), is_graphql_non_null(is_graphql_string))
+
+
+def test_enum_is_converted_to_non_null_enum_type():
+    class Season(enum.Enum):
+        winter = "WINTER"
+        spring = "SPRING"
+        summer = "SUMMER"
+        autumn = "AUTUMN"
+
+    SeasonGraphType = g.Enum(Season)
+
+    graphql_type = to_graphql_type(SeasonGraphType)
+
+    assert_that(graphql_type, is_graphql_non_null(is_graphql_enum_type(
+        name="Season",
+        values=contains_exactly(
+            is_graphql_enum_value(name="WINTER", value="WINTER"),
+            is_graphql_enum_value(name="SPRING", value="SPRING"),
+            is_graphql_enum_value(name="SUMMER", value="SUMMER"),
+            is_graphql_enum_value(name="AUTUMN", value="AUTUMN"),
+        ),
+    )))
 
 
 def test_list_type_is_converted_to_non_null_list_type():
@@ -158,6 +182,20 @@ is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
 is_graphql_float = equal_to(graphql.GraphQLFloat)
 is_graphql_int = equal_to(graphql.GraphQLInt)
 is_graphql_string = equal_to(graphql.GraphQLString)
+
+
+def is_graphql_enum_type(name, values):
+    return all_of(
+        is_instance(graphql.GraphQLEnumType),
+        has_attrs(name=name, values=values),
+    )
+
+
+def is_graphql_enum_value(name, value):
+    return all_of(
+        is_instance(graphql.GraphQLEnumValue),
+        has_attrs(name=name, value=value),
+    )
 
 
 def is_graphql_input_field(type):
