@@ -25,7 +25,7 @@ ifneq ($(wildcard test-requirements.txt),)
 endif
 	make clean
 
-_virtualenv: 
-	virtualenv .venv
+.venv:
+	python3.5 -m venv .venv
 	.venv/bin/pip install --upgrade pip
 	.venv/bin/pip install --upgrade setuptools
