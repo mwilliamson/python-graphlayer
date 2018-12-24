@@ -178,7 +178,7 @@ def _get_field(graph_type, field_name):
 
 
 def _read_value(value, value_type, variables):
-    if isinstance(value_type, schema.Enum):
+    if isinstance(value_type, schema.EnumType):
         raw_value = _read_value(value, schema.String, variables)
         enum_values = list(filter(
             lambda enum_value: enum_value.value == raw_value,

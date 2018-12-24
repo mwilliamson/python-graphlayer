@@ -27,7 +27,7 @@ class ScalarQuery(object):
 scalar_query = ScalarQuery()
 
 
-class Enum(object):
+class EnumType(object):
     def __init__(self, enum):
         self.enum = enum
 

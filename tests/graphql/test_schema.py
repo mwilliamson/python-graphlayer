@@ -30,7 +30,7 @@ def test_enum_is_converted_to_non_null_enum_type():
         summer = "SUMMER"
         autumn = "AUTUMN"
 
-    SeasonGraphType = g.Enum(Season)
+    SeasonGraphType = g.EnumType(Season)
 
     graphql_type = to_graphql_type(SeasonGraphType)
 

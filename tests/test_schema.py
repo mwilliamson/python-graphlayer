@@ -109,7 +109,7 @@ class TestToJsonValue(object):
             summer = "SUMMER"
             autumn = "AUTUMN"
 
-        SeasonGraphType = schema.Enum(Season)
+        SeasonGraphType = schema.EnumType(Season)
         query = SeasonGraphType()
         assert_that(query.to_json_value(Season.winter), equal_to("WINTER"))
 
