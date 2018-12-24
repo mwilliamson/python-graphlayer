@@ -102,7 +102,7 @@ class TestToJsonValue(object):
         query = schema.String()
         assert_that(query.to_json_value("42"), equal_to("42"))
 
-    def test_enums_are_converted_to_graphql_enums(self):
+    def test_enums_are_converted_to_strings(self):
         class Season(enum.Enum):
             winter = "WINTER"
             spring = "SPRING"
