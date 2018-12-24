@@ -112,6 +112,28 @@ def test_recursive_object_type_is_converted_to_non_null_graphql_object_type():
     ))
 
 
+def test_object_type_interfaces_are_converted_to_graphql_interfaces():
+    graph_interface_type = g.InterfaceType("Interface", fields=(
+        g.field("value", type=g.String),
+    ))
+
+    graph_object_type = g.ObjectType(
+        "Obj",
+        fields=(
+            g.field("value", type=g.String),
+        ),
+        interfaces=(graph_interface_type, ),
+    )
+
+    assert_that(to_graphql_type(graph_object_type), is_graphql_non_null(
+        is_graphql_object_type(
+            interfaces=contains_exactly(
+                is_graphql_interface_type(name="Interface"),
+            ),
+        ),
+    ))
+
+
 def test_field_param_is_converted_to_non_null_graphql_arg():
     graph_type = g.ObjectType("Obj", fields=(
         g.field("value", type=g.String, params=(
@@ -235,7 +257,10 @@ def is_graphql_input_object_type(name=None, fields=None):
     )
 
 
-def is_graphql_interface_type(name, fields):
+def is_graphql_interface_type(name, fields=None):
+    if fields is None:
+        fields = anything
+
     return all_of(
         is_instance(graphql.GraphQLInterfaceType),
         has_attrs(
@@ -259,18 +284,22 @@ def is_graphql_non_null(element_matcher):
     )
 
 
-def is_graphql_object_type(name=None, fields=None):
+def is_graphql_object_type(name=None, fields=None, interfaces=None):
     if name is None:
         name = anything
     
     if fields is None:
         fields = anything
     
+    if interfaces is None:
+        interfaces = anything
+
     return all_of(
         is_instance(graphql.GraphQLObjectType),
         has_attrs(
             name=name,
             fields=fields,
+            interfaces=interfaces,
         ),
     )
 

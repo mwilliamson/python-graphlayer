@@ -171,9 +171,14 @@ class NullableQuery(object):
 
 
 class ObjectType(object):
-    def __init__(self, name, fields):
+    def __init__(self, name, fields, interfaces=None):
+        if interfaces is None:
+            interfaces = ()
+
         self.name = name
         self.fields = Fields(name, fields)
+        # TODO: validation of interfaces, especially default values of arguments
+        self.interfaces = interfaces
     
     def __call__(self, **fields):
         return ObjectQuery(self, fields)

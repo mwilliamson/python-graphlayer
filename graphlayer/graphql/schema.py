@@ -46,6 +46,7 @@ def to_graphql_type(graph_type):
             return graphql.GraphQLNonNull(graphql.GraphQLInterfaceType(
                 name=graph_type.name,
                 fields=to_graphql_fields(graph_type.fields),
+                resolve_type=lambda: None,
             ))
         
         elif isinstance(graph_type, schema.ListType):
@@ -58,6 +59,10 @@ def to_graphql_type(graph_type):
             return graphql.GraphQLNonNull(graphql.GraphQLObjectType(
                 name=graph_type.name,
                 fields=to_graphql_fields(graph_type.fields),
+                interfaces=tuple(
+                    to_graphql_type(interface).of_type
+                    for interface in graph_type.interfaces
+                ),
             ))
         
         else:
