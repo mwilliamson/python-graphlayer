@@ -413,6 +413,66 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
             )),
         ),
     ))
+
+
+def test_when_merging_fragments_then_nested_object_fields_can_overlap():
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("user", type=User),
+        ),
+    )
+    
+    User = g.ObjectType(
+        "User",
+        fields=lambda: (
+            g.field("address", type=Address),
+        ),
+    )
+    
+    Address = g.ObjectType(
+        "Address",
+        fields=lambda: (
+            g.field("first_line", type=g.String),
+            g.field("city", type=g.String),
+            g.field("postcode", type=g.String),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            ... on Root {
+                user {
+                    address {
+                        firstLine
+                        city
+                    }
+                }
+            }
+            ... on Root {
+                user {
+                    address {
+                        city
+                        postcode
+                    }
+                }
+            }
+        }
+    """
+    
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            g.key("user", Root.fields.user(
+                g.key("address", User.fields.address(
+                    g.key("firstLine", Address.fields.first_line()),
+                    g.key("city", Address.fields.city()),
+                    g.key("postcode", Address.fields.postcode()),
+                )),
+            )),
+        ),
+    ))
     
 
 def test_fragments_are_recursively_merged():
