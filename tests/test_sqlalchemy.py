@@ -45,7 +45,7 @@ def test_can_get_fields_backed_by_expressions():
     resolvers = [book_nodes.resolvers]
     
     query = gsql.select(g.ListType(Book)(
-        title=Book.fields.title(),
+        g.key("title", Book.fields.title()),
     ))
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({
@@ -100,7 +100,7 @@ def test_can_pass_arguments_to_expression():
     resolvers = [book_nodes.resolvers]
     
     query = gsql.select(g.ListType(Book)(
-        title=Book.fields.title(Book.fields.title.params.truncate(8)),
+        g.key("title", Book.fields.title(Book.fields.title.params.truncate(8))),
     ))
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
@@ -172,11 +172,11 @@ def test_can_pass_arguments_from_root():
     resolvers = [resolve_root, book_nodes.resolvers]
     
     query = Root(
-        books=Root.fields.books(
+        g.key("books", Root.fields.books(
             Root.fields.books.params.id(1),
             
-            title=Book.fields.title(),
-        ),
+            g.key("title", Book.fields.title()),
+        )),
     )
     
     graph_definition = g.define_graph(resolvers)
@@ -269,12 +269,12 @@ def test_can_recursively_resolve_selected_fields():
     resolvers = [resolve_root, book_nodes.resolvers, author_nodes.resolvers]
     
     query = Root(
-        books=Root.fields.books(
-            author=Book.fields.author(
-                name=Author.fields.name(),
-            ),
-            title=Book.fields.title(),
-        ),
+        g.key("books", Root.fields.books(
+            g.key("author", Book.fields.author(
+                g.key("name", Author.fields.name()),
+            )),
+            g.key("title", Book.fields.title()),
+        )),
     )
 
     graph_definition = g.define_graph(resolvers)
@@ -357,10 +357,10 @@ def test_can_resolve_many_to_one_field():
     resolvers = [left_nodes.resolvers, right_nodes.resolvers]
     
     query = gsql.select(g.ListType(Left)(
-        value=Left.fields.value(),
-        right=Left.fields.right(
-            value=Right.fields.value(),
-        ),
+        g.key("value", Left.fields.value()),
+        g.key("right", Left.fields.right(
+            g.key("value", Right.fields.value()),
+        )),
     ))
 
     graph_definition = g.define_graph(resolvers)
@@ -444,10 +444,10 @@ def test_can_resolve_many_to_one_or_zero_field():
     resolvers = [left_nodes.resolvers, right_nodes.resolvers]
     
     query = gsql.select(g.ListType(Left)(
-        value=Left.fields.value(),
-        right=Left.fields.right(
-            value=Right.fields.value(),
-        ),
+        g.key("value", Left.fields.value()),
+        g.key("right", Left.fields.right(
+            g.key("value", Right.fields.value()),
+        )),
     ))
 
     graph_definition = g.define_graph(resolvers)
@@ -536,10 +536,10 @@ def test_can_resolve_one_to_many_field():
     resolvers = [left_nodes.resolvers, right_nodes.resolvers]
     
     query = gsql.select(g.ListType(Left)(
-        value=Left.fields.value(),
-        rights=Left.fields.rights(
-            value=Right.fields.value(),
-        ),
+        g.key("value", Left.fields.value()),
+        g.key("rights", Left.fields.rights(
+            g.key("value", Right.fields.value()),
+        )),
     ))
 
     graph_definition = g.define_graph(resolvers)
@@ -646,10 +646,10 @@ def test_can_resolve_join_through_association_table():
     resolvers = [left_nodes.resolvers, right_nodes.resolvers]
     
     query = gsql.select(g.ListType(Left)(
-        value=Left.fields.value(),
-        rights=Left.fields.rights(
-            value=Right.fields.value(),
-        ),
+        g.key("value", Left.fields.value()),
+        g.key("rights", Left.fields.rights(
+            g.key("value", Right.fields.value()),
+        )),
     ))
 
     graph_definition = g.define_graph(resolvers)
@@ -742,10 +742,10 @@ def test_can_join_tables_using_multi_column_key():
     resolvers = [left_nodes.resolvers, right_nodes.resolvers]
     
     query = gsql.select(g.ListType(Left)(
-        value=Left.fields.value(),
-        right=Left.fields.right(
-            value=Right.fields.value(),
-        ),
+        g.key("value", Left.fields.value()),
+        g.key("right", Left.fields.right(
+            g.key("value", Right.fields.value()),
+        )),
     ))
 
     graph_definition = g.define_graph(resolvers)

@@ -21,14 +21,14 @@ def test_can_get_scalar_from_root():
         )
         
         return query.create_object(iterables.to_dict(
-            (key, values[field_query.field.name])
-            for key, field_query in query.fields.items()
+            (field_query.key, values[field_query.field.name])
+            for field_query in query.fields
         ))
     
     resolvers = [resolve_root]
     
     query = Root(
-        value=Root.fields.one(),
+        g.key("value", Root.fields.one()),
     )
     result = g.create_graph(resolvers).resolve(query)
     
@@ -49,7 +49,7 @@ def test_constant_object_resolver():
     resolvers = [resolve_root]
     
     query = Root(
-        value=Root.fields.one(),
+        g.key("value", Root.fields.one()),
     )
     result = g.create_graph(resolvers).resolve(query)
     
@@ -74,8 +74,8 @@ def test_can_recursively_resolve():
     @g.resolver(Root)
     def resolve_root(graph, query):
         return query.create_object(iterables.to_dict(
-            (key, graph.resolve(field_query.type_query))
-            for key, field_query in query.fields.items()
+            (field_query.key, graph.resolve(field_query.type_query))
+            for field_query in query.fields
         ))
     
     @g.resolver(g.ListType(Book))
@@ -86,8 +86,8 @@ def test_can_recursively_resolve():
         ]
         return [
             query.element_query.create_object(iterables.to_dict(
-                (key, book[field_query.field.name])
-                for key, field_query in query.element_query.fields.items()
+                (field_query.key, book[field_query.field.name])
+                for field_query in query.element_query.fields
             ))
             for book in books
         ]
@@ -95,9 +95,9 @@ def test_can_recursively_resolve():
     resolvers = [resolve_root, resolve_book]
     
     query = Root(
-        books=Root.fields.books(
-            title=Book.fields.title(),
-        ),
+        g.key("books", Root.fields.books(
+            g.key("title", Book.fields.title()),
+        )),
     )
     result = g.create_graph(resolvers).resolve(query)
     
@@ -135,8 +135,8 @@ def test_can_recursively_resolve_selected_fields():
     @g.resolver(Root)
     def resolve_root(graph, query):
         return query.create_object(iterables.to_dict(
-            (key, graph.resolve(field_query.type_query))
-            for key, field_query in query.fields.items()
+            (field_query.key, graph.resolve(field_query.type_query))
+            for field_query in query.fields
         ))
     
     books = [
@@ -169,8 +169,8 @@ def test_can_recursively_resolve_selected_fields():
     def resolve_book(graph, query):
         return [
             query.element_query.create_object(iterables.to_dict(
-                (key, resolve_field(graph, book, field_query))
-                for key, field_query in query.element_query.fields.items()
+                (field_query.key, resolve_field(graph, book, field_query))
+                for field_query in query.element_query.fields
             ))
             for book in books
         ]
@@ -184,19 +184,19 @@ def test_can_recursively_resolve_selected_fields():
     def resolve_author(graph, query):
         author = authors[query.author_id]
         return query.type_query.create_object(iterables.to_dict(
-            (key, author[field_query.field.name])
-            for key, field_query in query.type_query.fields.items()
+            (field_query.key, author[field_query.field.name])
+            for field_query in query.type_query.fields
         ))
     
     resolvers = [resolve_root, resolve_book, resolve_author]
     
     query = Root(
-        books=Root.fields.books(
-            author=Book.fields.author(
-                name=Author.fields.name(),
-            ),
-            title=Book.fields.title(),
-        ),
+        g.key("books", Root.fields.books(
+            g.key("author", Book.fields.author(
+                g.key("name", Author.fields.name()),
+            )),
+            g.key("title", Book.fields.title()),
+        )),
     )
     result = g.create_graph(resolvers).resolve(query)
     

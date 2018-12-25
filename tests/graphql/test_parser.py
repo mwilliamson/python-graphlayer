@@ -6,7 +6,6 @@ import pytest
 import graphlayer as g
 from graphlayer import schema
 from graphlayer.graphql.parser import document_text_to_query
-from graphlayer.iterables import to_dict
 
 
 def test_simple_query_is_converted_to_object_query():
@@ -27,7 +26,7 @@ def test_simple_query_is_converted_to_object_query():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.one(),
+            g.key("one", Root.fields.one()),
         ),
     ))
 
@@ -56,7 +55,7 @@ def test_simple_mutation_is_converted_to_object_query():
     
     assert_that(object_query, is_query(
         MutationRoot(
-            mutationValue=MutationRoot.fields.mutation_value(),
+            g.key("mutationValue", MutationRoot.fields.mutation_value()),
         ),
     ))
 
@@ -101,7 +100,7 @@ def test_fields_can_have_alias():
     
     assert_that(object_query, is_query(
         Root(
-            value=Root.fields.one(),
+            g.key("value", Root.fields.one()),
         ),
     ))
 
@@ -124,7 +123,7 @@ def test_field_names_are_converted_to_snake_case():
     
     assert_that(object_query, is_query(
         Root(
-            oneValue=Root.fields.one_value(),
+            g.key("oneValue", Root.fields.one_value()),
         ),
     ))
 
@@ -165,11 +164,11 @@ def test_fields_can_be_nested():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.one(
-                two=One.fields.two(
-                    three=Two.fields.three(),
-                ),
-            ),
+            g.key("one", Root.fields.one(
+                g.key("two", One.fields.two(
+                    g.key("three", Two.fields.three()),
+                )),
+            )),
         ),
     ))
 
@@ -201,9 +200,9 @@ def test_can_request_fields_of_list():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.one(
-                two=One.fields.two(),
-            ),
+            g.key("one", Root.fields.one(
+                g.key("two", One.fields.two()),
+            )),
         ),
     ))
 
@@ -233,10 +232,10 @@ def test_inline_fragments_are_expanded():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.value(),
-            two=Root.fields.value(),
-            three=Root.fields.value(),
-            four=Root.fields.value(),
+            g.key("one", Root.fields.value()),
+            g.key("two", Root.fields.value()),
+            g.key("three", Root.fields.value()),
+            g.key("four", Root.fields.value()),
         ),
     ))
 
@@ -270,10 +269,10 @@ def test_named_fragments_are_expanded():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.value(),
-            two=Root.fields.value(),
-            three=Root.fields.value(),
-            four=Root.fields.value(),
+            g.key("one", Root.fields.value()),
+            g.key("two", Root.fields.value()),
+            g.key("three", Root.fields.value()),
+            g.key("four", Root.fields.value()),
         ),
     ))
 
@@ -318,10 +317,10 @@ def test_fragments_can_be_on_more_specific_type():
     
     assert_that(object_query, is_query(
         Root(
-            animal=Root.fields.animal(
-                name=Animal.fields.name(),
-                whiskerCount=Cat.fields.whisker_count(),
-            ),
+            g.key("animal", Root.fields.animal(
+                g.key("name", Animal.fields.name()),
+                g.key("whiskerCount", Cat.fields.whisker_count()),
+            )),
         ),
     ))
 
@@ -361,10 +360,10 @@ def test_when_fragments_have_common_fields_then_fragments_are_merged():
     
     assert_that(object_query, is_query(
         Root(
-            user=Root.fields.user(
-                name=User.fields.name(),
-                address=User.fields.address(),
-            ),
+            g.key("user", Root.fields.user(
+                g.key("name", User.fields.name()),
+                g.key("address", User.fields.address()),
+            )),
         ),
     ))
 
@@ -407,11 +406,12 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
     
     assert_that(object_query, is_query(
         Root(
-            user=Root.fields.user(
-                name=User.fields.name(),
-                address=User.fields.address(),
-                role=User.fields.role(),
-            ),
+            g.key("user", Root.fields.user(
+                g.key("name", User.fields.name()),
+                g.key("address", User.fields.address()),
+                g.key("name", User.fields.name()),
+                g.key("role", User.fields.role()),
+            )),
         ),
     ))
     
@@ -443,8 +443,8 @@ def test_fragments_are_recursively_merged():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.value(),
-            two=Root.fields.value(),
+            g.key("one", Root.fields.value()),
+            g.key("two", Root.fields.value()),
         ),
     ))
 
@@ -470,10 +470,10 @@ def test_graphql_field_args_are_read():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.one(
+            g.key("one", Root.fields.one(
                 Root.fields.one.params.arg0("one"),
                 Root.fields.one.params.arg1("two"),
-            ),
+            )),
         ),
     ))
 
@@ -524,9 +524,9 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.one(
+            g.key("one", Root.fields.one(
                 Root.fields.one.params.arg(arg_value),
-            ),
+            )),
         ),
     ))
 
@@ -549,7 +549,7 @@ def test_when_arg_is_not_set_then_default_is_used():
     """
     
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields["one"].args, has_attrs(
+    assert_that(object_query.fields[0].args, has_attrs(
         arg0=None,
         arg1=42,
     ))
@@ -580,7 +580,7 @@ def test_when_field_value_is_not_set_then_default_is_used():
     """
     
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields["one"].args.arg, has_attrs(
+    assert_that(object_query.fields[0].args.arg, has_attrs(
         field0=None,
         field1=42,
     ))
@@ -610,7 +610,7 @@ def test_when_field_value_in_nullable_input_object_is_not_set_then_default_is_us
     """
     
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields["one"].args.arg, has_attrs(
+    assert_that(object_query.fields[0].args.arg, has_attrs(
         field0=42,
     ))
 
@@ -639,7 +639,7 @@ def test_when_field_value_in_input_object_in_list_is_not_set_then_default_is_use
     """
     
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields["one"].args.arg, is_sequence(
+    assert_that(object_query.fields[0].args.arg, is_sequence(
         has_attrs(
             field0=42,
         ),
@@ -676,7 +676,7 @@ def test_when_field_value_in_input_object_in_input_object_is_not_set_then_defaul
     """
     
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields["one"].args.arg, has_attrs(
+    assert_that(object_query.fields[0].args.arg, has_attrs(
         value=has_attrs(
             field0=42,
         ),
@@ -703,9 +703,9 @@ def test_graphql_query_args_are_read():
     
     assert_that(object_query, is_query(
         Root(
-            one=Root.fields.one(
+            g.key("one", Root.fields.one(
                 Root.fields.one.params.arg(42),
-            ),
+            )),
         ),
     ))
 
@@ -720,6 +720,7 @@ def is_query(query):
     
     elif isinstance(query, schema.FieldQuery):
         return has_attrs(
+            key=query.key,
             field=query.field,
             type_query=is_query(query.type_query),
             args=has_attrs(_values=is_mapping(query.args._values)),
@@ -734,10 +735,10 @@ def is_query(query):
     elif isinstance(query, schema.ObjectQuery):
         return has_attrs(
             type=query.type,
-            fields=is_mapping(to_dict(
-                (name, is_query(field_query))
-                for name, field_query in query.fields.items()
-            )),
+            fields=is_sequence(*[
+                is_query(field_query)
+                for field_query in query.fields
+            ]),
         )
         
     else:

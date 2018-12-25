@@ -117,7 +117,7 @@ class TestToJsonValue(object):
         Book = schema.ObjectType("Book", fields=(
             schema.field("title", schema.String),
         ))
-        query = Book(book_title=Book.fields.title())
+        query = Book(schema.key("book_title", Book.fields.title()))
         value = Object(dict(book_title="Orbiting the Giant Hairball"))
         assert_that(query.to_json_value(value), equal_to({
             "book_title": "Orbiting the Giant Hairball",
@@ -130,7 +130,11 @@ class TestToJsonValue(object):
         Book = schema.ObjectType("Book", fields=(
             schema.field("author", Author),
         ))
-        query = Book(author=Book.fields.author(name=Author.fields.name()))
+        query = Book(
+            schema.key("author", Book.fields.author(
+                schema.key("name", Author.fields.name()),
+            )),
+        )
         value = Object(dict(
             author=Object(dict(
                 name="Gordon A. Mackenzie",
@@ -147,7 +151,7 @@ class TestToJsonValue(object):
             schema.field("title", schema.String),
         ))
         NullableBook = schema.NullableType(Book)
-        query = NullableBook(book_title=Book.fields.title())
+        query = NullableBook(schema.key("book_title", Book.fields.title()))
         assert_that(query.to_json_value(None), equal_to(None))
 
     def test_when_value_is_not_none_then_nullable_value_is_converted_using_element_query(self):
@@ -155,7 +159,7 @@ class TestToJsonValue(object):
             schema.field("title", schema.String),
         ))
         NullableBook = schema.NullableType(Book)
-        query = NullableBook(book_title=Book.fields.title())
+        query = NullableBook(schema.key("book_title", Book.fields.title()))
         value = Object(dict(book_title="Orbiting the Giant Hairball"))
         assert_that(query.to_json_value(value), equal_to({
             "book_title": "Orbiting the Giant Hairball",
@@ -166,7 +170,7 @@ class TestToJsonValue(object):
             schema.field("title", schema.String),
         ))
         BookList = schema.ListType(Book)
-        query = BookList(book_title=Book.fields.title())
+        query = BookList(schema.key("book_title", Book.fields.title()))
         value = Object(dict(book_title="Orbiting the Giant Hairball"))
         assert_that(query.to_json_value([value]), equal_to([
             {

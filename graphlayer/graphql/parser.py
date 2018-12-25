@@ -75,7 +75,7 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
         fragments=fragments,
         variables=variables,
     )
-    graph_query = root_type(**fields)
+    graph_query = root_type(*fields)
     
     return GraphQLQuery(
         graph_query,
@@ -85,16 +85,16 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
 
 def _read_selection_set(selection_set, graph_type, fragments, variables):
     if selection_set is None:
-        return {}
+        return ()
     else:
         unmerged_fields = to_multidict(
-            (key, field)
+            (field_query.key, field_query)
             for graphql_selection in selection_set.selections
-            for key, field in _read_graphql_selection(graphql_selection, graph_type=graph_type, fragments=fragments, variables=variables)
+            for field_query in _read_graphql_selection(graphql_selection, graph_type=graph_type, fragments=fragments, variables=variables)
         )
         
-        return to_dict(
-            (key, _merge_fields(fields))
+        return tuple(
+            _merge_fields(fields)
             for key, fields in unmerged_fields.items()
         )
 
@@ -152,8 +152,8 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
         fragments=fragments,
         variables=variables,
     )
-    field_query = field(*args, **subfields)
-    return (key, field_query)
+    field_query = schema.key(key, field(*args, *subfields))
+    return field_query
 
 
 def _get_field(graph_type, field_name):
@@ -214,6 +214,7 @@ def _merge_fields(fields):
         return fields[0]
     else:
         return schema.FieldQuery(
+            key=fields[0].key,
             field=fields[0].field,
             type_query=reduce(
                 lambda left, right: left + right,

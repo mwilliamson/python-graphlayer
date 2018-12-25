@@ -230,16 +230,16 @@ def sql_table(type, model, fields):
         row_slices = []
         readers = []
         
-        for field_query in query.fields.values():
+        for field_query in query.fields:
             expressions = get_field(field_query).expressions()
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions))) 
             query_expressions += expressions
         
         rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
         
-        for (key, field_query), row_slice in zip(query.fields.items(), row_slices):
+        for field_query, row_slice in zip(query.fields, row_slices):
             reader = get_field(field_query).create_reader(graph, field_query, base_query, session=session)
-            readers.append((key, row_slice, reader))
+            readers.append((field_query.key, row_slice, reader))
         
         def read_row(row):
             return process_row(

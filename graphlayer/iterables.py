@@ -1,3 +1,5 @@
+import collections
+
 _undefined = object()
 
 
@@ -39,7 +41,7 @@ def to_dict(iterable):
 
     
 def to_multidict(iterable):
-    result = {}
+    result = collections.OrderedDict()
 
     for key, value in iterable:
         if key not in result:

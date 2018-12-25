@@ -93,8 +93,8 @@ class InterfaceType(object):
         self.fields = Fields(name, fields)
         self.subtypes = []
 
-    def __call__(self, **fields):
-        return ObjectQuery(self, fields)
+    def __call__(self, *fields):
+        return ObjectQuery(self, fields=fields)
 
     def __repr__(self):
         return "InterfaceType(name={!r})".format(self.name)
@@ -185,8 +185,8 @@ class ObjectType(object):
         for interface in interfaces:
             interface.subtypes.append(self)
     
-    def __call__(self, **fields):
-        return ObjectQuery(self, fields)
+    def __call__(self, *fields):
+        return ObjectQuery(self, fields=fields)
 
     def __repr__(self):
         return "ObjectType(name={!r})".format(self.name)
@@ -237,20 +237,19 @@ class ObjectQuery(object):
     # TODO: handling merging of other query types
     def __add__(self, other):
         if isinstance(other, ObjectQuery):
+            # TODO: better handling of other types
+            assert self.type == other.type
             return ObjectQuery(
                 type=self.type,
-                fields={
-                    **self.fields,
-                    **other.fields,
-                },
+                fields=self.fields + other.fields,
             )
         else:
             return NotImplemented
 
     def to_json_value(self, value):
         return iterables.to_dict(
-            (key, self.fields[key].type_query.to_json_value(value))
-            for key, value in value._values.items()
+            (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
+            for field_query in self.fields
         )
 
 
@@ -270,10 +269,17 @@ class Field(object):
         self.type = type
         self.params = Params(name, params)
     
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args):
+        # TODO: check for unhandled args
+        
+        type_query = self.type(*list(filter(
+            lambda arg: isinstance(arg, FieldQuery),
+            args,
+        )))
+        
         explicit_args = iterables.to_dict(
             (arg.parameter.name, arg.value)
-            for arg in args
+            for arg in filter(lambda arg: isinstance(arg, Argument), args)
         )
         
         def get_arg(param):
@@ -289,7 +295,7 @@ class Field(object):
             for param in self.params
         ))
         # TODO: handle extra args
-        return FieldQuery(field=self, type_query=self.type(**kwargs), args=field_args)
+        return FieldQuery(key=self.name, field=self, type_query=type_query, args=field_args)
     
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
@@ -312,10 +318,20 @@ class Params(object):
 
 
 class FieldQuery(object):
-    def __init__(self, field, type_query, args):
+    def __init__(self, key, field, type_query, args):
+        self.key = key
         self.field = field
         self.type_query = type_query
         self.args = args
+
+
+def key(key, field_query):
+    return FieldQuery(
+        key=key,
+        field=field_query.field,
+        type_query=field_query.type_query,
+        args=field_query.args,
+    )
 
 
 def param(name, type, default=_undefined):
