@@ -278,6 +278,55 @@ def test_named_fragments_are_expanded():
     ))
 
 
+def test_fragments_can_be_on_more_specific_type():
+    # TODO: WIP
+    return
+    Animal = g.InterfaceType(
+        "Animal",
+        fields=(
+            g.field("name", type=g.String),
+        ),
+    )
+    
+    Cat = g.ObjectType(
+        "Cat",
+        fields=(
+            g.field("name", type=g.String),
+            g.field("whisker_count", type=g.Int),
+        ),
+        interfaces=(Animal, ),
+    )
+    
+    Root = g.ObjectType(
+        "Root",
+        (
+            g.field("animal", type=Animal),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            animal {
+                name
+                ... on Cat {
+                    whiskerCount
+                }
+            }
+        }
+    """
+    
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            animal=Root.fields.animal(
+                name=Animal.fields.name(),
+                whiskerCount=Cat.fields.whisker_count(),
+            ),
+        ),
+    ))
+
+
 def test_when_fragments_have_common_fields_then_fragments_are_merged():
     Root = g.ObjectType(
         "Root",
