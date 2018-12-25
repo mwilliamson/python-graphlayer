@@ -409,7 +409,6 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
             g.key("user", Root.fields.user(
                 g.key("name", User.fields.name()),
                 g.key("address", User.fields.address()),
-                g.key("name", User.fields.name()),
                 g.key("role", User.fields.role()),
             )),
         ),

@@ -5,7 +5,7 @@ import re
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 
 from .. import schema
-from ..iterables import find, partition, to_dict, to_multidict
+from ..iterables import find, partition, to_dict
 
 
 # TODO: validation
@@ -69,13 +69,12 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
             definitions=schema_definitions,
         )
     
-    fields = _read_selection_set(
+    graph_query = _read_selection_set(
         _copy_with(operation.selection_set, selections=non_schema_selections),
         graph_type=root_type,
         fragments=fragments,
         variables=variables,
     )
-    graph_query = root_type(*fields)
     
     return GraphQLQuery(
         graph_query,
@@ -85,24 +84,26 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
 
 def _read_selection_set(selection_set, graph_type, fragments, variables):
     if selection_set is None:
-        return ()
+        return graph_type()
     else:
-        unmerged_fields = to_multidict(
-            (field_query.key, field_query)
-            for graphql_selection in selection_set.selections
-            for field_query in _read_graphql_selection(graphql_selection, graph_type=graph_type, fragments=fragments, variables=variables)
-        )
-        
-        return tuple(
-            _merge_fields(fields)
-            for key, fields in unmerged_fields.items()
+        return reduce(
+            lambda left, right: left + right,
+            (
+                _read_graphql_selection(
+                    graphql_selection,
+                    graph_type=graph_type,
+                    fragments=fragments,
+                    variables=variables,
+                )
+                for graphql_selection in selection_set.selections
+            )
         )
 
 
 def _read_graphql_selection(selection, graph_type, fragments, variables):
     if isinstance(selection, graphql_ast.Field):
         field = _read_graphql_field(selection, graph_type=graph_type, fragments=fragments, variables=variables)
-        return (field, )
+        return graph_type(field)
     
     elif isinstance(selection, graphql_ast.InlineFragment):
         return _read_graphql_fragment(selection, graph_type=graph_type, fragments=fragments, variables=variables)
@@ -120,16 +121,12 @@ def _read_graphql_fragment(fragment, graph_type, fragments, variables):
     if type_condition_type_name != graph_type.name and isinstance(graph_type, schema.InterfaceType):
         graph_type = find(lambda subtype: subtype.name == type_condition_type_name, graph_type.subtypes)
     
-    return [
-        field
-        for subselection in fragment.selection_set.selections
-        for field in _read_graphql_selection(
-            subselection,
-            graph_type=graph_type,
-            fragments=fragments,
-            variables=variables,
-        )
-    ]
+    return _read_selection_set(
+        fragment.selection_set,
+        graph_type=graph_type,
+        fragments=fragments,
+        variables=variables,
+    )
 
 
 def _read_graphql_field(graphql_field, graph_type, fragments, variables):
@@ -146,13 +143,13 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
         get_arg_value(arg)
         for arg in graphql_field.arguments
     ]
-    subfields = _read_selection_set(
+    type_query = _read_selection_set(
         graphql_field.selection_set,
         graph_type=field.type,
         fragments=fragments,
         variables=variables,
     )
-    field_query = schema.key(key, field(*args, *subfields))
+    field_query = schema.key(key, field(*args, type_query=type_query))
     return field_query
 
 
@@ -207,21 +204,6 @@ def _field_key(selection):
         return selection.name.value
     else:
         return selection.alias.value
-
-
-def _merge_fields(fields):
-    if len(fields) == 1:
-        return fields[0]
-    else:
-        return schema.FieldQuery(
-            key=fields[0].key,
-            field=fields[0].field,
-            type_query=reduce(
-                lambda left, right: left + right,
-                (field.type_query for field in fields),
-            ),
-            args=fields[0].args,
-        )
 
 
 def _camel_case_to_snake_case(value):

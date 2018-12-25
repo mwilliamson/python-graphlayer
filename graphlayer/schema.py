@@ -1,3 +1,5 @@
+from functools import reduce
+
 from . import iterables
 from .representations import Object
 
@@ -22,6 +24,12 @@ String = ScalarType("String")
 class ScalarQuery(object):
     def to_json_value(self, value):
         return value
+    
+    def __add__(self, other):
+        if isinstance(other, ScalarQuery):
+            return self
+        else:
+            return NotImplemented
 
 
 scalar_query = ScalarQuery()
@@ -231,17 +239,26 @@ class ObjectQuery(object):
 
     def __init__(self, type, fields):
         self.type = type
-        self.fields = fields
+        self.fields = tuple(fields)
 
     # TODO: test this directly
     # TODO: handling merging of other query types
     def __add__(self, other):
         if isinstance(other, ObjectQuery):
             # TODO: better handling of other types
-            assert self.type == other.type
+            #~ assert self.type == other.type
+            
+            fields = list(map(
+                _merge_field_queries,
+                iterables.to_multidict(
+                    (field.key, field)
+                    for field in (self.fields + other.fields)
+                ).values(),
+            ))
+            
             return ObjectQuery(
                 type=self.type,
-                fields=self.fields + other.fields,
+                fields=fields,
             )
         else:
             return NotImplemented
@@ -251,6 +268,13 @@ class ObjectQuery(object):
             (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
             for field_query in self.fields
         )
+
+
+def _merge_field_queries(fields):
+    return reduce(
+        lambda left, right: left + right,
+        fields,
+    )
 
 
 class Args(object):
@@ -269,13 +293,19 @@ class Field(object):
         self.type = type
         self.params = Params(name, params)
     
-    def __call__(self, *args):
+    def __call__(self, *args, type_query=None):
         # TODO: check for unhandled args
-        
-        type_query = self.type(*list(filter(
+
+        field_query_args = list(filter(
             lambda arg: isinstance(arg, FieldQuery),
             args,
-        )))
+        ))
+        
+        if type_query is None:
+            type_query = self.type(*field_query_args)
+        else:
+            # TODO: tidy up the API so this isn't possible
+            assert not field_query_args
         
         explicit_args = iterables.to_dict(
             (arg.parameter.name, arg.value)
@@ -323,6 +353,20 @@ class FieldQuery(object):
         self.field = field
         self.type_query = type_query
         self.args = args
+    
+    def __add__(self, other):
+        if isinstance(other, FieldQuery):
+            assert self.key == other.key
+            assert self.field == other.field
+            assert self.args == other.args
+            return FieldQuery(
+                key=self.key,
+                field=self.field,
+                type_query=self.type_query + other.type_query,
+                args=self.args,
+            )
+        else:
+            return NotImplemented
 
 
 def key(key, field_query):
