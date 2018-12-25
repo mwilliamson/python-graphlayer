@@ -115,10 +115,20 @@ def _read_graphql_selection(selection, graph_type, fragments, variables):
 
 
 def _read_graphql_fragment(fragment, graph_type, fragments, variables):
+    type_condition_type_name = fragment.type_condition.name.value
+    
+    if type_condition_type_name != graph_type.name and isinstance(graph_type, schema.InterfaceType):
+        graph_type = find(lambda subtype: subtype.name == type_condition_type_name, graph_type.subtypes)
+    
     return [
         field
         for subselection in fragment.selection_set.selections
-        for field in _read_graphql_selection(subselection, graph_type=graph_type, fragments=fragments, variables=variables)
+        for field in _read_graphql_selection(
+            subselection,
+            graph_type=graph_type,
+            fragments=fragments,
+            variables=variables,
+        )
     ]
 
 
@@ -147,7 +157,7 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
 
 
 def _get_field(graph_type, field_name):
-    while not isinstance(graph_type, schema.ObjectType):
+    while isinstance(graph_type, (schema.ListType, schema.NullableType)):
         graph_type = graph_type.element_type
 
     return getattr(graph_type.fields, field_name)

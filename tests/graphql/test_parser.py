@@ -278,9 +278,8 @@ def test_named_fragments_are_expanded():
     ))
 
 
+# TODO: handle fragments for different types with same field name
 def test_fragments_can_be_on_more_specific_type():
-    # TODO: WIP
-    return
     Animal = g.InterfaceType(
         "Animal",
         fields=(
