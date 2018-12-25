@@ -241,7 +241,44 @@ def test_inline_fragments_are_expanded():
     ))
 
 
-def test_inline_fragments_are_merged():
+def test_named_fragments_are_expanded():
+    Root = g.ObjectType(
+        "Root",
+        (
+            g.field("value", type=g.Int),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            one: value
+            ...Two
+            three: value
+            ...Four
+        }
+        
+        fragment Two on Root {
+            two: value
+        }
+        
+        fragment Four on Root {
+            four: value
+        }
+    """
+    
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, is_query(
+        Root(
+            one=Root.fields.value(),
+            two=Root.fields.value(),
+            three=Root.fields.value(),
+            four=Root.fields.value(),
+        ),
+    ))
+
+
+def test_when_fragments_have_common_fields_then_fragments_are_merged():
     Root = g.ObjectType(
         "Root",
         fields=lambda: (
@@ -331,7 +368,7 @@ def test_when_merging_fragments_then_scalar_fields_can_overlap():
     ))
     
 
-def test_inline_fragments_are_recursively_merged():
+def test_fragments_are_recursively_merged():
     Root = g.ObjectType(
         "Root",
         fields=lambda: (
@@ -360,43 +397,6 @@ def test_inline_fragments_are_recursively_merged():
         Root(
             one=Root.fields.value(),
             two=Root.fields.value(),
-        ),
-    ))
-
-
-def test_named_fragments_are_expanded():
-    Root = g.ObjectType(
-        "Root",
-        (
-            g.field("value", type=g.Int),
-        ),
-    )
-    
-    graphql_query = """
-        query {
-            one: value
-            ...Two
-            three: value
-            ...Four
-        }
-        
-        fragment Two on Root {
-            two: value
-        }
-        
-        fragment Four on Root {
-            four: value
-        }
-    """
-    
-    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    
-    assert_that(object_query, is_query(
-        Root(
-            one=Root.fields.value(),
-            two=Root.fields.value(),
-            three=Root.fields.value(),
-            four=Root.fields.value(),
         ),
     ))
 
