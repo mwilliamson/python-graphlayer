@@ -228,6 +228,20 @@ class ObjectQuery(object):
         self.type = type
         self.fields = fields
 
+    # TODO: test this directly
+    # TODO: handling merging of other query types
+    def __add__(self, other):
+        if isinstance(other, ObjectQuery):
+            return ObjectQuery(
+                type=self.type,
+                fields={
+                    **self.fields,
+                    **other.fields,
+                },
+            )
+        else:
+            return NotImplemented
+
     def to_json_value(self, value):
         return iterables.to_dict(
             (key, self.fields[key].type_query.to_json_value(value))

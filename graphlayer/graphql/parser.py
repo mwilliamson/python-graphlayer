@@ -1,10 +1,15 @@
 from copy import copy
+from functools import reduce
 import re
 
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 
 from .. import schema
 from ..iterables import find, partition, to_dict, to_multidict
+
+
+# TODO: validation
+# TODO: type conditions on fragments
 
 
 class GraphQLQuery(object):
@@ -39,11 +44,10 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
         )
     )
     
-    selection_set = _flatten_graphql_selection_set(operation.selection_set, fragments=fragments)
-    
+    # TODO: handle fragments with __schema
     schema_selections, non_schema_selections = partition(
-        lambda selection: selection.name.value == "__schema",
-        selection_set.selections,
+        lambda selection: isinstance(selection, graphql_ast.Field) and selection.name.value == "__schema",
+        operation.selection_set.selections,
     )
 
     if len(schema_selections) == 0:
@@ -65,12 +69,12 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
             definitions=schema_definitions,
         )
     
-    fields = to_dict(_read_selection_set(
-        _copy_with(selection_set, selections=non_schema_selections),
+    fields = _read_selection_set(
+        _copy_with(operation.selection_set, selections=non_schema_selections),
         graph_type=root_type,
         fragments=fragments,
         variables=variables,
-    ))
+    )
     graph_query = root_type(**fields)
     
     return GraphQLQuery(
@@ -81,68 +85,40 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
 
 def _read_selection_set(selection_set, graph_type, fragments, variables):
     if selection_set is None:
-        return ()
+        return {}
     else:
-        return [
-            _read_graphql_field(graphql_field, graph_type=graph_type, fragments=fragments, variables=variables)
-            for graphql_field in selection_set.selections
-        ]
+        unmerged_fields = to_multidict(
+            (key, field)
+            for graphql_selection in selection_set.selections
+            for key, field in _read_graphql_selection(graphql_selection, graph_type=graph_type, fragments=fragments, variables=variables)
+        )
+        
+        return to_dict(
+            (key, _merge_fields(fields))
+            for key, fields in unmerged_fields.items()
+        )
 
 
-def _flatten_graphql_selection_set(selection_set, fragments):
-    if selection_set is None:
-        return None
-    else:
-        selections = _flatten_graphql_selections(selection_set.selections, fragments=fragments)
-        return _copy_with(selection_set, selections=selections)
-
-
-def _flatten_graphql_selections(selections, fragments):
-    # TODO: handle type conditions
-    # TODO: validation
-    graphql_fields = to_multidict(
-        (_field_key(graphql_field), graphql_field)
-        for selection in selections
-        for graphql_field in _graphql_selection_to_graphql_fields(selection, fragments=fragments)
-    )
-    
-    return [
-        _merge_graphql_fields(graphql_fields_to_merge, fragments=fragments)
-        for field_name, graphql_fields_to_merge in graphql_fields.items()
-    ]
-
-
-def _merge_graphql_fields(graphql_fields, fragments):
-    selection_set = copy(graphql_fields[0].selection_set)
-    
-    for graphql_field in graphql_fields[1:]:
-        if graphql_field.selection_set is not None:
-            selection_set.selections += graphql_field.selection_set.selections
-    
-    selection_set = _flatten_graphql_selection_set(selection_set, fragments=fragments)
-    
-    return _copy_with(graphql_fields[0], selection_set=selection_set)
-
-
-def _graphql_selection_to_graphql_fields(selection, fragments):
+def _read_graphql_selection(selection, graph_type, fragments, variables):
     if isinstance(selection, graphql_ast.Field):
-        return (selection, )
+        field = _read_graphql_field(selection, graph_type=graph_type, fragments=fragments, variables=variables)
+        return (field, )
     
     elif isinstance(selection, graphql_ast.InlineFragment):
-        return _graphql_fragment_to_graphql_fields(selection, fragments=fragments)
+        return _read_graphql_fragment(selection, graph_type=graph_type, fragments=fragments, variables=variables)
     
     elif isinstance(selection, graphql_ast.FragmentSpread):
-        return _graphql_fragment_to_graphql_fields(fragments[selection.name.value], fragments=fragments)
+        return _read_graphql_fragment(fragments[selection.name.value], graph_type=graph_type, fragments=fragments, variables=variables)
         
     else:
         raise Exception("Unhandled selection type: {}".format(type(selection)))
 
 
-def _graphql_fragment_to_graphql_fields(fragment, fragments):
+def _read_graphql_fragment(fragment, graph_type, fragments, variables):
     return [
-        graphql_field
+        field
         for subselection in fragment.selection_set.selections
-        for graphql_field in _graphql_selection_to_graphql_fields(subselection, fragments=fragments)
+        for field in _read_graphql_selection(subselection, graph_type=graph_type, fragments=fragments, variables=variables)
     ]
 
 
@@ -160,12 +136,12 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
         get_arg_value(arg)
         for arg in graphql_field.arguments
     ]
-    subfields = to_dict(_read_selection_set(
+    subfields = _read_selection_set(
         graphql_field.selection_set,
         graph_type=field.type,
         fragments=fragments,
         variables=variables,
-    ))
+    )
     field_query = field(*args, **subfields)
     return (key, field_query)
 
@@ -221,6 +197,20 @@ def _field_key(selection):
         return selection.name.value
     else:
         return selection.alias.value
+
+
+def _merge_fields(fields):
+    if len(fields) == 1:
+        return fields[0]
+    else:
+        return schema.FieldQuery(
+            field=fields[0].field,
+            type_query=reduce(
+                lambda left, right: left + right,
+                (field.type_query for field in fields),
+            ),
+            args=fields[0].args,
+        )
 
 
 def _camel_case_to_snake_case(value):
