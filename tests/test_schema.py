@@ -102,6 +102,46 @@ class TestAdd(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_fields_are_recursively_merged(self):
+        User = schema.ObjectType(
+            "User",
+            fields=lambda: (
+                schema.field("address", type=Address),
+            ),
+        )
+        
+        Address = schema.ObjectType(
+            "Address",
+            fields=lambda: (
+                schema.field("first_line", type=schema.String),
+                schema.field("city", type=schema.String),
+                schema.field("postcode", type=schema.String),
+            ),
+        )
+        
+        left_query = User(
+            schema.key("address", User.fields.address(
+                schema.key("first_line", Address.fields.first_line()),
+                schema.key("city", Address.fields.city()),
+            )),
+        )
+        right_query = User(
+            schema.key("address", User.fields.address(
+                schema.key("city", Address.fields.city()),
+                schema.key("postcode", Address.fields.postcode()),
+            )),
+        )
+        
+        assert_that(left_query + right_query, is_query(
+            User(
+                schema.key("address", User.fields.address(
+                    schema.key("first_line", Address.fields.first_line()),
+                    schema.key("city", Address.fields.city()),
+                    schema.key("postcode", Address.fields.postcode()),
+                )),
+            ),
+        ))
+
     def test_list_query_merges_element_queries(self):
         Song = schema.ObjectType("Song", fields=(
             schema.field("title", type=schema.String),
