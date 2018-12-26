@@ -255,6 +255,24 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_nullable_type_for_type_calls_for_type_on_element_query(self):
+        Item = schema.InterfaceType("Item", fields=(
+        ))
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+        ))
+        Book = schema.ObjectType("Book", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+        ))
+        query = schema.NullableType(Item)(
+            schema.key("length", Song.fields.length()),
+            schema.key("length", Book.fields.length()),
+        ).for_type(schema.NullableType(Song))
+        
+        assert_that(query, is_query(schema.NullableType(Song)(
+            schema.key("length", Song.fields.length()),
+        )))
+
 
 class TestToJsonValue(object):
     def test_bool_is_unchanged(self):

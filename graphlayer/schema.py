@@ -191,6 +191,11 @@ class NullableQuery(object):
         self.type = type
         self.element_query = element_query
 
+    def for_type(self, target_type):
+        assert isinstance(target_type, NullableType)
+        element_query = self.element_query.for_type(target_type.element_type)
+        return NullableQuery(type=target_type, element_query=element_query)
+
     def to_json_value(self, value):
         if value is None:
             return None

@@ -24,6 +24,12 @@ def is_query(query):
             element_query=is_query(query.element_query),
         )
         
+    elif isinstance(query, schema.NullableQuery):
+        return has_attrs(
+            type=query.type,
+            element_query=is_query(query.element_query),
+        )
+        
     elif isinstance(query, schema.ObjectQuery):
         return has_attrs(
             type=query.type,
