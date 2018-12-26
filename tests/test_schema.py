@@ -164,7 +164,6 @@ class TestAdd(object):
             schema.field("title", type=schema.String),
             schema.field("length", type=schema.Int),
         ))
-        Songs = schema.ListType(Song)
         query = (
             schema.ListType(Song)(schema.key("title", Song.fields.title())) +
             schema.ListType(Song)(schema.key("length", Song.fields.length()))

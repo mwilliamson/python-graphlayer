@@ -1,4 +1,4 @@
-from precisely import equal_to, has_attrs, is_instance, is_mapping, is_sequence
+from precisely import equal_to, has_attrs, is_mapping, is_sequence
 
 from graphlayer import schema
 
