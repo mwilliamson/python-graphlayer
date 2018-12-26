@@ -142,6 +142,23 @@ class TestAdd(object):
             ),
         ))
 
+    def test_fields_with_same_key_for_different_types_are_kept_separate(self):
+        Item = schema.InterfaceType("Item", fields=())
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Book = schema.ObjectType("Book", interfaces=(Item, ), fields=(
+            schema.field("title", type=schema.String),
+        ))
+        query = (
+            Item(schema.key("title", Song.fields.title())) +
+            Item(schema.key("title", Book.fields.title()))
+        )
+        assert_that(query, is_query(Item(
+            schema.key("title", Song.fields.title()),
+            schema.key("title", Book.fields.title()),
+        )))
+
     def test_list_query_merges_element_queries(self):
         Song = schema.ObjectType("Song", fields=(
             schema.field("title", type=schema.String),

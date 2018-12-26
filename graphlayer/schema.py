@@ -259,7 +259,7 @@ class ObjectQuery(object):
             fields = list(map(
                 _merge_field_queries,
                 iterables.to_multidict(
-                    (field.key, field)
+                    ((field.field, field.key), field)
                     for field in (self.fields + other.fields)
                 ).values(),
             ))
