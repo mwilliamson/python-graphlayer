@@ -175,6 +175,10 @@ class TestAdd(object):
 
 
 class TestForType(object):
+    def test_scalar_query_for_type_is_scalar_query(self):
+        query = schema.Boolean().for_type(schema.Boolean())
+        assert_that(query, is_query(schema.Boolean()))
+    
     def test_object_type_for_type_filters_fields_to_those_for_type(self):
         Item = schema.InterfaceType("Item", fields=(
             schema.field("title", type=schema.String),

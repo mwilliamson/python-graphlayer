@@ -24,7 +24,10 @@ String = ScalarType("String")
 class ScalarQuery(object):
     def to_json_value(self, value):
         return value
-    
+
+    def for_type(self, target_type):
+        return target_type
+
     def __add__(self, other):
         if isinstance(other, ScalarQuery):
             return self
