@@ -197,6 +197,30 @@ class TestForType(object):
             schema.key("title", Song.fields.title()),
             schema.key("length", Song.fields.length()),
         )))
+        
+    def test_object_type_for_type_retains_fields_for_subtypes(self):
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+            schema.field("title", type=schema.String),
+        ))
+        Book = schema.ObjectType("Book", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+            schema.field("title", type=schema.String),
+        ))
+        query = Item(
+            schema.key("title", Item.fields.title()),
+            schema.key("length", Song.fields.length()),
+            schema.key("length", Book.fields.length()),
+        )
+        
+        assert_that(query.for_type(Item), is_query(Item(
+            schema.key("title", Item.fields.title()),
+            schema.key("length", Song.fields.length()),
+            schema.key("length", Book.fields.length()),
+        )))
 
 
 class TestToJsonValue(object):

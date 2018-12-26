@@ -272,6 +272,9 @@ class ObjectQuery(object):
             return NotImplemented
 
     def for_type(self, target_type):
+        if self.type == target_type:
+            return self
+
         supertype_fields = frozenset(
             field
             for possible_type in target_type.interfaces
