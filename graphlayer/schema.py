@@ -142,6 +142,11 @@ class ListQuery(object):
         self.type = type
         self.element_query = element_query
 
+    def for_type(self, target_type):
+        assert isinstance(target_type, ListType)
+        element_query = self.element_query.for_type(target_type.element_type)
+        return ListQuery(type=target_type, element_query=element_query)
+
     def __add__(self, other):
         if isinstance(other, ListQuery):
             # TODO: handle other types

@@ -237,6 +237,24 @@ class TestForType(object):
             schema.key("length", Book.fields.length()),
         )))
 
+    def test_list_type_for_type_calls_for_type_on_element_query(self):
+        Item = schema.InterfaceType("Item", fields=(
+        ))
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+        ))
+        Book = schema.ObjectType("Book", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+        ))
+        query = schema.ListType(Item)(
+            schema.key("length", Song.fields.length()),
+            schema.key("length", Book.fields.length()),
+        ).for_type(schema.ListType(Song))
+        
+        assert_that(query, is_query(schema.ListType(Song)(
+            schema.key("length", Song.fields.length()),
+        )))
+
 
 class TestToJsonValue(object):
     def test_bool_is_unchanged(self):
