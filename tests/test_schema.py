@@ -178,7 +178,18 @@ class TestForType(object):
     def test_scalar_query_for_type_is_scalar_query(self):
         query = schema.Boolean().for_type(schema.Boolean())
         assert_that(query, is_query(schema.Boolean()))
-    
+
+    def test_enum_query_for_type_is_enum_query(self):
+        class Season(enum.Enum):
+            winter = "WINTER"
+            spring = "SPRING"
+            summer = "SUMMER"
+            autumn = "AUTUMN"
+
+        SeasonGraphType = schema.EnumType(Season)
+        query = SeasonGraphType().for_type(SeasonGraphType)
+        assert_that(query, is_query(SeasonGraphType()))
+
     def test_object_type_for_type_filters_fields_to_those_for_type(self):
         Item = schema.InterfaceType("Item", fields=(
             schema.field("title", type=schema.String),

@@ -51,6 +51,9 @@ class EnumType(object):
 
 
 class EnumQuery(object):
+    def for_type(self, target_type):
+        return self
+
     def to_json_value(self, value):
         return value.value
 
