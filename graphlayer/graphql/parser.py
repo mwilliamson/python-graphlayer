@@ -94,7 +94,7 @@ def _read_selection_set(selection_set, graph_type, fragments, variables):
                     graph_type=graph_type,
                     fragments=fragments,
                     variables=variables,
-                )
+                ).for_type(graph_type)
                 for graphql_selection in selection_set.selections
             )
         )

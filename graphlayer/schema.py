@@ -270,7 +270,7 @@ class ObjectQuery(object):
     def __add__(self, other):
         if isinstance(other, ObjectQuery):
             # TODO: better handling of other types
-            #~ assert self.type == other.type
+            assert self.type == other.type
             
             fields = list(map(
                 _merge_field_queries,
@@ -290,6 +290,8 @@ class ObjectQuery(object):
     def for_type(self, target_type):
         if self.type == target_type:
             return self
+        elif isinstance(target_type, InterfaceType):
+            return ObjectQuery(type=target_type, fields=self.fields)
 
         supertype_fields = frozenset(
             field
