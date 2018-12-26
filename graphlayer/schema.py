@@ -327,7 +327,7 @@ class Field(object):
         self.type = type
         self.params = Params(name, params)
     
-    def __call__(self, *args, type_query=None):
+    def __call__(self, *args):
         # TODO: check for unhandled args
 
         field_query_args = list(filter(
@@ -335,15 +335,17 @@ class Field(object):
             args,
         ))
         
-        if type_query is None:
-            type_query = self.type(*field_query_args)
-        else:
-            # TODO: tidy up the API so this isn't possible
-            assert not field_query_args
+        type_query = self.type(*field_query_args)
         
+        field_args = tuple(filter(lambda arg: isinstance(arg, Argument), args))
+        
+        # TODO: handle extra args
+        return self.query(key=self.name, type_query=type_query, args=field_args)
+    
+    def query(self, args, key, type_query):
         explicit_args = iterables.to_dict(
             (arg.parameter.name, arg.value)
-            for arg in filter(lambda arg: isinstance(arg, Argument), args)
+            for arg in args
         )
         
         def get_arg(param):
@@ -358,8 +360,8 @@ class Field(object):
             (param.name, get_arg(param))
             for param in self.params
         ))
-        # TODO: handle extra args
-        return FieldQuery(key=self.name, field=self, type_query=type_query, args=field_args)
+        
+        return FieldQuery(key=key, field=self, type_query=type_query, args=field_args)
     
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)

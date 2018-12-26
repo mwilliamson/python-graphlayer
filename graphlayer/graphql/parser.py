@@ -149,8 +149,7 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
         fragments=fragments,
         variables=variables,
     )
-    field_query = schema.key(key, field(*args, type_query=type_query))
-    return field_query
+    return field.query(key=key, args=args, type_query=type_query)
 
 
 def _get_field(graph_type, field_name):
