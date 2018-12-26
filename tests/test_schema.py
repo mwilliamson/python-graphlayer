@@ -102,6 +102,21 @@ class TestAdd(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_list_query_merges_element_queries(self):
+        Song = schema.ObjectType("Song", fields=(
+            schema.field("title", type=schema.String),
+            schema.field("length", type=schema.Int),
+        ))
+        Songs = schema.ListType(Song)
+        query = (
+            schema.ListType(Song)(schema.key("title", Song.fields.title())) +
+            schema.ListType(Song)(schema.key("length", Song.fields.length()))
+        )
+        assert_that(query, is_query(schema.ListType(Song)(
+            schema.key("title", Song.fields.title()),
+            schema.key("length", Song.fields.length()),
+        )))
+
 
 class TestToJsonValue(object):
     def test_bool_is_unchanged(self):

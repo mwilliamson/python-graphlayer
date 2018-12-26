@@ -136,6 +136,14 @@ class ListQuery(object):
         self.type = type
         self.element_query = element_query
 
+    def __add__(self, other):
+        if isinstance(other, ListQuery):
+            # TODO: handle other types
+            assert self.type == other.type
+            return ListQuery(type=self.type, element_query=self.element_query + other.element_query)
+        else:
+            return NotImplemented
+
     def to_json_value(self, value):
         return [
             self.element_query.to_json_value(element)
