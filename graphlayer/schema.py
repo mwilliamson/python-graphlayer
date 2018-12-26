@@ -271,6 +271,19 @@ class ObjectQuery(object):
         else:
             return NotImplemented
 
+    def for_type(self, target_type):
+        possible_fields = frozenset(
+            field
+            for possible_type in (target_type, ) + target_type.interfaces
+            for field in possible_type.fields
+        )
+        
+        fields = list(filter(
+            lambda field: field.field in possible_fields,
+            self.fields,
+        ))
+        return ObjectQuery(type=target_type, fields=fields)
+
     def to_json_value(self, value):
         return iterables.to_dict(
             (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))

@@ -175,6 +175,29 @@ class TestAdd(object):
         )))
 
 
+class TestForType(object):
+    def test_object_type_for_type_filters_fields_to_those_for_type(self):
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+        ))
+        Book = schema.ObjectType("Book", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+        ))
+        query = Item(
+            schema.key("title", Item.fields.title()),
+            schema.key("length", Song.fields.length()),
+            schema.key("length", Book.fields.length()),
+        )
+        
+        assert_that(query.for_type(Song), is_query(Song(
+            schema.key("title", Item.fields.title()),
+            schema.key("length", Song.fields.length()),
+        )))
+
+
 class TestToJsonValue(object):
     def test_bool_is_unchanged(self):
         query = schema.Boolean()
