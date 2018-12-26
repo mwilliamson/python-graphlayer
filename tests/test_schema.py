@@ -5,6 +5,7 @@ import pytest
 
 from graphlayer import schema
 from graphlayer.representations import Object
+from .matchers import is_query
 
 
 def test_when_param_does_not_exist_on_params_then_error_is_raised():
@@ -83,6 +84,12 @@ def test_given_field_arg_has_no_default_when_field_arg_is_not_set_then_error_is_
     
     error = pytest.raises(ValueError, lambda: Root.fields.one())
     assert_that(str(error.value), equal_to("missing value for arg0"))
+
+
+class TestAdd(object):
+    def test_scalar_queries_merge_into_scalar_query(self):
+        query = schema.Boolean() + schema.Boolean()
+        assert_that(query, is_query(schema.Boolean()))
 
 
 class TestToJsonValue(object):

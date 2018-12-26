@@ -1,11 +1,12 @@
 import enum
 
-from precisely import assert_that, equal_to, has_attrs, is_mapping, is_sequence
+from precisely import assert_that, equal_to, has_attrs, is_sequence
 import pytest
 
 import graphlayer as g
 from graphlayer import schema
 from graphlayer.graphql.parser import document_text_to_query
+from ..matchers import is_query
 
 
 def test_simple_query_is_converted_to_object_query():
@@ -771,34 +772,3 @@ def test_graphql_query_args_are_read():
 
 def _document_text_to_graph_query(*args, **kwargs):
     return document_text_to_query(*args, **kwargs).graph_query
-
-
-def is_query(query):
-    if query == schema.scalar_query:
-        return schema.scalar_query
-    
-    elif isinstance(query, schema.FieldQuery):
-        return has_attrs(
-            key=query.key,
-            field=query.field,
-            type_query=is_query(query.type_query),
-            args=has_attrs(_values=is_mapping(query.args._values)),
-        )
-        
-    elif isinstance(query, schema.ListQuery):
-        return has_attrs(
-            type=query.type,
-            element_query=is_query(query.element_query),
-        )
-        
-    elif isinstance(query, schema.ObjectQuery):
-        return has_attrs(
-            type=query.type,
-            fields=is_sequence(*[
-                is_query(field_query)
-                for field_query in query.fields
-            ]),
-        )
-        
-    else:
-        raise Exception("Unhandled query type: {}".format(type(query)))
