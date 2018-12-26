@@ -274,6 +274,28 @@ class TestForType(object):
         )))
 
 
+class TestFieldQuery(object):
+    def test_creating_field_query_specialises_type_of_type_query(self):
+        Root = schema.ObjectType("Root", fields=lambda: (
+            schema.field("song", type=Song),
+        ))
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("title", type=schema.String),
+        ))
+        field_query = Root.fields.song.query(key="song", args=(), type_query=Item(
+            schema.key("title", Item.fields.title()),
+        ))
+        
+        assert_that(field_query, is_query(
+            Root.fields.song.query(key="song", args=(), type_query=Song(
+                schema.key("title", Song.fields.title()),
+            )),
+        ))
+
+
 class TestToJsonValue(object):
     def test_bool_is_unchanged(self):
         query = schema.Boolean()

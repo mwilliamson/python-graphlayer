@@ -26,7 +26,7 @@ class ScalarQuery(object):
         return value
 
     def for_type(self, target_type):
-        return target_type
+        return self
 
     def __add__(self, other):
         if isinstance(other, ScalarQuery):
@@ -377,7 +377,7 @@ class Field(object):
             for param in self.params
         ))
         
-        return FieldQuery(key=key, field=self, type_query=type_query, args=field_args)
+        return FieldQuery(key=key, field=self, type_query=type_query.for_type(self.type), args=field_args)
     
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
