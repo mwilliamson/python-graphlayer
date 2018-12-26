@@ -91,6 +91,17 @@ class TestAdd(object):
         query = schema.Boolean() + schema.Boolean()
         assert_that(query, is_query(schema.Boolean()))
 
+    def test_merged_object_query_has_fields_from_operand_queries(self):
+        Song = schema.ObjectType("Song", fields=(
+            schema.field("title", type=schema.String),
+            schema.field("length", type=schema.Int),
+        ))
+        query = Song(schema.key("title", Song.fields.title())) + Song(schema.key("length", Song.fields.length()))
+        assert_that(query, is_query(Song(
+            schema.key("title", Song.fields.title()),
+            schema.key("length", Song.fields.length()),
+        )))
+
 
 class TestToJsonValue(object):
     def test_bool_is_unchanged(self):
