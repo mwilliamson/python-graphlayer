@@ -181,9 +181,11 @@ class TestForType(object):
         ))
         Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
             schema.field("length", type=schema.Int),
+            schema.field("title", type=schema.String),
         ))
         Book = schema.ObjectType("Book", interfaces=(Item, ), fields=(
             schema.field("length", type=schema.Int),
+            schema.field("title", type=schema.String),
         ))
         query = Item(
             schema.key("title", Item.fields.title()),
@@ -192,7 +194,7 @@ class TestForType(object):
         )
         
         assert_that(query.for_type(Song), is_query(Song(
-            schema.key("title", Item.fields.title()),
+            schema.key("title", Song.fields.title()),
             schema.key("length", Song.fields.length()),
         )))
 

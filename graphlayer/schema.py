@@ -272,16 +272,26 @@ class ObjectQuery(object):
             return NotImplemented
 
     def for_type(self, target_type):
-        possible_fields = frozenset(
+        supertype_fields = frozenset(
             field
-            for possible_type in (target_type, ) + target_type.interfaces
+            for possible_type in target_type.interfaces
             for field in possible_type.fields
         )
         
-        fields = list(filter(
-            lambda field: field.field in possible_fields,
-            self.fields,
-        ))
+        def field_query_for_type(field_query):
+            if field_query.field in target_type.fields:
+                return field_query
+            elif field_query.field in supertype_fields:
+                field = iterables.find(
+                    lambda field: field.name == field_query.field.name,
+                    target_type.fields,
+                )
+                return field_query.for_field(field)
+            else:
+                # TODO: include subtype fields
+                return None
+        
+        fields = tuple(filter(None, map(field_query_for_type, self.fields)))
         return ObjectQuery(type=target_type, fields=fields)
 
     def to_json_value(self, value):
@@ -388,6 +398,15 @@ class FieldQuery(object):
             )
         else:
             return NotImplemented
+
+    def for_field(self, field):
+        # TODO: deal with nullability changes?
+        return FieldQuery(
+            key=self.key,
+            field=field,
+            type_query=self.type_query,
+            args=self.args,
+        )
 
 
 def key(key, field_query):
