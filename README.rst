@@ -46,6 +46,8 @@ A more detailed explanation of how GraphLayer works and how to use it follows.
     from graphlayer import sqlalchemy as gsql
     import sqlalchemy.orm
     
+    from .database import AuthorRecord, BookRecord
+    
     Author = g.ObjectType("Author", fields=lambda: (
         g.field("name", type=g.String),
     ))
