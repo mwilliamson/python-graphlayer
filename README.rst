@@ -44,6 +44,7 @@ A more detailed explanation of how GraphLayer works and how to use it follows.
 
     import graphlayer as g
     from graphlayer import sqlalchemy as gsql
+    from graphlayer.graphql import execute as graphql_execute
     import sqlalchemy.orm
     
     from .database import AuthorRecord, BookRecord
@@ -51,44 +52,44 @@ A more detailed explanation of how GraphLayer works and how to use it follows.
     Author = g.ObjectType("Author", fields=lambda: (
         g.field("name", type=g.String),
     ))
-    
-    author_resolver = gsql.sql_table(
+
+    author_resolver = gsql.sql_table_resolver(
         Author,
         AuthorRecord,
         fields={
             Author.fields.name: gsql.expression(AuthorRecord.name),
         },
     )
-    
+
     Book = g.ObjectType("Book", fields=lambda: (
         g.field("title", type=g.String),
         g.field("author", type=Author),
     ))
-    
-    book_resolver = gsql.sql_table(
+
+    book_resolver = gsql.sql_table_resolver(
         Book,
         BookRecord,
         fields={
             Book.fields.title: gsql.expression(BookRecord.title),
-            Book.fields.author: gsql.sql_join({
+            Book.fields.author: g.single(gsql.sql_join({
                 BookRecord.author_id: AuthorRecord.id,
-            }),
+            })),
         },
     )
-    
+
     Root = g.ObjectType("Root", fields=lambda: (
         g.field("books", type=g.ListType(Book)),
     ))
-    
+
     root_resolver = g.root_object_resolver(Root)
-    
+
     @root_resolver.field(Root.fields.books)
     def root_resolve_books(graph, query, args):
         return graph.resolve(gsql.select(query))
-    
+
     resolvers = (author_resolver, book_resolver, root_resolver)
     graph_definition = g.define_graph(resolvers=resolvers)
-    
+
     def execute_query(query, variables, session):
         graph = graph_definition.create_graph({
             sqlalchemy.orm.Session: session,
