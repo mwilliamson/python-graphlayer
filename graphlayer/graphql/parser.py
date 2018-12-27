@@ -68,13 +68,16 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
             document_ast,
             definitions=schema_definitions,
         )
-    
-    graph_query = _read_selection_set(
-        _copy_with(operation.selection_set, selections=non_schema_selections),
-        graph_type=root_type,
-        fragments=fragments,
-        variables=variables,
-    )
+        
+    if non_schema_selections:
+        graph_query = _read_selection_set(
+            _copy_with(operation.selection_set, selections=non_schema_selections),
+            graph_type=root_type,
+            fragments=fragments,
+            variables=variables,
+        )
+    else:
+        graph_query=None
     
     return GraphQLQuery(
         graph_query,

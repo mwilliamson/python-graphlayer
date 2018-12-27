@@ -770,5 +770,26 @@ def test_graphql_query_args_are_read():
     ))
 
 
+def test_when_only_schema_is_read_then_graph_query_is_none():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int),
+        ),
+    )
+    
+    graphql_query = """
+        query {
+            __schema {
+                queryType { name }
+            }
+        }
+    """
+    
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+    
+    assert_that(object_query, equal_to(None))
+
+
 def _document_text_to_graph_query(*args, **kwargs):
     return document_text_to_query(*args, **kwargs).graph_query

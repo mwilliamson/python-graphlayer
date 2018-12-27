@@ -21,9 +21,11 @@ def execute(*, graph, query_type, mutation_type=None, document_text, variables=N
         variables=variables,
     )
     
-    result = graph.resolve(query.graph_query)
-    
-    json_result = query.graph_query.to_json_value(result)
+    if query.graph_query is None:
+        json_result = {}
+    else:
+        result = graph.resolve(query.graph_query)
+        json_result = query.graph_query.to_json_value(result)
     
     if query.graphql_schema_document is not None:
         schema_result = _execute_graphql_schema(

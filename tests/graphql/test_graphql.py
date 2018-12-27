@@ -36,6 +36,33 @@ def test_can_query_schema():
         g.field("value", g.String),
     ))
     
+    graph_definition = g.define_graph(resolvers=())
+    graph = graph_definition.create_graph({})
+    
+    query = """
+        query {
+            __schema {
+                queryType { name }
+            }
+        }
+    """
+    
+    result = graphql.execute(graph=graph, document_text=query, query_type=Root)
+    
+    assert_that(result, equal_to({
+        "__schema": {
+            "queryType": {
+                "name": "Root",
+            },
+        },
+    }))
+
+
+def test_can_query_schema_with_other_data():
+    Root = g.ObjectType("Root", fields=(
+        g.field("value", g.String),
+    ))
+    
     root_resolver = g.root_object_resolver(Root)
     
     @root_resolver.field(Root.fields.value)
