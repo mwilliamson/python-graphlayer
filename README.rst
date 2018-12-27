@@ -13,7 +13,7 @@ for large datasets, the sum of this overhead can be the vast majority of the tim
 GraphLayer suggests instead that resolve functions could be called according to the shape of the request rather than the response.
 This avoids the N+1 problem without introducing additional complexity,
 such as batching requests in the manner of DataLoader and similar libraries,
-meaning resolve functions can be written in a style that more naturally maps to data stores such as SQL databases.
+and allowing resolve functions to be written in a style that more naturally maps to data stores such as SQL databases.
 Secondly, although there's still the overhead of calling resolve functions,
 this overhead is multipled by the number of the nodes in the request rather than the response:
 for large datasets, this is a considerable saving.
