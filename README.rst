@@ -90,16 +90,29 @@ A more detailed explanation of how GraphLayer works and how to use it follows.
     resolvers = (author_resolver, book_resolver, root_resolver)
     graph_definition = g.define_graph(resolvers=resolvers)
 
-    def execute_query(query, variables, session):
+    def execute_query(query, *, variables=None, session):
         graph = graph_definition.create_graph({
             sqlalchemy.orm.Session: session,
         })
         return graphql_execute(
+            query,
             graph=graph,
-            document_text=query,
             variables=variables,
             query_type=Root,
         )
+    
+    print(execute_query(
+        """
+            query {
+                books {
+                    title
+                    author { name }
+                }
+            }
+        """,
+        session=session,
+    ))
+
 
 Installation
 ------------

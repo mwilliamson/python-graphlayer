@@ -7,7 +7,7 @@ from . import parser
 from .schema import to_graphql_type
 
 
-def execute(*, graph, query_type, mutation_type=None, document_text, variables=None):
+def execute(document_text, *, graph, query_type, mutation_type=None, variables=None):
     graphql_schema = _create_graphql_schema(query_type=query_type, mutation_type=mutation_type)
     graphql_document_ast = graphql_parse(document_text)
     graphql_validation_errors = graphql_validate(graphql_schema, graphql_document_ast)

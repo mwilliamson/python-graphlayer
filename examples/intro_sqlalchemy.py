@@ -62,13 +62,13 @@ def root_resolve_books(graph, query, args):
 resolvers = (author_resolver, book_resolver, root_resolver)
 graph_definition = g.define_graph(resolvers=resolvers)
 
-def execute_query(query, variables, session):
+def execute_query(query, *, variables=None, session):
     graph = graph_definition.create_graph({
         sqlalchemy.orm.Session: session,
     })
     return graphql_execute(
+        query,
         graph=graph,
-        document_text=query,
         variables=variables,
         query_type=Root,
     )
@@ -87,4 +87,14 @@ session.add_all((book_1, book_2))
 session.flush()
 
 
-print(execute_query("query { books { title author { name } } }", variables=None, session=session))
+print(execute_query(
+    """
+        query {
+            books {
+                title
+                author { name }
+            }
+        }
+    """,
+    session=session,
+))
