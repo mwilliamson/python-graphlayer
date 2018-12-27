@@ -34,7 +34,7 @@ def test_can_get_fields_backed_by_expressions():
         ],
     )
     
-    book_nodes = gsql.sql_table(
+    book_resolver = gsql.sql_table_resolver(
         Book,
         BookRow,
         fields={
@@ -42,7 +42,7 @@ def test_can_get_fields_backed_by_expressions():
         },
     )
     
-    resolvers = [book_nodes.resolvers]
+    resolvers = [book_resolver]
     
     query = gsql.select(g.ListType(Book)(
         g.key("title", Book.fields.title()),
@@ -89,7 +89,7 @@ def test_can_pass_arguments_to_expression():
         ],
     )
     
-    book_nodes = gsql.sql_table(
+    book_resolver = gsql.sql_table_resolver(
         Book,
         BookRow,
         fields={
@@ -97,7 +97,7 @@ def test_can_pass_arguments_to_expression():
         },
     )
     
-    resolvers = [book_nodes.resolvers]
+    resolvers = [book_resolver]
     
     query = gsql.select(g.ListType(Book)(
         g.key("title", Book.fields.title(Book.fields.title.params.truncate(8))),
@@ -154,7 +154,7 @@ def test_can_pass_arguments_from_root():
     def root_books_args(graph, query, args):
         return graph.resolve(BookQuery.select(query).where(BookQuery.id(args.id)))
     
-    book_nodes = gsql.sql_table(
+    book_resolver = gsql.sql_table_resolver(
         Book,
         BookRow,
         fields={
@@ -169,7 +169,7 @@ def test_can_pass_arguments_from_root():
         def id(id):
             return BookRow.c_id == id
     
-    resolvers = [resolve_root, book_nodes.resolvers]
+    resolvers = [resolve_root, book_resolver]
     
     query = Root(
         g.key("books", Root.fields.books(
@@ -246,9 +246,9 @@ def test_can_recursively_resolve_selected_fields():
     
     @resolve_root.field(Root.fields.books)
     def resolve_root_field_books(graph, query, args):
-        return graph.resolve(book_nodes.select(query))
+        return graph.resolve(gsql.select(query))
     
-    book_nodes = gsql.sql_table(
+    book_resolver = gsql.sql_table_resolver(
         Book,
         BookRow,
         fields={
@@ -259,14 +259,14 @@ def test_can_recursively_resolve_selected_fields():
         },
     )
     
-    author_nodes = gsql.sql_table(
+    author_resolver = gsql.sql_table_resolver(
         Author,
         AuthorRow,
         fields={
             Author.fields.name: gsql.expression(AuthorRow.c_name),
         },
     )
-    resolvers = [resolve_root, book_nodes.resolvers, author_nodes.resolvers]
+    resolvers = [resolve_root, book_resolver, author_resolver]
     
     query = Root(
         g.key("books", Root.fields.books(
@@ -335,7 +335,7 @@ def test_can_resolve_many_to_one_field():
         ],
     )
     
-    left_nodes = gsql.sql_table(
+    left_resolver = gsql.sql_table_resolver(
         Left,
         LeftRow,
         fields={
@@ -346,7 +346,7 @@ def test_can_resolve_many_to_one_field():
         },
     )
     
-    right_nodes = gsql.sql_table(
+    right_resolver = gsql.sql_table_resolver(
         Right,
         RightRow,
         fields={
@@ -354,7 +354,7 @@ def test_can_resolve_many_to_one_field():
         },
     )
     
-    resolvers = [left_nodes.resolvers, right_nodes.resolvers]
+    resolvers = [left_resolver, right_resolver]
     
     query = gsql.select(g.ListType(Left)(
         g.key("value", Left.fields.value()),
@@ -422,7 +422,7 @@ def test_can_resolve_many_to_one_or_zero_field():
         ],
     )
     
-    left_nodes = gsql.sql_table(
+    left_resolver = gsql.sql_table_resolver(
         Left,
         LeftRow,
         fields={
@@ -433,7 +433,7 @@ def test_can_resolve_many_to_one_or_zero_field():
         },
     )
     
-    right_nodes = gsql.sql_table(
+    right_resolver = gsql.sql_table_resolver(
         Right,
         RightRow,
         fields={
@@ -441,7 +441,7 @@ def test_can_resolve_many_to_one_or_zero_field():
         },
     )
     
-    resolvers = [left_nodes.resolvers, right_nodes.resolvers]
+    resolvers = [left_resolver, right_resolver]
     
     query = gsql.select(g.ListType(Left)(
         g.key("value", Left.fields.value()),
@@ -514,7 +514,7 @@ def test_can_resolve_one_to_many_field():
         ],
     )
     
-    left_nodes = gsql.sql_table(
+    left_resolver = gsql.sql_table_resolver(
         Left,
         LeftRow,
         fields={
@@ -525,7 +525,7 @@ def test_can_resolve_one_to_many_field():
         },
     )
     
-    right_nodes = gsql.sql_table(
+    right_resolver = gsql.sql_table_resolver(
         Right,
         RightRow,
         fields={
@@ -533,7 +533,7 @@ def test_can_resolve_one_to_many_field():
         },
     )
     
-    resolvers = [left_nodes.resolvers, right_nodes.resolvers]
+    resolvers = [left_resolver, right_resolver]
     
     query = gsql.select(g.ListType(Left)(
         g.key("value", Left.fields.value()),
@@ -622,7 +622,7 @@ def test_can_resolve_join_through_association_table():
         ],
     )
     
-    left_nodes = gsql.sql_table(
+    left_resolver = gsql.sql_table_resolver(
         Left,
         LeftRow,
         fields={
@@ -635,7 +635,7 @@ def test_can_resolve_join_through_association_table():
         },
     )
     
-    right_nodes = gsql.sql_table(
+    right_resolver = gsql.sql_table_resolver(
         Right,
         RightRow,
         fields={
@@ -643,7 +643,7 @@ def test_can_resolve_join_through_association_table():
         },
     )
     
-    resolvers = [left_nodes.resolvers, right_nodes.resolvers]
+    resolvers = [left_resolver, right_resolver]
     
     query = gsql.select(g.ListType(Left)(
         g.key("value", Left.fields.value()),
@@ -719,7 +719,7 @@ def test_can_join_tables_using_multi_column_key():
         ],
     )
     
-    left_nodes = gsql.sql_table(
+    left_resolver = gsql.sql_table_resolver(
         Left,
         LeftRow,
         fields={
@@ -731,7 +731,7 @@ def test_can_join_tables_using_multi_column_key():
         },
     )
     
-    right_nodes = gsql.sql_table(
+    right_resolver = gsql.sql_table_resolver(
         Right,
         RightRow,
         fields={
@@ -739,7 +739,7 @@ def test_can_join_tables_using_multi_column_key():
         },
     )
     
-    resolvers = [left_nodes.resolvers, right_nodes.resolvers]
+    resolvers = [left_resolver, right_resolver]
     
     query = gsql.select(g.ListType(Left)(
         g.key("value", Left.fields.value()),

@@ -187,7 +187,7 @@ class _SqlQuery(object):
         )
 
 
-def sql_table(type, model, fields):
+def sql_table_resolver(type, model, fields):
     @g.resolver(_sql_query_type(type))
     @g.dependencies(session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, session):
@@ -255,12 +255,4 @@ def sql_table(type, model, fields):
             for row in rows
         ]
         
-    return _Subgraph(resolvers=(resolve_sql_query, ))
-    
-
-class _Subgraph(object):
-    def __init__(self, resolvers):
-        self.resolvers = resolvers
-    
-    def select(self, query):
-        return select(query)
+    return resolve_sql_query
