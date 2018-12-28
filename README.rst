@@ -347,6 +347,7 @@ At the start of our script we'll add some code to set up the database schema and
 
         id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
         title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+        genre = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
         author_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey(AuthorRecord.id), nullable=False)
 
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
@@ -354,12 +355,12 @@ At the start of our script we'll add some code to set up the database schema and
 
     session = sqlalchemy.orm.Session(engine)
     author_wodehouse = AuthorRecord(name="PG Wodehouse")
-    author_heller = AuthorRecord(name="Joseph Heller")
-    session.add_all((author_wodehouse, author_heller))
+    author_bernières = AuthorRecord(name="Louis de Bernières")
+    session.add_all((author_wodehouse, author_bernières))
     session.flush()
-    session.add(BookRecord(title="Leave It to Psmith", author_id=author_wodehouse.id))
-    session.add(BookRecord(title="Right Ho, Jeeves", author_id=author_wodehouse.id))
-    session.add(BookRecord(title="Catch-22", author_id=author_heller.id))
+    session.add(BookRecord(title="Leave It to Psmith", genre="comedy", author_id=author_wodehouse.id))
+    session.add(BookRecord(title="Right Ho, Jeeves", genre="comedy", author_id=author_wodehouse.id))
+    session.add(BookRecord(title="Captain Corelli's Mandolin", genre="historical_fiction", author_id=author_bernières.id))
     session.flush()
 
 Next, we'll update our resolvers to use the database:
@@ -398,6 +399,7 @@ and using it to define the ``books`` field on ``Root``:
 
     Book = g.ObjectType("Book", fields=(
         g.field("title", type=g.String),
+        g.field("genre", type=g.String),
     ))
 
     Root = g.ObjectType("Root", fields=(
@@ -458,11 +460,13 @@ and then mapping each fetched book to an object according to the fields requeste
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
-        books = session.query(BookRecord.title).all()
+        books = session.query(BookRecord.title, BookRecord.genre).all()
     
         def resolve_field(book, field):
             if field == Book.fields.title:
                 return book.title
+            elif field == Book.fields.genre:
+                return book.genre
             else:
                 raise Exception("unknown field: {}".format(field))
     
