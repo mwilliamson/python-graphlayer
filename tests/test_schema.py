@@ -436,6 +436,23 @@ class TestQueryString(object):
             )
         """)))
 
+    def test_field_can_be_from_subtype(self):
+        Item = schema.InterfaceType("Item", fields=())
+        
+        Book = schema.ObjectType("Book", fields=(
+            schema.field("title", schema.String),
+        ), interfaces=(Item, ))
+        
+        query = schema.key("title", Book.fields.title())
+        
+        assert_that(query.to_string(Item), equal_to(dedent("""
+            FieldQuery(
+                key="title",
+                field=Book.fields.title,
+                type_query=scalar_query,
+            )
+        """)))
+
 
 def dedent(value):
     return textwrap.dedent(value).strip()

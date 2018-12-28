@@ -445,7 +445,17 @@ class FieldQuery(object):
         )
     
     def to_string(self, type):
-        field = "{}.fields.{}".format(type.name, self.field.name)
+        if isinstance(type, InterfaceType):
+            subtype_fields = iterables.to_dict(
+                (field, subtype)
+                for subtype in type.subtypes
+                for field in subtype.fields
+            )
+        else:
+            subtype_fields = {}
+        
+        parent_type = subtype_fields.get(self.field, type)
+        field = "{}.fields.{}".format(parent_type.name, self.field.name)
         
         return "FieldQuery(\n    key=\"{}\",\n    field={},\n    type_query={},\n)".format(
             self.key,
