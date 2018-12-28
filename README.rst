@@ -312,7 +312,7 @@ For root objects, the ``root_object_resolver()`` is such a function.
     resolve_root = g.root_object_resolver(Root)
     
     @resolve_root.field(Root.fields.author_count)
-    def root_resolve_book_count(graph, query, args):
+    def root_resolve_author_count(graph, query, args):
         return 2
     
     @resolve_root.field(Root.fields.book_count)
