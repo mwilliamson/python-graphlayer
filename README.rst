@@ -274,7 +274,7 @@ Now we'll need to check what field is being requested.
             elif field == Root.fields.book_count:
                 return 3
             else:
-                raise Exception("unknown field: ".format(field))
+                raise Exception("unknown field: {}".format(field))
                 
         field_query = query.fields[0]
     
