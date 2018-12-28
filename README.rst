@@ -137,8 +137,11 @@ Installation
 
     pip install graphlayer
 
+Tutorial
+--------
+
 Getting started
----------------
+~~~~~~~~~~~~~~~
 
 This tutorial builds up a simple application using SQLAlchemy and GraphLayer.
 The goal is to execute the following query:
@@ -318,3 +321,57 @@ For root objects, the ``root_object_resolver()`` is such a function.
     @resolve_root.field(Root.fields.book_count)
     def root_resolve_book_count(graph, query, args):
         return 3
+
+Adding SQLAlchemy
+~~~~~~~~~~~~~~~~~
+
+So far, we've returned hard-coded values.
+Let's add in a database using SQLAlchemy and an in-memory SQLite database.
+At the start of our script we'll add some code to set up the database schema and add data:
+
+.. code-block:: python
+
+    import sqlalchemy.ext.declarative
+    import sqlalchemy.orm
+    
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class AuthorRecord(Base):
+        __tablename__ = "author"
+
+        id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        name = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+        
+    class BookRecord(Base):
+        __tablename__ = "book"
+
+        id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+        author_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey(AuthorRecord.id), nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    author_wodehouse = AuthorRecord(name="PG Wodehouse")
+    author_heller = AuthorRecord(name="Joseph Heller")
+    session.add_all((author_wodehouse, author_heller))
+    session.flush()
+    session.add(BookRecord(title="Leave It to Psmith", author_id=author_wodehouse.id))
+    session.add(BookRecord(title="Right Ho, Jeeves", author_id=author_wodehouse.id))
+    session.add(BookRecord(title="Catch-22", author_id=author_heller.id))
+    session.flush()
+
+Next, we'll update our resolvers to use the database:
+
+.. code-block:: python
+
+    resolve_root = g.root_object_resolver(Root)
+    
+    @resolve_root.field(Root.fields.author_count)
+    def root_resolve_author_count(graph, query, args):
+        return session.query(AuthorRecord).count()
+    
+    @resolve_root.field(Root.fields.book_count)
+    def root_resolve_book_count(graph, query, args):
+        return session.query(BookRecord).count()
