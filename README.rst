@@ -302,7 +302,7 @@ so we should iterate through ``query.fields``.
 In order to accommodate the flexibility in queries,
 we've had to do a lot of work,
 when all we really want to do was say
-"the author count field should be resolverd to 2 and the book count field should be resolved to 3".
+"the author count field should be resolved to 2 and the book count field should be resolved to 3".
 Since a lot of the work is not specific to this domain,
 we can extract it out into another function to help us build resolvers.
 For root objects, the ``root_object_resolver()`` is such a function.
