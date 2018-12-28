@@ -375,3 +375,60 @@ Next, we'll update our resolvers to use the database:
     @resolve_root.field(Root.fields.book_count)
     def root_resolve_book_count(graph, query, args):
         return session.query(BookRecord).count()
+
+Adding books to the root
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+So far, we've added two scalar fields to the root.
+Let's add in a ``books`` field, which should be a little more interesting.
+We start by creating a ``Book`` object type,
+and using it to define the ``books`` field on ``Root``:
+
+.. code-block:: python
+
+    Book = g.ObjectType("Book", fields=(
+        g.field("title", type=g.String),
+    ))
+
+    Root = g.ObjectType("Root", fields=(
+        g.field("author_count", type=g.Int),
+        g.field("book_count", type=g.Int),
+        g.field("books", type=g.ListType(Book)),
+    ))
+
+We'll need to define a resolver for the field.
+Although we could handle the query directly in the field resolver,
+we'll instead ask the graph to resolve the query for us.
+This allows us to have a common way to resolve books,
+regardless of where they appear in the query.
+
+.. code-block:: python
+
+    @resolve_root.field(Root.fields.books)
+    def root_resolve_books(graph, query, args):
+        return graph.resolve(query)
+
+This means we need to define a resolver for a list of books.
+
+.. code-block:: python
+
+    @g.resolver(g.ListType(Book))
+    def resolve_books(graph, query):
+        books = session.query(BookRecord.title).all()
+    
+        def resolve_field(book, field):
+            if field == Book.fields.title:
+                return book.title
+            else:
+                raise Exception("unknown field: {}".format(field))
+    
+        return [
+            query.create_object(dict(
+                (field_query.key, resolve_field(book, field_query.field))
+                for field_query in query.fields
+            ))
+            for book in books
+        ]
+    
+    resolvers = (resolve_root, resolve_books)
+
