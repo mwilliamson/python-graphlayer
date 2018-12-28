@@ -421,6 +421,21 @@ class TestQueryString(object):
             )
         """)))
 
+    def test_field_query_string_includes_key_and_field_and_type_query(self):
+        Book = schema.ObjectType("Book", fields=(
+            schema.field("title", schema.String),
+        ))
+        
+        query = schema.key("title", Book.fields.title())
+        
+        assert_that(query.to_string(Book), equal_to(dedent("""
+            FieldQuery(
+                key="title",
+                field=Book.fields.title,
+                type_query=scalar_query,
+            )
+        """)))
+
 
 def dedent(value):
     return textwrap.dedent(value).strip()

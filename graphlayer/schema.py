@@ -329,7 +329,7 @@ class ObjectQuery(object):
             return value.replace("\n", "\n        ")
         
         fields = indent("".join(
-            "\n" + field.to_string(self) + ","
+            "\n" + field.to_string(self.type) + ","
             for field in self.fields
         ))
         return "ObjectQuery(\n    type={},\n    fields=({}\n    ),\n)".format(self.type.name, fields)
@@ -444,8 +444,8 @@ class FieldQuery(object):
             args=self.args,
         )
     
-    def to_string(self, type_query):
-        field = "{}.fields.{}".format(type_query.type.name, self.field.name)
+    def to_string(self, type):
+        field = "{}.fields.{}".format(type.name, self.field.name)
         
         return "FieldQuery(\n    key=\"{}\",\n    field={},\n    type_query={},\n)".format(
             self.key,
