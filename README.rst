@@ -424,7 +424,7 @@ For now, let's just print the query and return an empty list so we can see what 
 .. code-block:: python
 
     @g.resolver(g.ListType(Book))
-    def resolve_vooks(graph, query):
+    def resolve_books(graph, query):
         print(query)
         return []
 
