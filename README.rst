@@ -515,6 +515,15 @@ and with larger data sets.
             for book in books
         ]
 
+Adding a genre argument to the books field
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Adding an author field to books
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dependency injection
+~~~~~~~~~~~~~~~~~~~~
+
 Extracting duplication
 ~~~~~~~~~~~~~~~~~~~~~~
 
