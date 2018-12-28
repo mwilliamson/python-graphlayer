@@ -409,12 +409,12 @@ class TestQueryString(object):
                 fields=(
                     FieldQuery(
                         key="title",
-                        field=title,
+                        field=Book.fields.title,
                         type_query=scalar_query,
                     ),
                     FieldQuery(
                         key="year",
-                        field=publication_year,
+                        field=Book.fields.publication_year,
                         type_query=scalar_query,
                     ),
                 ),

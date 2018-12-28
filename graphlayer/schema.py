@@ -329,7 +329,7 @@ class ObjectQuery(object):
             return value.replace("\n", "\n        ")
         
         fields = indent("".join(
-            "\n" + str(field) + ","
+            "\n" + field.to_string(self) + ","
             for field in self.fields
         ))
         return "ObjectQuery(\n    type={},\n    fields=({}\n    ),\n)".format(self.type.name, fields)
@@ -444,11 +444,12 @@ class FieldQuery(object):
             args=self.args,
         )
     
-    def __str__(self):
-        # TODO: change field from "title" to "Book.fields.title"
+    def to_string(self, type_query):
+        field = "{}.fields.{}".format(type_query.type.name, self.field.name)
+        
         return "FieldQuery(\n    key=\"{}\",\n    field={},\n    type_query={},\n)".format(
             self.key,
-            self.field.name,
+            field,
             self.type_query,
         )
 

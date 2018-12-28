@@ -226,7 +226,7 @@ Running this will print out:
         fields=(
             FieldQuery(
                 key="bookCount",
-                field=book_count,
+                field=Root.fields.book_count,
                 type_query=scalar_query,
             ),
         ),
