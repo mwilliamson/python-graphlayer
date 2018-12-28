@@ -1,6 +1,22 @@
 High-performance library for implementing GraphQL APIs
 ======================================================
 
+GraphLayer is a Python library for implementing high-performance GraphQL APIs.
+By running resolve functions for each node in the request rather than each node in the response,
+the overhead of asynchronous function calls is reduced.
+Queries can also be written directly to fetch batches directly to avoid the N+1 problem
+without intermediate layers such as DataLoader.
+
+Why GraphQL?
+------------
+
+TODO:
+* No overfetching/underfetching
+* Schema allows GraphiQL, checking of queries, type generation
+
+Why GraphLayer?
+---------------
+
 What causes GraphQL APIs to be slow?
 In most implementations of GraphQL,
 resolve functions are run for each node in the response.
@@ -120,3 +136,185 @@ Installation
 ::
 
     pip install graphlayer
+
+Getting started
+---------------
+
+This tutorial builds up a simple application using SQLAlchemy and GraphLayer.
+The goal is to execute the following query:
+
+::
+
+    query {
+        books(genre: "comedy") {
+            title
+            author {
+                name
+            }
+        }
+    }
+
+That is, get the list of all books in the comedy genre,
+with the title and name of the author for each book.
+
+Let's start with a simple query, getting the count of books:
+
+::
+
+    query {
+        bookCount
+    }
+
+All queries share the same root object,
+but can ask for whatever fields they want.
+As a first step, we'll define the schema of the root object.
+In this case, it has a single integer field called ``book_count``
+(note that casing is automatically converted between camel case and snake case):
+
+.. code-block:: python
+
+    import graphlayer as g
+    
+    Root = g.ObjectType("Root", fields=(
+        g.field("bookCount", type=g.Int),
+    ))
+
+We'll also need to define how to resolve the book count by defining a resolver function.
+When we define a resolver, we need to mark it as a resolver function for a particular query type.
+In this case, we'll need to mark it as a resolver for the root type.
+A resolver is passed two arguments: the graph and the query to resolve,
+and should return a complete response with all of the fields specified in the query.
+For now, we'll define a resolver that returns a fixed object,
+and prints out the query so we can a take a look at it.
+
+.. code-block:: python
+
+    import graphlayer as g
+    from graphlayer.graphql import execute
+    
+    Root = g.ObjectType("Root", fields=(
+        g.field("book_count", type=g.Int),
+    ))
+    
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        print(query)
+        return query.create_object({
+            "bookCount": 3,
+        })
+    
+    resolvers = (resolve_root, )
+    graph_definition = g.define_graph(resolvers=resolvers)
+    graph = graph_definition.create_graph({})
+    
+    execute(
+        """
+            query {
+                bookCount
+            }
+        """,
+        graph=graph,
+        query_type=Root,
+    )
+    
+Running this will print out:
+
+::
+
+    ObjectQuery(
+        type=Root,
+        fields=(
+            FieldQuery(
+                key="bookCount",
+                field=book_count,
+                type_query=scalar_query,
+            ),
+        ),
+    )
+
+Note that the ``FieldQuery`` has a ``key`` attribute.
+Since the user can rename fields in the query,
+we should use the key as passed in the field query.
+
+.. code-block:: python
+
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        field_query = query.fields[0]
+    
+        return query.create_object({
+            field_query.key: 3,
+        })
+
+At the moment,
+since only one field is defined on Root,
+we can always assume that field is being requested.
+However, that often won't be the case.
+For instance, we could add an author count to the root:
+
+.. code-block:: python
+
+    Root = g.ObjectType("Root", fields=(
+        g.field("author_count", type=g.Int),
+        g.field("book_count", type=g.Int),
+    ))
+
+Now we'll need to check what field is being requested.
+
+.. code-block:: python
+
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        def resolve_field(field):
+            if field == Root.fields.author_count:
+                return 2
+            elif field == Root.fields.book_count:
+                return 3
+            else:
+                raise Exception("unknown field: ".format(field))
+                
+        field_query = query.fields[0]
+    
+        return query.create_object({
+            field_query.key: resolve_field(field_query.field),
+        })
+
+What's more, the user might request more than one field,
+so we should iterate through ``query.fields``.
+
+.. code-block:: python
+
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        def resolve_field(field):
+            if field == Root.fields.author_count:
+                return 2
+            elif field == Root.fields.book_count:
+                return 3
+            else:
+                raise Exception("unknown field: ".format(field))
+    
+        return query.create_object(dict(
+            (field_query.key, resolve_field(field_query.field))
+            for field_query in query.fields
+        ))
+
+In order to accommodate the flexibility in queries,
+we've had to do a lot of work,
+when all we really want to do was say
+"the author count field should be resolverd to 2 and the book count field should be resolved to 3".
+Since a lot of the work is not specific to this domain,
+we can extract it out into another function to help us build resolvers.
+For root objects, the ``root_object_resolver()`` is such a function.
+
+.. code-block:: python
+
+    resolve_root = g.root_object_resolver(Root)
+    
+    @resolve_root.field(Root.fields.author_count)
+    def root_resolve_book_count(graph, query, args):
+        return 2
+    
+    @resolve_root.field(Root.fields.book_count)
+    def root_resolve_book_count(graph, query, args):
+        return 3
