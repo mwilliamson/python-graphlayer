@@ -171,7 +171,10 @@ class ListQuery(object):
         ]
     
     def __str__(self):
-        return "ListQuery(\n    type={},\n    element_query={},\n)".format(self.type, self.element_query)
+        return _format_call_tree("ListQuery", (
+            ("type", self.type),
+            ("element_query", self.element_query),
+        ))
 
 
 
@@ -337,14 +340,14 @@ class ObjectQuery(object):
         )
     
     def __str__(self):
-        def indent(value):
-            return value.replace("\n", "\n        ")
-        
-        fields = indent("".join(
+        fields = _indent("".join(
             "\n" + field.to_string(self.type) + ","
             for field in self.fields
         ))
-        return "ObjectQuery(\n    type={},\n    fields=({}\n    ),\n)".format(self.type.name, fields)
+        return _format_call_tree("ObjectQuery", (
+            ("type", self.type.name),
+            ("fields", "({}\n)".format(fields)),
+        ))
 
 
 def _merge_field_queries(fields):
@@ -469,11 +472,11 @@ class FieldQuery(object):
         parent_type = subtype_fields.get(self.field, type)
         field = "{}.fields.{}".format(parent_type.name, self.field.name)
         
-        return "FieldQuery(\n    key=\"{}\",\n    field={},\n    type_query={},\n)".format(
-            self.key,
-            field,
-            self.type_query,
-        )
+        return _format_call_tree("FieldQuery", (
+            ("key", '"{}"'.format(self.key)),
+            ("field", field),
+            ("type_query", self.type_query),
+        ))
 
 
 def key(key, field_query):
@@ -507,3 +510,14 @@ class Argument(object):
     def __init__(self, parameter, value):
         self.parameter = parameter
         self.value = value
+
+
+def _format_call_tree(receiver, args):
+    return "{}({}\n)".format(receiver, "".join(
+        _indent("\n{}={},".format(key, value))
+        for key, value in args
+    ))
+
+
+def _indent(value):
+    return value.replace("\n", "\n    ")
