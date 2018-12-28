@@ -480,3 +480,39 @@ and then mapping each fetched book to an object according to the fields requeste
     
     resolvers = (resolve_root, resolve_books)
 
+We can make the resolver more efficient by only fetching those columns required by the query.
+Although this makes comparatively little difference with the data we have at the moment,
+this can help improve performance when there are many more fields the user can request,
+and with larger data sets.
+
+.. code-block:: python
+
+    @g.resolver(g.ListType(Book))
+    def resolve_books(graph, query):
+        field_to_expression = {
+            Book.fields.title: BookRecord.title,
+            Book.fields.genre: BookRecord.genre,
+        }
+        
+        expressions = frozenset(
+            field_to_expression[field_query.field]
+            for field_query in query.element_query.fields
+        )
+    
+        books = session.query(*expressions).all()
+    
+        def resolve_field(book, field):
+            if field == Book.fields.title:
+                return book.title
+            elif field == Book.fields.genre:
+                return book.genre
+            else:
+                raise Exception("unknown field: {}".format(field))
+    
+        return [
+            query.element_query.create_object(dict(
+                (field_query.key, resolve_field(book, field_query.field))
+                for field_query in query.element_query.fields
+            ))
+            for book in books
+        ]
