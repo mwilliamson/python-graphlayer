@@ -381,6 +381,16 @@ Adding books to the root
 
 So far, we've added two scalar fields to the root.
 Let's add in a ``books`` field, which should be a little more interesting.
+Our aim is to be able to run the query:
+
+::
+
+    query {
+        books {
+            title
+        }
+    }
+
 We start by creating a ``Book`` object type,
 and using it to define the ``books`` field on ``Root``:
 
