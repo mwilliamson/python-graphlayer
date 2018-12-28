@@ -13,6 +13,9 @@ class ScalarType(object):
 
     def __call__(self):
         return scalar_query
+    
+    def __str__(self):
+        return self.name
 
 
 Boolean = ScalarType("Boolean")
@@ -138,6 +141,9 @@ class ListType(object):
     
     def __repr__(self):
         return "ListType(element_type={!r})".format(self.element_type)
+    
+    def __str__(self):
+        return "List({})".format(self.element_type)
 
 
 class ListQuery(object):
@@ -163,6 +169,9 @@ class ListQuery(object):
             self.element_query.to_json_value(element)
             for element in value
         ]
+    
+    def __str__(self):
+        return "ListQuery(\n    type={},\n    element_query={},\n)".format(self.type, self.element_query)
 
 
 
@@ -225,6 +234,9 @@ class ObjectType(object):
 
     def __repr__(self):
         return "ObjectType(name={!r})".format(self.name)
+    
+    def __str__(self):
+        return self.name
 
 
 class Fields(object):

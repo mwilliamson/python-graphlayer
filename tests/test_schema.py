@@ -392,6 +392,15 @@ class TestToJsonValue(object):
 
 
 class TestQueryString(object):
+    def test_list_query_string_includes_element_query(self):
+        query = schema.ListType(schema.Int)()
+        assert_that(str(query), equal_to(dedent("""
+            ListQuery(
+                type=List(Int),
+                element_query=scalar_query,
+            )
+        """)))
+    
     def test_object_query_string_includes_type_and_field_queries(self):
         Book = schema.ObjectType("Book", fields=(
             schema.field("title", schema.String),
