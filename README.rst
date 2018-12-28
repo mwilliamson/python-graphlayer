@@ -201,7 +201,7 @@ and prints out the query so we can a take a look at it.
     
     @g.resolver(Root)
     def resolve_root(graph, query):
-        print(query)
+        print("query:", query)
         return query.create_object({
             "bookCount": 3,
         })
@@ -224,7 +224,7 @@ Running this will print out:
 
 ::
 
-    ObjectQuery(
+    query: ObjectQuery(
         type=Root,
         fields=(
             FieldQuery(
@@ -301,6 +301,26 @@ so we should iterate through ``query.fields``.
             (field_query.key, resolve_field(field_query.field))
             for field_query in query.fields
         ))
+
+If we wrap the call to ``execute`` in a ``print``:
+
+.. code-block: python
+
+    print("result", execute(
+        """
+            query {
+                bookCount
+            }
+        """,
+        graph=graph,
+        query_type=Root,
+    ))
+
+Then we should get the output:
+
+::
+
+    result: {'bookCount': 3}
 
 Adding SQLAlchemy
 ~~~~~~~~~~~~~~~~~
@@ -425,16 +445,32 @@ For now, let's just print the query and return an empty list so we can see what 
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
-        print(query)
+        print("books query", query)
         return []
 
     resolvers = (resolve_root, resolve_books)
 
-This produces the output:
+If update the query we pass to ``execute``:
+
+.. code-block:: python
+
+    print("result", execute(
+        """
+            query {
+                books {
+                    title
+                }
+            }
+        """,
+        graph=graph,
+        query_type=Root,
+    ))
+
+Then our script should now produce the output:
 
 ::
 
-    ListQuery(
+    books query: ListQuery(
         type=List(Book),
         element_query=ObjectQuery(
             type=Book,
@@ -447,6 +483,7 @@ This produces the output:
             ),
         ),
     )
+    result: {'books': []}
 
 Similarly to the ``ObjectQuery`` we had when resolving the root object,
 we have an ``ObjectQuery`` for ``Book``.
@@ -477,6 +514,12 @@ and then mapping each fetched book to an object according to the fields requeste
             ))
             for book in books
         ]
+
+Running this code should give the output:
+
+::
+
+    result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}, {'title': "Captain Corelli's Mandolin"}]}
 
 We can make the resolver more efficient by only fetching those columns required by the query.
 Although this makes comparatively little difference with the data we have at the moment,
