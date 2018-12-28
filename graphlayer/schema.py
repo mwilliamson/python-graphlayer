@@ -33,6 +33,9 @@ class ScalarQuery(object):
             return self
         else:
             return NotImplemented
+    
+    def __str__(self):
+        return "scalar_query"
 
 
 scalar_query = ScalarQuery()
@@ -320,6 +323,16 @@ class ObjectQuery(object):
             (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
             for field_query in self.fields
         )
+    
+    def __str__(self):
+        def indent(value):
+            return value.replace("\n", "\n        ")
+        
+        fields = indent("".join(
+            "\n" + str(field) + ","
+            for field in self.fields
+        ))
+        return "ObjectQuery(\n    type={},\n    fields=({}\n    ),\n)".format(self.type.name, fields)
 
 
 def _merge_field_queries(fields):
@@ -429,6 +442,14 @@ class FieldQuery(object):
             field=field,
             type_query=self.type_query,
             args=self.args,
+        )
+    
+    def __str__(self):
+        # TODO: change field from "title" to "Book.fields.title"
+        return "FieldQuery(\n    key=\"{}\",\n    field={},\n    type_query={},\n)".format(
+            self.key,
+            self.field.name,
+            self.type_query,
         )
 
 

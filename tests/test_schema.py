@@ -1,4 +1,5 @@
 import enum
+import textwrap
 
 from precisely import assert_that, equal_to, has_attrs
 import pytest
@@ -388,3 +389,38 @@ class TestToJsonValue(object):
                 "book_title": "Orbiting the Giant Hairball",
             },
         ]))
+
+
+class TestQueryString(object):
+    def test_object_query_string_includes_type_and_field_queries(self):
+        Book = schema.ObjectType("Book", fields=(
+            schema.field("title", schema.String),
+            schema.field("publication_year", schema.Int),
+        ))
+        
+        query = Book(
+            schema.key("title", Book.fields.title()),
+            schema.key("year", Book.fields.publication_year()),
+        )
+        
+        assert_that(str(query), equal_to(dedent("""
+            ObjectQuery(
+                type=Book,
+                fields=(
+                    FieldQuery(
+                        key="title",
+                        field=title,
+                        type_query=scalar_query,
+                    ),
+                    FieldQuery(
+                        key="year",
+                        field=publication_year,
+                        type_query=scalar_query,
+                    ),
+                ),
+            )
+        """)))
+
+
+def dedent(value):
+    return textwrap.dedent(value).strip()
