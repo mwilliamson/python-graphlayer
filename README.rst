@@ -176,7 +176,7 @@ In this case, it has a single integer field called ``book_count``
     import graphlayer as g
     
     Root = g.ObjectType("Root", fields=(
-        g.field("bookCount", type=g.Int),
+        g.field("book_count", type=g.Int),
     ))
 
 We'll also need to define how to resolve the book count by defining a resolver function.
