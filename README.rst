@@ -295,7 +295,7 @@ so we should iterate through ``query.fields``.
             elif field == Root.fields.book_count:
                 return 3
             else:
-                raise Exception("unknown field: ".format(field))
+                raise Exception("unknown field: {}".format(field))
     
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query.field))
