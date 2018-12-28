@@ -419,6 +419,40 @@ regardless of where they appear in the query.
         return graph.resolve(query)
 
 This means we need to define a resolver for a list of books.
+For now, let's just print the query and return an empty list so we can see what the query looks like.
+
+.. code-block:: python
+
+    @g.resolver(g.ListType(Book))
+    def resolve_vooks(graph, query):
+        print(query)
+        return []
+
+This produces the output:
+
+::
+
+    ListQuery(
+        type=List(Book),
+        element_query=ObjectQuery(
+            type=Book,
+            fields=(
+                FieldQuery(
+                    key="title",
+                    field=Book.fields.title,
+                    type_query=scalar_query,
+                ),
+            ),
+        ),
+    )
+
+Similarly to the ``ObjectQuery`` we had when resolving the root object,
+we have an ``ObjectQuery`` for ``Book``.
+Since a list is being requested, this is then wrapped in a ``ListQuery``,
+with the object query being accessible through the ``element_query`` attribute.
+
+We can write a resolver for a list of books by first fetching all of the books,
+and then mapping each fetched book to an object according to the fields requested in the query.
 
 .. code-block:: python
 
