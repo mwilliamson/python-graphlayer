@@ -302,26 +302,6 @@ so we should iterate through ``query.fields``.
             for field_query in query.fields
         ))
 
-In order to accommodate the flexibility in queries,
-we've had to do a lot of work,
-when all we really want to do was say
-"the author count field should be resolved to 2 and the book count field should be resolved to 3".
-Since a lot of the work is not specific to this domain,
-we can extract it out into another function to help us build resolvers.
-For root objects, the ``root_object_resolver()`` is such a function.
-
-.. code-block:: python
-
-    resolve_root = g.root_object_resolver(Root)
-    
-    @resolve_root.field(Root.fields.author_count)
-    def root_resolve_author_count(graph, query, args):
-        return 2
-    
-    @resolve_root.field(Root.fields.book_count)
-    def root_resolve_book_count(graph, query, args):
-        return 3
-
 Adding SQLAlchemy
 ~~~~~~~~~~~~~~~~~
 
@@ -367,15 +347,20 @@ Next, we'll update our resolvers to use the database:
 
 .. code-block:: python
 
-    resolve_root = g.root_object_resolver(Root)
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        def resolve_field(field):
+            if field == Root.fields.author_count:
+                return session.query(AuthorRecord).count()
+            elif field == Root.fields.book_count:
+                return session.query(BookRecord).count()
+            else:
+                raise Exception("unknown field: {}".format(field))
     
-    @resolve_root.field(Root.fields.author_count)
-    def root_resolve_author_count(graph, query, args):
-        return session.query(AuthorRecord).count()
-    
-    @resolve_root.field(Root.fields.book_count)
-    def root_resolve_book_count(graph, query, args):
-        return session.query(BookRecord).count()
+        return query.create_object(dict(
+            (field_query.key, resolve_field(field_query.field))
+            for field_query in query.fields
+        ))
 
 Adding books to the root
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -408,17 +393,30 @@ and using it to define the ``books`` field on ``Root``:
         g.field("books", type=g.ListType(Book)),
     ))
 
-We'll need to define a resolver for the field.
-Although we could handle the query directly in the field resolver,
+We'll need update the root resolver to handle the new field.
+Although we could handle the field directly in the root resolver,
 we'll instead ask the graph to resolve the query for us.
 This allows us to have a common way to resolve books,
 regardless of where they appear in the query.
 
 .. code-block:: python
 
-    @resolve_root.field(Root.fields.books)
-    def root_resolve_books(graph, query, args):
-        return graph.resolve(query)
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        def resolve_field(field_query):
+            if field_query.field == Root.fields.author_count:
+                return session.query(AuthorRecord).count()
+            elif field_query.field == Root.fields.book_count:
+                return session.query(BookRecord).count()
+            elif field_query.field == Root.fields.books:
+                return graph.resolve(field_query.type_query)
+            else:
+                raise Exception("unknown field: {}".format(field_query.field))
+    
+        return query.create_object(dict(
+            (field_query.key, resolve_field(field_query))
+            for field_query in query.fields
+        ))
 
 This means we need to define a resolver for a list of books.
 For now, let's just print the query and return an empty list so we can see what the query looks like.
@@ -516,3 +514,28 @@ and with larger data sets.
             ))
             for book in books
         ]
+
+Extracting duplication
+~~~~~~~~~~~~~~~~~~~~~~
+
+TODO: update the following (extracted from earlier)
+
+In order to accommodate the flexibility in queries,
+we've had to do a lot of work,
+when all we really want to do was say
+"the author count field should be resolved to 2 and the book count field should be resolved to 3".
+Since a lot of the work is not specific to this domain,
+we can extract it out into another function to help us build resolvers.
+For root objects, the ``root_object_resolver()`` is such a function.
+
+.. code-block:: python
+
+    resolve_root = g.root_object_resolver(Root)
+    
+    @resolve_root.field(Root.fields.author_count)
+    def root_resolve_author_count(graph, query, args):
+        return 2
+    
+    @resolve_root.field(Root.fields.book_count)
+    def root_resolve_book_count(graph, query, args):
+        return 3
