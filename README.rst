@@ -428,6 +428,8 @@ For now, let's just print the query and return an empty list so we can see what 
         print(query)
         return []
 
+    resolvers = (resolve_root, resolve_books)
+
 This produces the output:
 
 ::
@@ -475,8 +477,6 @@ and then mapping each fetched book to an object according to the fields requeste
             ))
             for book in books
         ]
-    
-    resolvers = (resolve_root, resolve_books)
 
 We can make the resolver more efficient by only fetching those columns required by the query.
 Although this makes comparatively little difference with the data we have at the moment,
