@@ -433,9 +433,9 @@ This means we need to define a resolver for a list of books.
                 raise Exception("unknown field: {}".format(field))
     
         return [
-            query.create_object(dict(
+            query.element_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
-                for field_query in query.fields
+                for field_query in query.element_query.fields
             ))
             for book in books
         ]
