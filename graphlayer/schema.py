@@ -340,13 +340,13 @@ class ObjectQuery(object):
         )
     
     def __str__(self):
-        fields = _indent("".join(
-            "\n" + field.to_string(self.type) + ","
+        fields = _format_tuple(
+            field.to_string(self.type)
             for field in self.fields
-        ))
+        )
         return _format_call_tree("ObjectQuery", (
             ("type", self.type.name),
-            ("fields", "({}\n)".format(fields)),
+            ("fields", fields),
         ))
 
 
@@ -471,11 +471,16 @@ class FieldQuery(object):
         
         parent_type = subtype_fields.get(self.field, type)
         field = "{}.fields.{}".format(parent_type.name, self.field.name)
+        args = _format_tuple(
+            "{}.params.{}({})".format(field, param.name, getattr(self.args, param.name))
+            for param in self.field.params
+        )
         
         return _format_call_tree("FieldQuery", (
             ("key", '"{}"'.format(self.key)),
             ("field", field),
             ("type_query", self.type_query),
+            ("args", args),
         ))
 
 
@@ -517,6 +522,17 @@ def _format_call_tree(receiver, args):
         _indent("\n{}={},".format(key, value))
         for key, value in args
     ))
+
+
+def _format_tuple(elements):
+    elements = tuple(elements)
+    if elements:
+        return "(" + _indent("".join(
+            "\n" + element + ","
+            for element in elements
+        )) + "\n)"
+    else:
+        return "()"
 
 
 def _indent(value):

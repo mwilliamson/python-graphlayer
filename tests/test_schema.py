@@ -420,11 +420,13 @@ class TestQueryString(object):
                         key="title",
                         field=Book.fields.title,
                         type_query=scalar_query,
+                        args=(),
                     ),
                     FieldQuery(
                         key="year",
                         field=Book.fields.publication_year,
                         type_query=scalar_query,
+                        args=(),
                     ),
                 ),
             )
@@ -442,6 +444,7 @@ class TestQueryString(object):
                 key="title",
                 field=Book.fields.title,
                 type_query=scalar_query,
+                args=(),
             )
         """)))
 
@@ -459,6 +462,27 @@ class TestQueryString(object):
                 key="title",
                 field=Book.fields.title,
                 type_query=scalar_query,
+                args=(),
+            )
+        """)))
+
+    def test_field_query_string_includes_args(self):
+        Book = schema.ObjectType("Book", fields=(
+            schema.field("title", schema.String, params=(
+                schema.param("truncate", schema.Int),
+            )),
+        ))
+        
+        query = schema.key("title", Book.fields.title(Book.fields.title.params.truncate(42)))
+        
+        assert_that(query.to_string(Book), equal_to(dedent("""
+            FieldQuery(
+                key="title",
+                field=Book.fields.title,
+                type_query=scalar_query,
+                args=(
+                    Book.fields.title.params.truncate(42),
+                ),
             )
         """)))
 

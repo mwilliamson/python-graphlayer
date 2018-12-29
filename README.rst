@@ -231,6 +231,7 @@ Running this will print out:
                 key="bookCount",
                 field=Root.fields.book_count,
                 type_query=scalar_query,
+                args=(),
             ),
         ),
     )
@@ -479,6 +480,7 @@ Then our script should now produce the output:
                     key="title",
                     field=Book.fields.title,
                     type_query=scalar_query,
+                    args=(),
                 ),
             ),
         ),
