@@ -157,6 +157,11 @@ The goal is to execute the following query:
 That is, get the list of all books in the comedy genre,
 with the title and name of the author for each book.
 
+In this tutorial, we'll build up the necessary code from scratch,
+using only the core of GraphLayer, to give an understanding of how GraphLayer works.
+In practice, there are a number of helper functions that make implementation much simpler.
+We'll see how to write our example using those helpers at the end.
+
 Getting started
 ~~~~~~~~~~~~~~~
 
