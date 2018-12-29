@@ -779,6 +779,190 @@ Finally, we update the root resolver to resolve the ``authors`` field.
 Adding an author field to books
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+As the last change to the schema,
+let's add an ``author`` field to ``Book``.
+We start by updating the type:
+
+.. code-block:: python
+
+    Book = g.ObjectType("Book", fields=(
+        g.field("title", type=g.String),
+        g.field("genre", type=g.String),
+        g.field("author", type=Author),
+    ))
+
+We then need to update the resolver for books.
+If the ``author`` field is requested,
+then we'll need to fetch the ``author_id`` from the database,
+so we update ``field_to_expression``:
+
+.. code-block:: python
+
+    field_to_expression = {
+        Book.fields.title: BookRecord.title,
+        Book.fields.genre: BookRecord.genre,
+        Book.fields.author: BookRecord.author_id,
+    }
+
+As well as fetching books,
+we'll need to fetch the authors too.
+We can do this by delegating to the graph.
+When fetching authors for the root, having them returned as a list was the most convenient format.
+However, when fetching authors for books,
+it'd be more convenient to return them in a dictionary keyed by ID so they can easily matched to books by ``author_id``.
+We can change the ``AuthorQuery`` to optionally allow this alternative format:
+
+.. code-block:: python
+
+    class AuthorQuery(object):
+        def __init__(self, object_query, is_keyed_by_id=False):
+            self.type = (AuthorQuery, object_query.type)
+            self.object_query = object_query
+            self.is_keyed_by_id = is_keyed_by_id
+        
+        def key_by_id(self):
+            return AuthorQuery(self.object_query, is_keyed_by_id=True)
+
+We then need to update the resolver to handle this:
+
+.. code-block:: python
+
+    @g.resolver((AuthorQuery, Author))
+    def resolve_authors(graph, query):
+        sqlalchemy_query = session.query(AuthorRecord.name)
+        
+        if query.is_keyed_by_id:
+            sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
+    
+        authors = sqlalchemy_query.all()
+
+        def resolve_field(author, field):
+            if field == Author.fields.name:
+                return author.name
+            else:
+                raise Exception("unknown field: {}".format(field))
+
+        def to_object(author):
+            return query.object_query.create_object(dict(
+                (field_query.key, resolve_field(author, field_query.field))
+                for field_query in query.object_query.fields
+            ))
+
+        if query.is_keyed_by_id:
+            return dict(
+                (author.id, to_object(author))
+                for author in authors
+            )
+        else:
+            return [
+                to_object(author)
+                for author in authors
+            ]
+
+Now we can update the books resolver to fetch the authors using the graph:
+
+.. code-block:: python
+
+    books = sqlalchemy_query.all()
+    
+    authors = dict(
+        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
+        for field_query in query.fields
+        if field_query.field == Book.fields.author
+    )
+    
+This creates a dictionary mapping from each field query to the authors fetched for that field query.
+We can this use this dictionary when resolving each field:
+
+.. code-block:: python
+
+    elif field_query.field == Book.fields.author:
+        return authors[field_query.key][book.author_id]
+
+Now if we update our executed query:
+
+.. code-block:: python
+
+    print("result", execute(
+        """
+            query {
+                books(genre: "comedy") {
+                    title
+                    author {
+                        name
+                    }
+                }
+            }
+        """,
+        graph=graph,
+        query_type=Root,
+    ))
+
+We should see:
+
+::
+
+    result {'books': [{'author': {'name': 'PG Wodehouse'}, 'title': 'Leave It to Psmith'}, {'author': {'name': 'PG Wodehouse'}, 'title': 'Right Ho, Jeeves'}]}
+
+One inefficiency in the current implementation is that we fetch all authors,
+regardless of whether they're the author of a book that we've fetched.
+We can fix this by filtering the author query by IDs,
+similarly to how we filtered the book query by genre.
+We update ``AuthorQuery`` to add in an ``ids`` attribute:
+
+.. code-block:: python
+
+    class AuthorQuery(object):
+        def __init__(self, object_query, ids=None, is_keyed_by_id=False):
+            self.type = (AuthorQuery, object_query.type)
+            self.object_query = object_query
+            self.ids = ids
+            self.is_keyed_by_id = is_keyed_by_id
+        
+        def key_by_id(self):
+            return AuthorQuery(self.object_query, ids=self.ids, is_keyed_by_id=True)
+        
+        def where(self, *, ids):
+            return AuthorQuery(self.object_query, ids=ids, is_keyed_by_id=self.is_keyed_by_id)
+
+We use that ``ids`` attribute in the author resolver:
+
+.. code-block:: python
+
+    sqlalchemy_query = session.query(AuthorRecord.name)
+    
+    if query.ids is not None:
+        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
+    
+    if query.is_keyed_by_id:
+        sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
+
+    authors = sqlalchemy_query.all()
+
+And we set the IDs in the book resolver:
+
+.. code-block:: python
+
+    books = sqlalchemy_query.all()
+    
+    def get_author_ids():
+        return frozenset(
+            book.author_id
+            for book in book
+        )
+    
+    def get_authors_for_field_query(field_query):
+        author_query = AuthorQuery(field_query.type_query) \
+            .where(ids=get_author_ids()) \
+            .key_by_id()
+        return graph.resolve(author_query)
+    
+    authors = dict(
+        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
+        for field_query in query.object_query.fields
+        if field_query.field == Book.fields.author
+    )
+
 Dependency injection
 ~~~~~~~~~~~~~~~~~~~~
 
