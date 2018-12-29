@@ -885,7 +885,7 @@ And we set the IDs in the book resolver:
         return graph.resolve(author_query)
     
     authors = dict(
-        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
+        (field_query.key, get_authors_for_field_query(field_query))
         for field_query in query.object_query.fields
         if field_query.field == Book.fields.author
     )
