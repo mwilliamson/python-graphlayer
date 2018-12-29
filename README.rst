@@ -140,9 +140,6 @@ Installation
 Tutorial
 --------
 
-Getting started
-~~~~~~~~~~~~~~~
-
 This tutorial builds up a simple application using SQLAlchemy and GraphLayer.
 The goal is to execute the following query:
 
@@ -159,6 +156,9 @@ The goal is to execute the following query:
 
 That is, get the list of all books in the comedy genre,
 with the title and name of the author for each book.
+
+Getting started
+~~~~~~~~~~~~~~~
 
 Let's start with a simple query, getting the count of books:
 
