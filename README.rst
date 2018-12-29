@@ -135,7 +135,7 @@ Installation
 
 ::
 
-    pip install graphlayer[graphql]
+    pip install git+https://github.com/mwilliamson/python-graphlayer.git#egg=graphlayer[graphql]
 
 Tutorial
 --------
