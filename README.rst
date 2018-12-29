@@ -966,10 +966,33 @@ And we set the IDs in the book resolver:
 Dependency injection
 ~~~~~~~~~~~~~~~~~~~~
 
+In our example so far,
+we've treated the SQLAlchemy session as a global variable.
+In practice, it's sometimes useful to pass the session (and other dependencies) around explicitly.
+Dependencies for resolvers are marked using the decorator ``g.dependencies``,
+which allow dependencies to be passed as keyword arguments to resolvers.
+For instance, to add a dependency on a SQLAlchemy session to ``resolve_root``:
+
+.. code-block:: python
+
+    @g.resolver(Root)
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def resolve_root(graph, query, *, session):
+        ...
+
+A dependency can be identified by any value.
+In this case, we identify the session dependency by its class, ``sqlalchemy.orm.Session``.
+When creating the graph,
+we need to pass in dependencies:
+
+.. code-block:: python
+
+    graph = graph_definition.create_graph({
+        sqlalchemy.orm.Session: session,
+    })
+
 Extracting duplication
 ~~~~~~~~~~~~~~~~~~~~~~
-
-TODO: update the following (extracted from earlier)
 
 In order to accommodate the flexibility in queries,
 we've had to do a lot of work,
