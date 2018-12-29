@@ -23,7 +23,7 @@ class GraphDefinition(object):
 class Graph(object):
     def __init__(self, resolvers, dependencies):
         self._resolvers = resolvers
-        self._dependencies = dependencies
+        self._injector = Injector(dependencies)
     
     def resolve(self, *args, **kwargs):
         type = kwargs.pop("type", None)
@@ -32,12 +32,21 @@ class Graph(object):
         # TODO: better error
         assert not kwargs
         resolver = self._resolvers[type]
-        dependencies = getattr(resolver, "dependencies", dict())
-        kwargs = iterables.to_dict(
+        return self._injector.call_with_dependencies(resolver, self, *args)
+
+
+class Injector(object):
+    def __init__(self, dependencies):
+        self._dependencies = dependencies.copy()
+        self._dependencies[Injector] = self
+        
+    def call_with_dependencies(self, func, *args, **kwargs):
+        dependencies = getattr(func, "dependencies", dict())
+        dependency_kwargs = iterables.to_dict(
             (arg_name, self._dependencies[dependency_key])
             for arg_name, dependency_key in dependencies.items()
         )
-        return resolver(self, *args, **kwargs)
+        return func(*args, **kwargs, **dependency_kwargs)
 
 
 def _flatten(value):
