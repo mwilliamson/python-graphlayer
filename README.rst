@@ -708,6 +708,74 @@ We should see only books in the comedy genre in the output:
 
     result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}]}
 
+Adding authors to the root
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similarly to the ``books`` field on the root,
+we can add an ``authors`` field to the root.
+We start by defining the ``Author`` object type,
+and adding the ``authors`` field to ``Root``.
+
+.. code-block:: python
+    
+    Author = g.ObjectType("Author", fields=(
+        g.field("name", type=g.String),
+    ))
+    
+    Root = g.ObjectType("Root", fields=(
+        g.field("author_count", type=g.Int),
+        g.field("authors", type=g.ListType(Author)),
+
+        g.field("book_count", type=g.Int),
+        g.field("books", type=g.ListType(Book), params=(
+            g.param("genre", type=g.String, default=None),
+        )),
+    ))
+
+We define an ``AuthorQuery``,
+which can be resolved by a new resolver.
+
+.. code-block:: python
+
+    class AuthorQuery(object):
+        def __init__(self, object_query):
+            self.type = (AuthorQuery, object_query.type)
+            self.object_query = object_query
+
+    @g.resolver((AuthorQuery, Author))
+    def resolve_authors(graph, query):
+        authors = session.query(AuthorRecord.name).all()
+
+        def resolve_field(author, field):
+            if field == Author.fields.name:
+                return author.name
+            else:
+                raise Exception("unknown field: {}".format(field))
+
+        return [
+            query.object_query.create_object(dict(
+                (field_query.key, resolve_field(author, field_query.field))
+                for field_query in query.object_query.fields
+            ))
+            for author in authors
+        ]
+
+    resolvers = (resolve_root, resolver_authors, resolve_books)
+
+Finally, we update the root resolver to resolve the ``authors`` field.
+
+.. code-block:: python
+
+    @g.resolver(Root)
+    def resolve_root(graph, query):
+        def resolve_field(field_query):
+            if field_query.field == Root.fields.author_count:
+                return session.query(AuthorRecord).count()
+            elif field_query.field == Root.fields.authors:
+                return graph.resolve(AuthorQuery(field_query.type_query.element_query))
+            elif field_query.field == Root.fields.book_count:
+                ...
+
 Adding an author field to books
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
