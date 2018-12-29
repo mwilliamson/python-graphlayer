@@ -582,25 +582,25 @@ To solve this, we'll wrap the object query in our own custom query class.
 
 .. code-block:: python
 
-    class SqlQuery(object):
+    class BookQuery(object):
         def __init__(self, object_query):
-            self.type = (SqlQuery, object_query.type)
+            self.type = (BookQuery, object_query.type)
             self.object_query = object_query
 
-We can then create a ``SqlQuery`` in the root resolver:
+We can then create a ``BookQuery`` in the root resolver:
 
 .. code-block:: python
 
     elif field_query.field == Root.fields.books:
-        return graph.resolve(SqlQuery(field_query.type_query.element_query))
+        return graph.resolve(BookQuery(field_query.type_query.element_query))
 
 And we'll have to update ``resolve_books`` accordingly.
-Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((SqlQuery, Book))``,
+Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((BookQuery, Book))``,
 and replace ``query.element_query`` with ``query.object_query``.
 
 .. code-block:: python
 
-    @g.resolver((SqlQuery, Book))
+    @g.resolver((BookQuery, Book))
     def resolve_books(graph, query):
         field_to_expression = {
             Book.fields.title: BookRecord.title,
@@ -643,35 +643,32 @@ We'll first need to update the definition of the ``books`` field on ``Root``:
         )),
     ))
 
-Next, we'll update ``SqlQuery`` to support filtering by adding a ``where`` method:
+Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` method:
 
 .. code-block:: python
 
-    class SqlQuery(object):
-        def __init__(self, object_query, conditions=None):
-            if conditions is None:
-                conditions = ()
-        
-            self.type = (SqlQuery, object_query.type)
+    class BookQuery(object):
+        def __init__(self, object_query, genre=None):
+            self.type = (BookQuery, object_query.type)
             self.object_query = object_query
-            self.conditions = conditions
+            self.genre = genre
         
-        def where(self, condition):
-            return SqlQuery(self.object_query, conditions=self.conditions + (condition, ))
+        def where(self, *, genre):
+            return BookQuery(self.object_query, genre=genre)
 
 We can use this ``where`` method when resolving the ``books`` field in the root resolver.
 
 .. code-block:: python
 
     elif field_query.field == Root.fields.books:
-        sql_query = SqlQuery(field_query.type_query.element_query)
+        book_query = BookQuery(field_query.type_query.element_query)
 
         if field_query.args.genre is not None:
-            sql_query = sql_query.where(BookRecord.genre == field_query.args.genre)
+            book_query = book_query.where(genre=field_query.args.genre)
 
-        return graph.resolve(sql_query)
+        return graph.resolve(book_query)
 
-Finally, we need to apply the conditions when resolving books.
+Finally, we need to filter the books we fetch from the database.
 We'll replace:
 
 .. code-block:: python
@@ -684,8 +681,8 @@ with:
 
     sqlalchemy_query = session.query(*expressions)
     
-    for condition in query.conditions:
-        sqlalchemy_query = sqlalchemy_query.filter(condition)
+    if query.genre is not None:
+        sqlalchemy_query = sqlalchemy_query.filter(BookRecord.genre == query.genre)
     
     books = sqlalchemy_query.all()
 
