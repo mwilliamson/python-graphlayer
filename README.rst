@@ -304,7 +304,7 @@ so we should iterate through ``query.fields``.
 
 If we wrap the call to ``execute`` in a ``print``:
 
-.. code-block: python
+.. code-block:: python
 
     print("result", execute(
         """
