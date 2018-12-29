@@ -578,7 +578,7 @@ At the moment, the code resolves queries for lists of books,
 which doesn't provide a convenient way for us to tell the resolver to only fetch a subset of books.
 To solve this, we'll wrap the object query in our own custom query class.
 
-:: code-block:: python
+.. code-block:: python
 
     class SqlQuery(object):
         def __init__(self, object_query):
@@ -587,7 +587,7 @@ To solve this, we'll wrap the object query in our own custom query class.
 
 We can then create a ``SqlQuery`` in the root resolver:
 
-:: code-block:: python
+.. code-block:: python
 
     elif field_query.field == Root.fields.books:
         return graph.resolve(SqlQuery(field_query.type_query.element_query))
@@ -596,7 +596,7 @@ And we'll have to update ``resolve_books`` accordingly.
 Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((SqlQuery, Book))``,
 and replace ``query.element_query`` with ``query.object_query``.
 
-:: code-block:: python
+.. code-block:: python
 
     @g.resolver((SqlQuery, Book))
     def resolve_books(graph, query):
@@ -643,7 +643,7 @@ We'll first need to update the definition of the ``books`` field on ``Root``:
 
 Next, we'll update ``SqlQuery`` to support filtering by adding a ``where`` method:
 
-:: code-block:: python
+.. code-block:: python
 
     class SqlQuery(object):
         def __init__(self, object_query, conditions=None):
