@@ -98,7 +98,7 @@ Let's start with a simple query, getting the count of books:
 All queries share the same root object,
 but can ask for whatever fields they want.
 As a first step, we'll define the schema of the root object.
-In this case, it has a single integer field called ``book_count``
+For now, we'll define a single integer field called ``book_count``
 (note that casing is automatically converted between camel case and snake case):
 
 .. code-block:: python
@@ -110,10 +110,10 @@ In this case, it has a single integer field called ``book_count``
     ))
 
 We'll also need to define how to resolve the book count by defining a resolver function.
-When we define a resolver, we need to mark it as a resolver function for a particular query type.
-In this case, we'll need to mark it as a resolver for the root type.
-A resolver is passed two arguments: the graph and the query to resolve,
-and should return a complete response with all of the fields specified in the query.
+Each resolver function takes the graph and a query of a particular type,
+and returns the result of that query.
+The decorator ``g.resolver()`` is used to mark which type of query a resolver is for.
+In this case, we'll need create a resolver for the root type.
 For now, we'll define a resolver that returns a fixed object,
 and prints out the query so we can a take a look at it.
 
@@ -211,7 +211,7 @@ Now we'll need to check what field is being requested.
         })
 
 What's more, the user might request more than one field,
-so we should iterate through ``query.fields``.
+so we should iterate through ``query.fields`` when generating the result.
 
 .. code-block:: python
 
