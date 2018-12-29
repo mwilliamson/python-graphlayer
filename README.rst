@@ -135,7 +135,7 @@ Installation
 
 ::
 
-    pip install graphlayer
+    pip install graphlayer[graphql]
 
 Tutorial
 --------
