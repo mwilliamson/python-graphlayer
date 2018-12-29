@@ -413,7 +413,7 @@ and using it to define the ``books`` field on ``Root``:
         g.field("books", type=g.ListType(Book)),
     ))
 
-We'll need update the root resolver to handle the new field.
+We'll need to update the root resolver to handle the new field.
 Although we could handle the field directly in the root resolver,
 we'll instead ask the graph to resolve the query for us.
 This allows us to have a common way to resolve books,
