@@ -558,8 +558,156 @@ and with larger data sets.
             for book in books
         ]
 
-Adding a genre argument to the books field
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Adding a genre parameter to the books field
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+So far, the ``books`` field returns all of the books in the database.
+Let's add an optional ``genre`` parameter, so we can run the following query:
+
+::
+
+    query {
+        books(genre: "comedy") {
+            title
+        }
+    }
+
+Before we start actually adding the parameter,
+we need to make a change to how books are resolved.
+At the moment, the code resolves queries for lists of books,
+which doesn't provide a convenient way for us to tell the resolver to only fetch a subset of books.
+To solve this, we'll wrap the object query in our own custom query class.
+
+:: code-block:: python
+
+    class SqlQuery(object):
+        def __init__(self, object_query):
+            self.type = (SqlQuery, object_query.type)
+            self.object_query = object_query
+
+We can then create a ``SqlQuery`` in the root resolver:
+
+:: code-block:: python
+
+    elif field_query.field == Root.fields.books:
+        return graph.resolve(SqlQuery(field_query.type_query.element_query))
+
+And we'll have to update ``resolve_books`` accordingly.
+Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((SqlQuery, Book))``,
+and replace ``query.element_query`` with ``query.object_query``.
+
+:: code-block:: python
+
+    @g.resolver((SqlQuery, Book))
+    def resolve_books(graph, query):
+        field_to_expression = {
+            Book.fields.title: BookRecord.title,
+            Book.fields.genre: BookRecord.genre,
+        }
+        
+        expressions = frozenset(
+            field_to_expression[field_query.field]
+            for field_query in query.object_query.fields
+        )
+    
+        books = session.query(*expressions).all()
+    
+        def resolve_field(book, field):
+            if field == Book.fields.title:
+                return book.title
+            elif field == Book.fields.genre:
+                return book.genre
+            else:
+                raise Exception("unknown field: {}".format(field))
+    
+        return [
+            query.object_query.create_object(dict(
+                (field_query.key, resolve_field(book, field_query.field))
+                for field_query in query.object_query.fields
+            ))
+            for book in books
+        ]
+
+Now we can get on with actually adding the parameter.
+We'll first need to update the definition of the ``books`` field on ``Root``:
+
+.. code-block:: python
+
+    Root = g.ObjectType("Root", fields=(
+        g.field("author_count", type=g.Int),
+        g.field("book_count", type=g.Int),
+        g.field("books", type=g.ListType(Book), params=(
+            g.param("genre", type=g.String, default=None),
+        )),
+    ))
+
+Next, we'll update ``SqlQuery`` to support filtering by adding a ``where`` method:
+
+:: code-block:: python
+
+    class SqlQuery(object):
+        def __init__(self, object_query, conditions=None):
+            if conditions is None:
+                conditions = ()
+        
+            self.type = (SqlQuery, object_query.type)
+            self.object_query = object_query
+            self.conditions = conditions
+        
+        def where(self, condition):
+            return SqlQuery(self.object_query, conditions=self.conditions + (condition, ))
+
+We can use this ``where`` method when resolving the ``books`` field in the root resolver.
+
+.. code-block:: python
+
+    elif field_query.field == Root.fields.books:
+        sql_query = SqlQuery(field_query.type_query.element_query)
+
+        if field_query.args.genre is not None:
+            sql_query = sql_query.where(BookRecord.genre == field_query.args.genre)
+
+        return graph.resolve(sql_query)
+
+Finally, we need to apply the conditions when resolving books.
+We'll replace:
+
+.. code-block:: python
+
+    books = session.query(*expressions).all()
+
+with:
+
+.. code-block:: python
+
+    sqlalchemy_query = session.query(*expressions)
+    
+    for condition in query.conditions:
+        sqlalchemy_query = sqlalchemy_query.filter(condition)
+    
+    books = sqlalchemy_query.all()
+
+If we update our script with the new query:
+
+.. code-block:: python
+
+    print("result", execute(
+        """
+            query {
+                books(genre: "comedy") {
+                    title
+                }
+            }
+        """,
+        graph=graph,
+        query_type=Root,
+    ))
+
+We should see only books in the comedy genre in the output:
+
+::
+
+    result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}]}
 
 Adding an author field to books
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
