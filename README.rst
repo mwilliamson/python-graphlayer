@@ -994,22 +994,71 @@ we need to pass in dependencies:
 Extracting duplication
 ~~~~~~~~~~~~~~~~~~~~~~
 
-In order to accommodate the flexibility in queries,
-we've had to do a lot of work,
-when all we really want to do was say
-"the author count field should be resolved to 2 and the book count field should be resolved to 3".
-Since a lot of the work is not specific to this domain,
-we can extract it out into another function to help us build resolvers.
-For root objects, the ``root_object_resolver()`` is such a function.
+When implementing resolvers, there are common patterns that tend to occur.
+By extracting these common patterns into functions that build resolvers,
+we can reduce duplication and simplify the definition of resolvers.
+For instance, our root resolver can be rewritten as:
 
 .. code-block:: python
 
     resolve_root = g.root_object_resolver(Root)
-    
+
     @resolve_root.field(Root.fields.author_count)
-    def root_resolve_author_count(graph, query, args):
-        return 2
-    
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def root_resolve_author_count(graph, query, args, *, session):
+        return session.query(AuthorRecord).count()
+
+    @resolve_root.field(Root.fields.authors)
+    def root_resolve_authors(graph, query, args):
+        return graph.resolve(AuthorQuery(query.element_query))
+
     @resolve_root.field(Root.fields.book_count)
-    def root_resolve_book_count(graph, query, args):
-        return 3
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def root_resolve_book_count(graph, query, args, *, session):
+        return session.query(BookRecord).count()
+
+    @resolve_root.field(Root.fields.books)
+    def root_resolve_books(graph, query, args):
+        book_query = BookQuery(query.element_query)
+
+        if args.genre is not None:
+            book_query = book_query.where(genre=args.genre)
+
+        return graph.resolve(book_query)
+
+Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolvers for authors and books:
+
+.. code-block:: python
+
+    import graphlayer.sqlalchemy as gsql
+
+    @resolve_root.field(Root.fields.authors)
+    def root_resolve_authors(graph, query, args):
+        return graph.resolve(gsql.select(query))
+
+    @resolve_root.field(Root.fields.books)
+    def root_resolve_books(graph, query, args):
+        book_query = gsql.select(query)
+
+        if args.genre is not None:
+            book_query = book_query.where(BookRecord.genre == args.genre)
+
+        return graph.resolve(book_query)
+    
+    resolve_authors = gsql.sql_table_resolver(
+        Author,
+        AuthorRecord,
+        fields={
+            Author.fields.name: gsql.expression(AuthorRecord.name),
+        },
+    )
+
+    resolve_books = gsql.sql_table_resolver(
+        Book,
+        BookRecord,
+        fields={
+            Book.fields.title: gsql.expression(BookRecord.title),
+            Book.fields.genre: gsql.expression(BookRecord.genre),
+            Book.fields.author: g.single(gsql.sql_join({BookRecord.author_id: AuthorRecord.id})),
+        },
+    )
