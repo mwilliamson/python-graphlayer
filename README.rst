@@ -84,6 +84,21 @@ using only the core of GraphLayer, to give an understanding of how GraphLayer wo
 In practice, there are a number of helper functions that make implementation much simpler.
 We'll see how to write our example using those helpers at the end.
 
+Environment
+~~~~~~~~~~~
+
+You'll need a Python environment with at least Python 3.5 installed,
+with graphlayer, graphql, and SQLAlchemy installed.
+For instance, on the command line:
+
+::
+
+    python3 -m venv .venv
+    . .venv/bin/activate
+    pip install --upgrade pip setuptools wheel
+    pip install git+https://github.com/mwilliamson/python-graphlayer.git#egg=graphlayer[graphql]
+    pip install SQLAlchemy
+
 Getting started
 ~~~~~~~~~~~~~~~
 
