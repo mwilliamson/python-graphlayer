@@ -17,7 +17,7 @@ setup(
     url='http://github.com/mwilliamson/python-graphlayer',
     packages=['graphlayer', 'graphlayer.graphql'],
     keywords="graphql graph join ",
-    extra_requires={
+    extras_require={
         "graphql": ["graphql-core==2.1"],
     },
     classifiers=[
