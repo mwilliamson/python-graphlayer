@@ -109,6 +109,23 @@ For now, we'll define a single integer field called ``book_count``
         g.field("book_count", type=g.Int),
     ))
 
+NOTE: I'm getting a sytax error (I rarely touch python, btw, so it's probably me), but I thought I'd tell you about it. I created a file `ex.py` with the code above and executed with `python ex.py`.
+
+```console
+✔ ~/src/gql
+09:57 $ python ex.py
+Traceback (most recent call last):
+  File "ex.py", line 1, in <module>
+    import graphlayer as g
+  File "/usr/local/lib/python2.7/site-packages/graphlayer/__init__.py", line 1, in <module>
+    from .core import create_graph, dependencies, define_graph, resolver
+  File "/usr/local/lib/python2.7/site-packages/graphlayer/core.py", line 49
+    return func(*args, **kwargs, **dependency_kwargs)
+                               ^
+SyntaxError: invalid syntax
+```
+
+
 We'll also need to define how to resolve the book count by defining a resolver function.
 Each resolver function takes the graph and a query of a particular type,
 and returns the result of that query.
