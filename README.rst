@@ -119,7 +119,7 @@ For now, we'll define a single integer field called ``book_count``
 .. code-block:: python
 
     import graphlayer as g
-    
+
     Root = g.ObjectType("Root", fields=(
         g.field("book_count", type=g.Int),
     ))
@@ -136,22 +136,22 @@ and prints out the query so we can a take a look at it.
 
     import graphlayer as g
     from graphlayer.graphql import execute
-    
+
     Root = g.ObjectType("Root", fields=(
         g.field("book_count", type=g.Int),
     ))
-    
+
     @g.resolver(Root)
     def resolve_root(graph, query):
         print("query:", query)
         return query.create_object({
             "bookCount": 3,
         })
-    
+
     resolvers = (resolve_root, )
     graph_definition = g.define_graph(resolvers=resolvers)
     graph = graph_definition.create_graph({})
-    
+
     execute(
         """
             query {
@@ -161,7 +161,7 @@ and prints out the query so we can a take a look at it.
         graph=graph,
         query_type=Root,
     )
-    
+
 Running this will print out:
 
 ::
@@ -182,12 +182,13 @@ Note that the ``FieldQuery`` has a ``key`` attribute.
 Since the user can rename fields in the query,
 we should use the key as passed in the field query.
 
+
 .. code-block:: python
 
     @g.resolver(Root)
     def resolve_root(graph, query):
         field_query = query.fields[0]
-    
+
         return query.create_object({
             field_query.key: 3,
         })
@@ -198,6 +199,7 @@ we can always assume that field is being requested.
 However, that often won't be the case.
 For instance, we could add an author count to the root:
 
+
 .. code-block:: python
 
     Root = g.ObjectType("Root", fields=(
@@ -207,6 +209,7 @@ For instance, we could add an author count to the root:
 
 Now we'll need to check what field is being requested.
 
+
 .. code-block:: python
 
     @g.resolver(Root)
@@ -218,9 +221,9 @@ Now we'll need to check what field is being requested.
                 return 3
             else:
                 raise Exception("unknown field: {}".format(field))
-                
+
         field_query = query.fields[0]
-    
+
         return query.create_object({
             field_query.key: resolve_field(field_query.field),
         })
@@ -228,6 +231,7 @@ Now we'll need to check what field is being requested.
 What's more, the user might request more than one field,
 so we should iterate through ``query.fields`` when generating the result.
 
+
 .. code-block:: python
 
     @g.resolver(Root)
@@ -239,7 +243,7 @@ so we should iterate through ``query.fields`` when generating the result.
                 return 3
             else:
                 raise Exception("unknown field: {}".format(field))
-    
+
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query.field))
             for field_query in query.fields
@@ -247,9 +251,10 @@ so we should iterate through ``query.fields`` when generating the result.
 
 If we wrap the call to ``execute`` in a ``print``:
 
+
 .. code-block:: python
 
-    print("result", execute(
+    print("result:", execute(
         """
             query {
                 bookCount
@@ -272,11 +277,12 @@ So far, we've returned hard-coded values.
 Let's add in a database using SQLAlchemy and an in-memory SQLite database.
 At the start of our script we'll add some code to set up the database schema and add data:
 
+
 .. code-block:: python
 
     import sqlalchemy.ext.declarative
     import sqlalchemy.orm
-    
+
     Base = sqlalchemy.ext.declarative.declarative_base()
 
     class AuthorRecord(Base):
@@ -284,7 +290,7 @@ At the start of our script we'll add some code to set up the database schema and
 
         id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
         name = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
-        
+
     class BookRecord(Base):
         __tablename__ = "book"
 
@@ -308,6 +314,7 @@ At the start of our script we'll add some code to set up the database schema and
 
 Next, we'll update our resolvers to use the database:
 
+
 .. code-block:: python
 
     @g.resolver(Root)
@@ -319,7 +326,7 @@ Next, we'll update our resolvers to use the database:
                 return session.query(BookRecord).count()
             else:
                 raise Exception("unknown field: {}".format(field))
-    
+
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query.field))
             for field_query in query.fields
@@ -343,6 +350,7 @@ Our aim is to be able to run the query:
 We start by creating a ``Book`` object type,
 and using it to define the ``books`` field on ``Root``:
 
+
 .. code-block:: python
 
     Book = g.ObjectType("Book", fields=(
@@ -362,6 +370,8 @@ we'll instead ask the graph to resolve the query for us.
 This allows us to have a common way to resolve books,
 regardless of where they appear in the query.
 
+
+
 .. code-block:: python
 
     @g.resolver(Root)
@@ -375,7 +385,7 @@ regardless of where they appear in the query.
                 return graph.resolve(field_query.type_query)
             else:
                 raise Exception("unknown field: {}".format(field_query.field))
-    
+
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query))
             for field_query in query.fields
@@ -384,20 +394,23 @@ regardless of where they appear in the query.
 This means we need to define a resolver for a list of books.
 For now, let's just print the query and return an empty list so we can see what the query looks like.
 
+
+
 .. code-block:: python
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
-        print("books query", query)
+        print("books query:", query)
         return []
 
     resolvers = (resolve_root, resolve_books)
 
 If update the query we pass to ``execute``:
 
+
 .. code-block:: python
 
-    print("result", execute(
+    print("result:", execute(
         """
             query {
                 books {
@@ -437,12 +450,13 @@ with the object query being accessible through the ``element_query`` attribute.
 We can write a resolver for a list of books by first fetching all of the books,
 and then mapping each fetched book to an object according to the fields requested in the query.
 
+
 .. code-block:: python
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
         books = session.query(BookRecord.title, BookRecord.genre).all()
-    
+
         def resolve_field(book, field):
             if field == Book.fields.title:
                 return book.title
@@ -450,7 +464,7 @@ and then mapping each fetched book to an object according to the fields requeste
                 return book.genre
             else:
                 raise Exception("unknown field: {}".format(field))
-    
+
         return [
             query.element_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
@@ -463,12 +477,13 @@ Running this code should give the output:
 
 ::
 
-    result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}, {'title': "Captain Corelli's Mandolin"}]}
+    result: {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}, {'title': "Captain Corelli's Mandolin"}]}
 
 We can make the resolver more efficient by only fetching those columns required by the query.
 Although this makes comparatively little difference with the data we have at the moment,
 this can help improve performance when there are many more fields the user can request,
 and with larger data sets.
+
 
 .. code-block:: python
 
@@ -478,14 +493,14 @@ and with larger data sets.
             Book.fields.title: BookRecord.title,
             Book.fields.genre: BookRecord.genre,
         }
-        
+
         expressions = frozenset(
             field_to_expression[field_query.field]
             for field_query in query.element_query.fields
         )
-    
+
         books = session.query(*expressions).all()
-    
+
         def resolve_field(book, field):
             if field == Book.fields.title:
                 return book.title
@@ -493,7 +508,7 @@ and with larger data sets.
                 return book.genre
             else:
                 raise Exception("unknown field: {}".format(field))
-    
+
         return [
             query.element_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
@@ -522,6 +537,7 @@ At the moment, the code resolves queries for lists of books,
 which doesn't provide a convenient way for us to tell the resolver to only fetch a subset of books.
 To solve this, we'll wrap the object query in our own custom query class.
 
+
 .. code-block:: python
 
     class BookQuery(object):
@@ -530,6 +546,8 @@ To solve this, we'll wrap the object query in our own custom query class.
             self.object_query = object_query
 
 We can then create a ``BookQuery`` in the root resolver:
+
+
 
 .. code-block:: python
 
@@ -540,6 +558,7 @@ And we'll have to update ``resolve_books`` accordingly.
 Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((BookQuery, Book))``,
 and replace ``query.element_query`` with ``query.object_query``.
 
+
 .. code-block:: python
 
     @g.resolver((BookQuery, Book))
@@ -548,14 +567,14 @@ and replace ``query.element_query`` with ``query.object_query``.
             Book.fields.title: BookRecord.title,
             Book.fields.genre: BookRecord.genre,
         }
-        
+
         expressions = frozenset(
             field_to_expression[field_query.field]
             for field_query in query.object_query.fields
         )
-    
+
         books = session.query(*expressions).all()
-    
+
         def resolve_field(book, field):
             if field == Book.fields.title:
                 return book.title
@@ -563,7 +582,7 @@ and replace ``query.element_query`` with ``query.object_query``.
                 return book.genre
             else:
                 raise Exception("unknown field: {}".format(field))
-    
+
         return [
             query.object_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
@@ -574,6 +593,7 @@ and replace ``query.element_query`` with ``query.object_query``.
 
 Now we can get on with actually adding the parameter.
 We'll first need to update the definition of the ``books`` field on ``Root``:
+
 
 .. code-block:: python
 
@@ -587,6 +607,7 @@ We'll first need to update the definition of the ``books`` field on ``Root``:
 
 Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` method:
 
+
 .. code-block:: python
 
     class BookQuery(object):
@@ -594,11 +615,13 @@ Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` meth
             self.type = (BookQuery, object_query.type)
             self.object_query = object_query
             self.genre = genre
-        
+
         def where(self, *, genre):
             return BookQuery(self.object_query, genre=genre)
 
 We can use this ``where`` method when resolving the ``books`` field in the root resolver.
+
+
 
 .. code-block:: python
 
@@ -619,20 +642,22 @@ We'll replace:
 
 with:
 
+
 .. code-block:: python
 
     sqlalchemy_query = session.query(*expressions)
-    
+
     if query.genre is not None:
         sqlalchemy_query = sqlalchemy_query.filter(BookRecord.genre == query.genre)
-    
+
     books = sqlalchemy_query.all()
 
 If we update our script with the new query:
 
+
 .. code-block:: python
 
-    print("result", execute(
+    print("result:", execute(
         """
             query {
                 books(genre: "comedy") {
@@ -648,7 +673,7 @@ We should see only books in the comedy genre in the output:
 
 ::
 
-    result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}]}
+    result: {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}]}
 
 Adding authors to the root
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -658,12 +683,13 @@ we can add an ``authors`` field to the root.
 We start by defining the ``Author`` object type,
 and adding the ``authors`` field to ``Root``.
 
+
 .. code-block:: python
-    
+
     Author = g.ObjectType("Author", fields=(
         g.field("name", type=g.String),
     ))
-    
+
     Root = g.ObjectType("Root", fields=(
         g.field("author_count", type=g.Int),
         g.field("authors", type=g.ListType(Author)),
@@ -676,6 +702,8 @@ and adding the ``authors`` field to ``Root``.
 
 We define an ``AuthorQuery``,
 which can be resolved by a new resolver.
+
+
 
 .. code-block:: python
 
@@ -702,9 +730,10 @@ which can be resolved by a new resolver.
             for author in authors
         ]
 
-    resolvers = (resolve_root, resolver_authors, resolve_books)
+    resolvers = (resolve_root, resolve_authors, resolve_books)
 
 Finally, we update the root resolver to resolve the ``authors`` field.
+
 
 .. code-block:: python
 
@@ -716,7 +745,7 @@ Finally, we update the root resolver to resolve the ``authors`` field.
             elif field_query.field == Root.fields.authors:
                 return graph.resolve(AuthorQuery(field_query.type_query.element_query))
             elif field_query.field == Root.fields.book_count:
-                ...
+                return session.query(BookRecord).count()
 
 Adding an author field to books
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -724,6 +753,7 @@ Adding an author field to books
 As the last change to the schema,
 let's add an ``author`` field to ``Book``.
 We start by updating the type:
+
 
 .. code-block:: python
 
@@ -737,6 +767,7 @@ We then need to update the resolver for books.
 If the ``author`` field is requested,
 then we'll need to fetch the ``author_id`` from the database,
 so we update ``field_to_expression``:
+
 
 .. code-block:: python
 
@@ -754,6 +785,7 @@ However, when fetching authors for books,
 it'd be more convenient to return them in a dictionary keyed by ID so they can easily matched to books by ``author_id``.
 We can change the ``AuthorQuery`` to optionally allow this alternative format:
 
+
 .. code-block:: python
 
     class AuthorQuery(object):
@@ -761,21 +793,22 @@ We can change the ``AuthorQuery`` to optionally allow this alternative format:
             self.type = (AuthorQuery, object_query.type)
             self.object_query = object_query
             self.is_keyed_by_id = is_keyed_by_id
-        
+
         def key_by_id(self):
             return AuthorQuery(self.object_query, is_keyed_by_id=True)
 
 We then need to update the resolver to handle this:
+
 
 .. code-block:: python
 
     @g.resolver((AuthorQuery, Author))
     def resolve_authors(graph, query):
         sqlalchemy_query = session.query(AuthorRecord.name)
-        
+
         if query.is_keyed_by_id:
             sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
-    
+
         authors = sqlalchemy_query.all()
 
         def resolve_field(author, field):
@@ -803,29 +836,47 @@ We then need to update the resolver to handle this:
 
 Now we can update the books resolver to fetch the authors using the graph:
 
+
 .. code-block:: python
 
     books = sqlalchemy_query.all()
-    
+
     authors = dict(
         (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
-        for field_query in query.fields
+        for field_query in query.object_query.fields
         if field_query.field == Book.fields.author
     )
-    
+
 This creates a dictionary mapping from each field query to the authors fetched for that field query.
 We can this use this dictionary when resolving each field:
 
+
 .. code-block:: python
 
-    elif field_query.field == Book.fields.author:
-        return authors[field_query.key][book.author_id]
+    def resolve_field(book, field_query):
+        if field_query.field == Book.fields.title:
+            return book.title
+        elif field_query.field == Book.fields.genre:
+            return book.genre
+        elif field_query.field == Book.fields.author:
+            return authors[field_query.key][book.author_id]
+        else:
+            raise Exception("unknown field: {}".format(field_query.field))
+
+    return [
+        query.object_query.create_object(dict(
+            (field_query.key, resolve_field(book, field_query))
+            for field_query in query.object_query.fields
+        ))
+        for book in books
+    ]
 
 Now if we update our executed query:
 
+
 .. code-block:: python
 
-    print("result", execute(
+    print("result:", execute(
         """
             query {
                 books(genre: "comedy") {
@@ -844,13 +895,14 @@ We should see:
 
 ::
 
-    result {'books': [{'author': {'name': 'PG Wodehouse'}, 'title': 'Leave It to Psmith'}, {'author': {'name': 'PG Wodehouse'}, 'title': 'Right Ho, Jeeves'}]}
+    result: {'books': [{'title': 'Leave It to Psmith', 'author': {'name': 'PG Wodehouse'}}, {'title': 'Right Ho, Jeeves', 'author': {'name': 'PG Wodehouse'}}]}
 
 One inefficiency in the current implementation is that we fetch all authors,
 regardless of whether they're the author of a book that we've fetched.
 We can fix this by filtering the author query by IDs,
 similarly to how we filtered the book query by genre.
 We update ``AuthorQuery`` to add in an ``ids`` attribute:
+
 
 .. code-block:: python
 
@@ -860,22 +912,23 @@ We update ``AuthorQuery`` to add in an ``ids`` attribute:
             self.object_query = object_query
             self.ids = ids
             self.is_keyed_by_id = is_keyed_by_id
-        
+
         def key_by_id(self):
             return AuthorQuery(self.object_query, ids=self.ids, is_keyed_by_id=True)
-        
+
         def where(self, *, ids):
             return AuthorQuery(self.object_query, ids=ids, is_keyed_by_id=self.is_keyed_by_id)
 
 We use that ``ids`` attribute in the author resolver:
 
+
 .. code-block:: python
 
     sqlalchemy_query = session.query(AuthorRecord.name)
-    
+
     if query.ids is not None:
-        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
-    
+        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.ids))
+
     if query.is_keyed_by_id:
         sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
 
@@ -883,22 +936,23 @@ We use that ``ids`` attribute in the author resolver:
 
 And we set the IDs in the book resolver:
 
+
 .. code-block:: python
 
     books = sqlalchemy_query.all()
-    
+
     def get_author_ids():
         return frozenset(
             book.author_id
-            for book in book
+            for book in books
         )
-    
+
     def get_authors_for_field_query(field_query):
         author_query = AuthorQuery(field_query.type_query) \
             .where(ids=get_author_ids()) \
             .key_by_id()
         return graph.resolve(author_query)
-    
+
     authors = dict(
         (field_query.key, get_authors_for_field_query(field_query))
         for field_query in query.object_query.fields
@@ -915,23 +969,25 @@ Dependencies for resolvers are marked using the decorator ``g.dependencies``,
 which allow dependencies to be passed as keyword arguments to resolvers.
 For instance, to add a dependency on a SQLAlchemy session to ``resolve_root``:
 
+
 .. code-block:: python
 
     @g.resolver(Root)
     @g.dependencies(session=sqlalchemy.orm.Session)
     def resolve_root(graph, query, *, session):
-        ...
 
 A dependency can be identified by any value.
 In this case, we identify the session dependency by its class, ``sqlalchemy.orm.Session``.
 When creating the graph,
 we need to pass in dependencies:
 
+
 .. code-block:: python
 
     graph = graph_definition.create_graph({
         sqlalchemy.orm.Session: session,
     })
+
 
 Extracting duplication
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -940,6 +996,7 @@ When implementing resolvers, there are common patterns that tend to occur.
 By extracting these common patterns into functions that build resolvers,
 we can reduce duplication and simplify the definition of resolvers.
 For instance, our root resolver can be rewritten as:
+
 
 .. code-block:: python
 
@@ -970,6 +1027,7 @@ For instance, our root resolver can be rewritten as:
 
 Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolvers for authors and books:
 
+
 .. code-block:: python
 
     import graphlayer.sqlalchemy as gsql
@@ -986,7 +1044,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
             book_query = book_query.where(BookRecord.genre == args.genre)
 
         return graph.resolve(book_query)
-    
+
     resolve_authors = gsql.sql_table_resolver(
         Author,
         AuthorRecord,
@@ -1004,3 +1062,5 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
             Book.fields.author: g.single(gsql.sql_join({BookRecord.author_id: AuthorRecord.id})),
         },
     )
+
+
