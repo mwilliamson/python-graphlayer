@@ -378,7 +378,50 @@ So far, we've returned hard-coded values.
 Let's add in a database using SQLAlchemy and an in-memory SQLite database.
 At the start of our script we'll add some code to set up the database schema and add data:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -1,5 +1,36 @@
+     import graphlayer as g
+     from graphlayer.graphql import execute
+    +import sqlalchemy.ext.declarative
+    +import sqlalchemy.orm
+    +
+    +Base = sqlalchemy.ext.declarative.declarative_base()
+    +
+    +class AuthorRecord(Base):
+    +    __tablename__ = "author"
+    +
+    +    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    +    name = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+    +
+    +class BookRecord(Base):
+    +    __tablename__ = "book"
+    +
+    +    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    +    title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+    +    genre = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+    +    author_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey(AuthorRecord.id), nullable=False)
+    +
+    +engine = sqlalchemy.create_engine("sqlite:///:memory:")
+    +Base.metadata.create_all(engine)
+    +
+    +session = sqlalchemy.orm.Session(engine)
+    +author_wodehouse = AuthorRecord(name="PG Wodehouse")
+    +author_bernières = AuthorRecord(name="Louis de Bernières")
+    +session.add_all((author_wodehouse, author_bernières))
+    +session.flush()
+    +session.add(BookRecord(title="Leave It to Psmith", genre="comedy", author_id=author_wodehouse.id))
+    +session.add(BookRecord(title="Right Ho, Jeeves", genre="comedy", author_id=author_wodehouse.id))
+    +session.add(BookRecord(title="Captain Corelli's Mandolin", genre="historical_fiction", author_id=author_bernières.id))
+    +session.flush()
+
+     Root = g.ObjectType("Root", fields=(
+         g.field("author_count", type=g.Int),
+
+.. diff-doc:: render example
 
     import sqlalchemy.ext.declarative
     import sqlalchemy.orm
@@ -414,7 +457,24 @@ At the start of our script we'll add some code to set up the database schema and
 
 Next, we'll update our resolvers to use the database:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -41,9 +41,9 @@
+     def resolve_root(graph, query):
+         def resolve_field(field):
+             if field == Root.fields.author_count:
+    -            return 2
+    +            return session.query(AuthorRecord).count()
+             elif field == Root.fields.book_count:
+    -            return 3
+    +            return session.query(BookRecord).count()
+             else:
+                 raise Exception("unknown field: {}".format(field))
+
+.. diff-doc:: render example
 
     @g.resolver(Root)
     def resolve_root(graph, query):
@@ -449,7 +509,29 @@ Our aim is to be able to run the query:
 We start by creating a ``Book`` object type,
 and using it to define the ``books`` field on ``Root``:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -32,9 +32,15 @@
+     session.add(BookRecord(title="Captain Corelli's Mandolin", genre="historical_fiction", author_id=author_bernières.id))
+     session.flush()
+
+    +Book = g.ObjectType("Book", fields=(
+    +    g.field("title", type=g.String),
+    +    g.field("genre", type=g.String),
+    +))
+    +
+     Root = g.ObjectType("Root", fields=(
+         g.field("author_count", type=g.Int),
+         g.field("book_count", type=g.Int),
+    +    g.field("books", type=g.ListType(Book)),
+     ))
+
+     @g.resolver(Root)
+
+.. diff-doc:: render example
 
     Book = g.ObjectType("Book", fields=(
         g.field("title", type=g.String),
@@ -468,7 +550,37 @@ we'll instead ask the graph to resolve the query for us.
 This allows us to have a common way to resolve books,
 regardless of where they appear in the query.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -45,16 +45,18 @@
+
+     @g.resolver(Root)
+     def resolve_root(graph, query):
+    -    def resolve_field(field):
+    -        if field == Root.fields.author_count:
+    +    def resolve_field(field_query):
+    +        if field_query.field == Root.fields.author_count:
+                 return session.query(AuthorRecord).count()
+    -        elif field == Root.fields.book_count:
+    +        elif field_query.field == Root.fields.book_count:
+                 return session.query(BookRecord).count()
+    +        elif field_query.field == Root.fields.books:
+    +            return graph.resolve(field_query.type_query)
+             else:
+    -            raise Exception("unknown field: {}".format(field))
+    +            raise Exception("unknown field: {}".format(field_query.field))
+
+         return query.create_object(dict(
+    -        (field_query.key, resolve_field(field_query.field))
+    +        (field_query.key, resolve_field(field_query))
+             for field_query in query.fields
+         ))
+
+
+.. diff-doc:: render example
 
     @g.resolver(Root)
     def resolve_root(graph, query):
@@ -490,20 +602,57 @@ regardless of where they appear in the query.
 This means we need to define a resolver for a list of books.
 For now, let's just print the query and return an empty list so we can see what the query looks like.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -60,7 +60,12 @@
+             for field_query in query.fields
+         ))
+
+    -resolvers = (resolve_root, )
+    +@g.resolver(g.ListType(Book))
+    +def resolve_books(graph, query):
+    +    print("books query:", query)
+    +    return []
+    +
+    +resolvers = (resolve_root, resolve_books)
+     graph_definition = g.define_graph(resolvers=resolvers)
+     graph = graph_definition.create_graph({})
+
+
+.. diff-doc:: render example
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
-        print("books query", query)
+        print("books query:", query)
         return []
 
     resolvers = (resolve_root, resolve_books)
 
 If update the query we pass to ``execute``:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
 
-    print("result", execute(
+    ---
+    +++
+    @@ -72,7 +72,9 @@
+     print("result:", execute(
+         """
+             query {
+    -            bookCount
+    +            books {
+    +                title
+    +            }
+             }
+         """,
+         graph=graph,
+
+.. diff-doc:: render example
+
+    print("result:", execute(
         """
             query {
                 books {
@@ -517,7 +666,8 @@ If update the query we pass to ``execute``:
 
 Then our script should now produce the output:
 
-::
+.. diff-doc:: output example
+    :render: True
 
     books query: ListQuery(
         type=List(Book),
