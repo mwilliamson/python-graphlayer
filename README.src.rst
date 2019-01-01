@@ -1678,7 +1678,7 @@ And we set the IDs in the book resolver:
     +    def get_author_ids():
     +        return frozenset(
     +            book.author_id
-    +            for book in book
+    +            for book in books
     +        )
     +
     +    def get_authors_for_field_query(field_query):
@@ -1701,7 +1701,7 @@ And we set the IDs in the book resolver:
     def get_author_ids():
         return frozenset(
             book.author_id
-            for book in book
+            for book in books
         )
 
     def get_authors_for_field_query(field_query):
@@ -1775,6 +1775,11 @@ we need to pass in dependencies:
     graph = graph_definition.create_graph({
         sqlalchemy.orm.Session: session,
     })
+
+.. diff-doc:: output example
+    :render: False
+
+    result: {'books': [{'title': 'Leave It to Psmith', 'author': {'name': 'PG Wodehouse'}}, {'title': 'Right Ho, Jeeves', 'author': {'name': 'PG Wodehouse'}}]}
 
 Extracting duplication
 ~~~~~~~~~~~~~~~~~~~~~~
