@@ -1647,7 +1647,7 @@ We use that ``ids`` attribute in the author resolver:
          sqlalchemy_query = session.query(AuthorRecord.name)
     +
     +    if query.ids is not None:
-    +        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
+    +        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.ids))
 
          if query.is_keyed_by_id:
              sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
@@ -1657,7 +1657,7 @@ We use that ``ids`` attribute in the author resolver:
     sqlalchemy_query = session.query(AuthorRecord.name)
 
     if query.ids is not None:
-        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
+        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.ids))
 
     if query.is_keyed_by_id:
         sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
@@ -1937,7 +1937,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -    sqlalchemy_query = session.query(AuthorRecord.name)
     -
     -    if query.ids is not None:
-    -        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
+    -        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.ids))
     -
     -    if query.is_keyed_by_id:
     -        sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
@@ -1999,7 +1999,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -    def get_author_ids():
     -        return frozenset(
     -            book.author_id
-    -            for book in book
+    -            for book in books
     -        )
     -
     -    def get_authors_for_field_query(field_query):
@@ -2078,3 +2078,8 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
             Book.fields.author: g.single(gsql.sql_join({BookRecord.author_id: AuthorRecord.id})),
         },
     )
+
+.. diff-doc:: output example
+    :render: False
+
+    result: {'books': [{'title': 'Leave It to Psmith', 'author': {'name': 'PG Wodehouse'}}, {'title': 'Right Ho, Jeeves', 'author': {'name': 'PG Wodehouse'}}]}
