@@ -1135,7 +1135,33 @@ we can add an ``authors`` field to the root.
 We start by defining the ``Author`` object type,
 and adding the ``authors`` field to ``Root``.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -32,6 +32,10 @@
+     session.add(BookRecord(title="Captain Corelli's Mandolin", genre="historical_fiction", author_id=author_bernières.id))
+     session.flush()
+
+    +Author = g.ObjectType("Author", fields=(
+    +    g.field("name", type=g.String),
+    +))
+    +
+     Book = g.ObjectType("Book", fields=(
+         g.field("title", type=g.String),
+         g.field("genre", type=g.String),
+    @@ -39,6 +43,8 @@
+
+     Root = g.ObjectType("Root", fields=(
+         g.field("author_count", type=g.Int),
+    +    g.field("authors", type=g.ListType(Author)),
+    +
+         g.field("book_count", type=g.Int),
+         g.field("books", type=g.ListType(Book), params=(
+             g.param("genre", type=g.String, default=None),
+
+.. diff-doc:: render example
 
     Author = g.ObjectType("Author", fields=(
         g.field("name", type=g.String),
@@ -1154,7 +1180,52 @@ and adding the ``authors`` field to ``Root``.
 We define an ``AuthorQuery``,
 which can be resolved by a new resolver.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -73,6 +73,29 @@
+             for field_query in query.fields
+         ))
+
+    +class AuthorQuery(object):
+    +    def __init__(self, object_query):
+    +        self.type = (AuthorQuery, object_query.type)
+    +        self.object_query = object_query
+    +
+    +@g.resolver((AuthorQuery, Author))
+    +def resolve_authors(graph, query):
+    +    authors = session.query(AuthorRecord.name).all()
+    +
+    +    def resolve_field(author, field):
+    +        if field == Author.fields.name:
+    +            return author.name
+    +        else:
+    +            raise Exception("unknown field: {}".format(field))
+    +
+    +    return [
+    +        query.object_query.create_object(dict(
+    +            (field_query.key, resolve_field(author, field_query.field))
+    +            for field_query in query.object_query.fields
+    +        ))
+    +        for author in authors
+    +    ]
+    +
+     class BookQuery(object):
+         def __init__(self, object_query, genre=None):
+             self.type = (BookQuery, object_query.type)
+    @@ -117,7 +140,7 @@
+             for book in books
+         ]
+
+    -resolvers = (resolve_root, resolve_books)
+    +resolvers = (resolve_root, resolve_authors, resolve_books)
+     graph_definition = g.define_graph(resolvers=resolvers)
+     graph = graph_definition.create_graph({})
+
+
+.. diff-doc:: render example
 
     class AuthorQuery(object):
         def __init__(self, object_query):
@@ -1179,11 +1250,26 @@ which can be resolved by a new resolver.
             for author in authors
         ]
 
-    resolvers = (resolve_root, resolver_authors, resolve_books)
+    resolvers = (resolve_root, resolve_authors, resolve_books)
 
 Finally, we update the root resolver to resolve the ``authors`` field.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -56,6 +56,8 @@
+         def resolve_field(field_query):
+             if field_query.field == Root.fields.author_count:
+                 return session.query(AuthorRecord).count()
+    +        elif field_query.field == Root.fields.authors:
+    +            return graph.resolve(AuthorQuery(field_query.type_query.element_query))
+             elif field_query.field == Root.fields.book_count:
+                 return session.query(BookRecord).count()
+             elif field_query.field == Root.fields.books:
+
+.. diff-doc:: render example
 
     @g.resolver(Root)
     def resolve_root(graph, query):
@@ -1193,7 +1279,7 @@ Finally, we update the root resolver to resolve the ``authors`` field.
             elif field_query.field == Root.fields.authors:
                 return graph.resolve(AuthorQuery(field_query.type_query.element_query))
             elif field_query.field == Root.fields.book_count:
-                ...
+                return session.query(BookRecord).count()
 
 Adding an author field to books
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1202,7 +1288,21 @@ As the last change to the schema,
 let's add an ``author`` field to ``Book``.
 We start by updating the type:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -39,6 +39,7 @@
+     Book = g.ObjectType("Book", fields=(
+         g.field("title", type=g.String),
+         g.field("genre", type=g.String),
+    +    g.field("author", type=Author),
+     ))
+
+     Root = g.ObjectType("Root", fields=(
+
+.. diff-doc:: render example
 
     Book = g.ObjectType("Book", fields=(
         g.field("title", type=g.String),
@@ -1215,7 +1315,21 @@ If the ``author`` field is requested,
 then we'll need to fetch the ``author_id`` from the database,
 so we update ``field_to_expression``:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -113,6 +113,7 @@
+         field_to_expression = {
+             Book.fields.title: BookRecord.title,
+             Book.fields.genre: BookRecord.genre,
+    +        Book.fields.author: BookRecord.author_id,
+         }
+
+         expressions = frozenset(
+
+.. diff-doc:: render example
 
     field_to_expression = {
         Book.fields.title: BookRecord.title,
@@ -1231,7 +1345,28 @@ However, when fetching authors for books,
 it'd be more convenient to return them in a dictionary keyed by ID so they can easily matched to books by ``author_id``.
 We can change the ``AuthorQuery`` to optionally allow this alternative format:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -77,9 +77,13 @@
+         ))
+
+     class AuthorQuery(object):
+    -    def __init__(self, object_query):
+    +    def __init__(self, object_query, is_keyed_by_id=False):
+             self.type = (AuthorQuery, object_query.type)
+             self.object_query = object_query
+    +        self.is_keyed_by_id = is_keyed_by_id
+    +
+    +    def key_by_id(self):
+    +        return AuthorQuery(self.object_query, is_keyed_by_id=True)
+
+     @g.resolver((AuthorQuery, Author))
+     def resolve_authors(graph, query):
+
+.. diff-doc:: render example
 
     class AuthorQuery(object):
         def __init__(self, object_query, is_keyed_by_id=False):
@@ -1244,7 +1379,54 @@ We can change the ``AuthorQuery`` to optionally allow this alternative format:
 
 We then need to update the resolver to handle this:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -87,7 +87,12 @@
+
+     @g.resolver((AuthorQuery, Author))
+     def resolve_authors(graph, query):
+    -    authors = session.query(AuthorRecord.name).all()
+    +    sqlalchemy_query = session.query(AuthorRecord.name)
+    +
+    +    if query.is_keyed_by_id:
+    +        sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
+    +
+    +    authors = sqlalchemy_query.all()
+
+         def resolve_field(author, field):
+             if field == Author.fields.name:
+    @@ -95,13 +100,22 @@
+             else:
+                 raise Exception("unknown field: {}".format(field))
+
+    -    return [
+    -        query.object_query.create_object(dict(
+    +    def to_object(author):
+    +        return query.object_query.create_object(dict(
+                 (field_query.key, resolve_field(author, field_query.field))
+                 for field_query in query.object_query.fields
+             ))
+    -        for author in authors
+    -    ]
+    +
+    +    if query.is_keyed_by_id:
+    +        return dict(
+    +            (author.id, to_object(author))
+    +            for author in authors
+    +        )
+    +    else:
+    +        return [
+    +            to_object(author)
+    +            for author in authors
+    +        ]
+
+     class BookQuery(object):
+         def __init__(self, object_query, genre=None):
+
+.. diff-doc:: render example
 
     @g.resolver((AuthorQuery, Author))
     def resolve_authors(graph, query):
@@ -1280,29 +1462,110 @@ We then need to update the resolver to handle this:
 
 Now we can update the books resolver to fetch the authors using the graph:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -146,6 +146,12 @@
+
+         books = sqlalchemy_query.all()
+
+    +    authors = dict(
+    +        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
+    +        for field_query in query.object_query.fields
+    +        if field_query.field == Book.fields.author
+    +    )
+    +
+         def resolve_field(book, field):
+             if field == Book.fields.title:
+                 return book.title
+
+.. diff-doc:: render example
 
     books = sqlalchemy_query.all()
 
     authors = dict(
         (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
-        for field_query in query.fields
+        for field_query in query.object_query.fields
         if field_query.field == Book.fields.author
     )
 
 This creates a dictionary mapping from each field query to the authors fetched for that field query.
 We can this use this dictionary when resolving each field:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
 
-    elif field_query.field == Book.fields.author:
-        return authors[field_query.key][book.author_id]
+    ---
+    +++
+    @@ -152,17 +152,19 @@
+             if field_query.field == Book.fields.author
+         )
+
+    -    def resolve_field(book, field):
+    -        if field == Book.fields.title:
+    +    def resolve_field(book, field_query):
+    +        if field_query.field == Book.fields.title:
+                 return book.title
+    -        elif field == Book.fields.genre:
+    +        elif field_query.field == Book.fields.genre:
+                 return book.genre
+    +        elif field_query.field == Book.fields.author:
+    +            return authors[field_query.key][book.author_id]
+             else:
+    -            raise Exception("unknown field: {}".format(field))
+    +            raise Exception("unknown field: {}".format(field_query.field))
+
+         return [
+             query.object_query.create_object(dict(
+    -            (field_query.key, resolve_field(book, field_query.field))
+    +            (field_query.key, resolve_field(book, field_query))
+                 for field_query in query.object_query.fields
+             ))
+             for book in books
+
+.. diff-doc:: render example
+
+    def resolve_field(book, field_query):
+        if field_query.field == Book.fields.title:
+            return book.title
+        elif field_query.field == Book.fields.genre:
+            return book.genre
+        elif field_query.field == Book.fields.author:
+            return authors[field_query.key][book.author_id]
+        else:
+            raise Exception("unknown field: {}".format(field_query.field))
+
+    return [
+        query.object_query.create_object(dict(
+            (field_query.key, resolve_field(book, field_query))
+            for field_query in query.object_query.fields
+        ))
+        for book in books
+    ]
 
 Now if we update our executed query:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
 
-    print("result", execute(
+    ---
+    +++
+    @@ -179,6 +179,9 @@
+             query {
+                 books(genre: "comedy") {
+                     title
+    +                author {
+    +                    name
+    +                }
+                 }
+             }
+         """,
+
+.. diff-doc:: render example
+
+    print("result:", execute(
         """
             query {
                 books(genre: "comedy") {
@@ -1319,9 +1582,10 @@ Now if we update our executed query:
 
 We should see:
 
-::
+.. diff-doc:: output example
+    :render: True
 
-    result {'books': [{'author': {'name': 'PG Wodehouse'}, 'title': 'Leave It to Psmith'}, {'author': {'name': 'PG Wodehouse'}, 'title': 'Right Ho, Jeeves'}]}
+    result: {'books': [{'title': 'Leave It to Psmith', 'author': {'name': 'PG Wodehouse'}}, {'title': 'Right Ho, Jeeves', 'author': {'name': 'PG Wodehouse'}}]}
 
 One inefficiency in the current implementation is that we fetch all authors,
 regardless of whether they're the author of a book that we've fetched.
@@ -1329,7 +1593,33 @@ We can fix this by filtering the author query by IDs,
 similarly to how we filtered the book query by genre.
 We update ``AuthorQuery`` to add in an ``ids`` attribute:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -77,13 +77,17 @@
+         ))
+
+     class AuthorQuery(object):
+    -    def __init__(self, object_query, is_keyed_by_id=False):
+    +    def __init__(self, object_query, ids=None, is_keyed_by_id=False):
+             self.type = (AuthorQuery, object_query.type)
+             self.object_query = object_query
+    +        self.ids = ids
+             self.is_keyed_by_id = is_keyed_by_id
+
+         def key_by_id(self):
+    -        return AuthorQuery(self.object_query, is_keyed_by_id=True)
+    +        return AuthorQuery(self.object_query, ids=self.ids, is_keyed_by_id=True)
+    +
+    +    def where(self, *, ids):
+    +        return AuthorQuery(self.object_query, ids=ids, is_keyed_by_id=self.is_keyed_by_id)
+
+     @g.resolver((AuthorQuery, Author))
+     def resolve_authors(graph, query):
+
+.. diff-doc:: render example
 
     class AuthorQuery(object):
         def __init__(self, object_query, ids=None, is_keyed_by_id=False):
@@ -1346,7 +1636,23 @@ We update ``AuthorQuery`` to add in an ``ids`` attribute:
 
 We use that ``ids`` attribute in the author resolver:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -92,6 +92,9 @@
+     @g.resolver((AuthorQuery, Author))
+     def resolve_authors(graph, query):
+         sqlalchemy_query = session.query(AuthorRecord.name)
+    +
+    +    if query.ids is not None:
+    +        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
+
+         if query.is_keyed_by_id:
+             sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
+
+.. diff-doc:: render example
 
     sqlalchemy_query = session.query(AuthorRecord.name)
 
@@ -1360,7 +1666,35 @@ We use that ``ids`` attribute in the author resolver:
 
 And we set the IDs in the book resolver:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -153,8 +153,20 @@
+
+         books = sqlalchemy_query.all()
+
+    +    def get_author_ids():
+    +        return frozenset(
+    +            book.author_id
+    +            for book in book
+    +        )
+    +
+    +    def get_authors_for_field_query(field_query):
+    +        author_query = AuthorQuery(field_query.type_query) \
+    +            .where(ids=get_author_ids()) \
+    +            .key_by_id()
+    +        return graph.resolve(author_query)
+    +
+         authors = dict(
+    -        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
+    +        (field_query.key, get_authors_for_field_query(field_query))
+             for field_query in query.object_query.fields
+             if field_query.field == Book.fields.author
+         )
+
+.. diff-doc:: render example
 
     books = sqlalchemy_query.all()
 
@@ -1392,19 +1726,51 @@ Dependencies for resolvers are marked using the decorator ``g.dependencies``,
 which allow dependencies to be passed as keyword arguments to resolvers.
 For instance, to add a dependency on a SQLAlchemy session to ``resolve_root``:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -53,7 +53,8 @@
+     ))
+
+     @g.resolver(Root)
+    -def resolve_root(graph, query):
+    +@g.dependencies(session=sqlalchemy.orm.Session)
+    +def resolve_root(graph, query, *, session):
+         def resolve_field(field_query):
+             if field_query.field == Root.fields.author_count:
+                 return session.query(AuthorRecord).count()
+
+.. diff-doc:: render example
 
     @g.resolver(Root)
     @g.dependencies(session=sqlalchemy.orm.Session)
     def resolve_root(graph, query, *, session):
-        ...
 
 A dependency can be identified by any value.
 In this case, we identify the session dependency by its class, ``sqlalchemy.orm.Session``.
 When creating the graph,
 we need to pass in dependencies:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -192,7 +192,9 @@
+
+     resolvers = (resolve_root, resolve_authors, resolve_books)
+     graph_definition = g.define_graph(resolvers=resolvers)
+    -graph = graph_definition.create_graph({})
+    +graph = graph_definition.create_graph({
+    +    sqlalchemy.orm.Session: session,
+    +})
+
+     print("result:", execute(
+         """
+
+.. diff-doc:: render example
 
     graph = graph_definition.create_graph({
         sqlalchemy.orm.Session: session,
@@ -1418,7 +1784,67 @@ By extracting these common patterns into functions that build resolvers,
 we can reduce duplication and simplify the definition of resolvers.
 For instance, our root resolver can be rewritten as:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -52,30 +52,30 @@
+         )),
+     ))
+
+    -@g.resolver(Root)
+    +resolve_root = g.root_object_resolver(Root)
+    +
+    +@resolve_root.field(Root.fields.author_count)
+     @g.dependencies(session=sqlalchemy.orm.Session)
+    -def resolve_root(graph, query, *, session):
+    -    def resolve_field(field_query):
+    -        if field_query.field == Root.fields.author_count:
+    -            return session.query(AuthorRecord).count()
+    -        elif field_query.field == Root.fields.authors:
+    -            return graph.resolve(AuthorQuery(field_query.type_query.element_query))
+    -        elif field_query.field == Root.fields.book_count:
+    -            return session.query(BookRecord).count()
+    -        elif field_query.field == Root.fields.books:
+    -            book_query = BookQuery(field_query.type_query.element_query)
+    -
+    -            if field_query.args.genre is not None:
+    -                book_query = book_query.where(genre=field_query.args.genre)
+    -
+    -            return graph.resolve(book_query)
+    -        else:
+    -            raise Exception("unknown field: {}".format(field_query.field))
+    -
+    -    return query.create_object(dict(
+    -        (field_query.key, resolve_field(field_query))
+    -        for field_query in query.fields
+    -    ))
+    +def root_resolve_author_count(graph, query, args, *, session):
+    +    return session.query(AuthorRecord).count()
+    +
+    +@resolve_root.field(Root.fields.authors)
+    +def root_resolve_authors(graph, query, args):
+    +    return graph.resolve(AuthorQuery(query.element_query))
+    +
+    +@resolve_root.field(Root.fields.book_count)
+    +@g.dependencies(session=sqlalchemy.orm.Session)
+    +def root_resolve_book_count(graph, query, args, *, session):
+    +    return session.query(BookRecord).count()
+    +
+    +@resolve_root.field(Root.fields.books)
+    +def root_resolve_books(graph, query, args):
+    +    book_query = BookQuery(query.element_query)
+    +
+    +    if args.genre is not None:
+    +        book_query = book_query.where(genre=args.genre)
+    +
+    +    return graph.resolve(book_query)
+
+     class AuthorQuery(object):
+         def __init__(self, object_query, ids=None, is_keyed_by_id=False):
+
+.. diff-doc:: render example
 
     resolve_root = g.root_object_resolver(Root)
 
@@ -1447,7 +1873,173 @@ For instance, our root resolver can be rewritten as:
 
 Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolvers for authors and books:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -1,5 +1,6 @@
+     import graphlayer as g
+     from graphlayer.graphql import execute
+    +import graphlayer.sqlalchemy as gsql
+     import sqlalchemy.ext.declarative
+     import sqlalchemy.orm
+
+    @@ -61,7 +62,7 @@
+
+     @resolve_root.field(Root.fields.authors)
+     def root_resolve_authors(graph, query, args):
+    -    return graph.resolve(AuthorQuery(query.element_query))
+    +    return graph.resolve(gsql.select(query))
+
+     @resolve_root.field(Root.fields.book_count)
+     @g.dependencies(session=sqlalchemy.orm.Session)
+    @@ -70,125 +71,30 @@
+
+     @resolve_root.field(Root.fields.books)
+     def root_resolve_books(graph, query, args):
+    -    book_query = BookQuery(query.element_query)
+    +    book_query = gsql.select(query)
+
+         if args.genre is not None:
+    -        book_query = book_query.where(genre=args.genre)
+    +        book_query = book_query.where(BookRecord.genre == args.genre)
+
+         return graph.resolve(book_query)
+
+    -class AuthorQuery(object):
+    -    def __init__(self, object_query, ids=None, is_keyed_by_id=False):
+    -        self.type = (AuthorQuery, object_query.type)
+    -        self.object_query = object_query
+    -        self.ids = ids
+    -        self.is_keyed_by_id = is_keyed_by_id
+    +resolve_authors = gsql.sql_table_resolver(
+    +    Author,
+    +    AuthorRecord,
+    +    fields={
+    +        Author.fields.name: gsql.expression(AuthorRecord.name),
+    +    },
+    +)
+
+    -    def key_by_id(self):
+    -        return AuthorQuery(self.object_query, ids=self.ids, is_keyed_by_id=True)
+    -
+    -    def where(self, *, ids):
+    -        return AuthorQuery(self.object_query, ids=ids, is_keyed_by_id=self.is_keyed_by_id)
+    -
+    -@g.resolver((AuthorQuery, Author))
+    -def resolve_authors(graph, query):
+    -    sqlalchemy_query = session.query(AuthorRecord.name)
+    -
+    -    if query.ids is not None:
+    -        sqlalchemy_query = sqlalchemy_query.filter(AuthorRecord.id.in_(query.id))
+    -
+    -    if query.is_keyed_by_id:
+    -        sqlalchemy_query = sqlalchemy_query.add_columns(AuthorRecord.id)
+    -
+    -    authors = sqlalchemy_query.all()
+    -
+    -    def resolve_field(author, field):
+    -        if field == Author.fields.name:
+    -            return author.name
+    -        else:
+    -            raise Exception("unknown field: {}".format(field))
+    -
+    -    def to_object(author):
+    -        return query.object_query.create_object(dict(
+    -            (field_query.key, resolve_field(author, field_query.field))
+    -            for field_query in query.object_query.fields
+    -        ))
+    -
+    -    if query.is_keyed_by_id:
+    -        return dict(
+    -            (author.id, to_object(author))
+    -            for author in authors
+    -        )
+    -    else:
+    -        return [
+    -            to_object(author)
+    -            for author in authors
+    -        ]
+    -
+    -class BookQuery(object):
+    -    def __init__(self, object_query, genre=None):
+    -        self.type = (BookQuery, object_query.type)
+    -        self.object_query = object_query
+    -        self.genre = genre
+    -
+    -    def where(self, *, genre):
+    -        return BookQuery(self.object_query, genre=genre)
+    -
+    -@g.resolver((BookQuery, Book))
+    -def resolve_books(graph, query):
+    -    field_to_expression = {
+    -        Book.fields.title: BookRecord.title,
+    -        Book.fields.genre: BookRecord.genre,
+    -        Book.fields.author: BookRecord.author_id,
+    -    }
+    -
+    -    expressions = frozenset(
+    -        field_to_expression[field_query.field]
+    -        for field_query in query.object_query.fields
+    -    )
+    -
+    -    sqlalchemy_query = session.query(*expressions)
+    -
+    -    if query.genre is not None:
+    -        sqlalchemy_query = sqlalchemy_query.filter(BookRecord.genre == query.genre)
+    -
+    -    books = sqlalchemy_query.all()
+    -
+    -    def get_author_ids():
+    -        return frozenset(
+    -            book.author_id
+    -            for book in book
+    -        )
+    -
+    -    def get_authors_for_field_query(field_query):
+    -        author_query = AuthorQuery(field_query.type_query) \
+    -            .where(ids=get_author_ids()) \
+    -            .key_by_id()
+    -        return graph.resolve(author_query)
+    -
+    -    authors = dict(
+    -        (field_query.key, get_authors_for_field_query(field_query))
+    -        for field_query in query.object_query.fields
+    -        if field_query.field == Book.fields.author
+    -    )
+    -
+    -    def resolve_field(book, field_query):
+    -        if field_query.field == Book.fields.title:
+    -            return book.title
+    -        elif field_query.field == Book.fields.genre:
+    -            return book.genre
+    -        elif field_query.field == Book.fields.author:
+    -            return authors[field_query.key][book.author_id]
+    -        else:
+    -            raise Exception("unknown field: {}".format(field_query.field))
+    -
+    -    return [
+    -        query.object_query.create_object(dict(
+    -            (field_query.key, resolve_field(book, field_query))
+    -            for field_query in query.object_query.fields
+    -        ))
+    -        for book in books
+    -    ]
+    +resolve_books = gsql.sql_table_resolver(
+    +    Book,
+    +    BookRecord,
+    +    fields={
+    +        Book.fields.title: gsql.expression(BookRecord.title),
+    +        Book.fields.genre: gsql.expression(BookRecord.genre),
+    +        Book.fields.author: g.single(gsql.sql_join({BookRecord.author_id: AuthorRecord.id})),
+    +    },
+    +)
+
+     resolvers = (resolve_root, resolve_authors, resolve_books)
+     graph_definition = g.define_graph(resolvers=resolvers)
+
+.. diff-doc:: render example
 
     import graphlayer.sqlalchemy as gsql
 
