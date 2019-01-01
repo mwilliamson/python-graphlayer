@@ -693,7 +693,39 @@ with the object query being accessible through the ``element_query`` attribute.
 We can write a resolver for a list of books by first fetching all of the books,
 and then mapping each fetched book to an object according to the fields requested in the query.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -62,8 +62,23 @@
+
+     @g.resolver(g.ListType(Book))
+     def resolve_books(graph, query):
+    -    print("books query:", query)
+    -    return []
+    +    books = session.query(BookRecord.title, BookRecord.genre).all()
+    +
+    +    def resolve_field(book, field):
+    +        if field == Book.fields.title:
+    +            return book.title
+    +        elif field == Book.fields.genre:
+    +            return book.genre
+    +        else:
+    +            raise Exception("unknown field: {}".format(field))
+    +
+    +    return [
+    +        query.element_query.create_object(dict(
+    +            (field_query.key, resolve_field(book, field_query.field))
+    +            for field_query in query.element_query.fields
+    +        ))
+    +        for book in books
+    +    ]
+
+     resolvers = (resolve_root, resolve_books)
+     graph_definition = g.define_graph(resolvers=resolvers)
+
+.. diff-doc:: render example
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
@@ -717,16 +749,42 @@ and then mapping each fetched book to an object according to the fields requeste
 
 Running this code should give the output:
 
-::
+.. diff-doc:: output example
+    :render: True
 
-    result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}, {'title': "Captain Corelli's Mandolin"}]}
+    result: {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}, {'title': "Captain Corelli's Mandolin"}]}
 
 We can make the resolver more efficient by only fetching those columns required by the query.
 Although this makes comparatively little difference with the data we have at the moment,
 this can help improve performance when there are many more fields the user can request,
 and with larger data sets.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -62,7 +62,17 @@
+
+     @g.resolver(g.ListType(Book))
+     def resolve_books(graph, query):
+    -    books = session.query(BookRecord.title, BookRecord.genre).all()
+    +    field_to_expression = {
+    +        Book.fields.title: BookRecord.title,
+    +        Book.fields.genre: BookRecord.genre,
+    +    }
+    +
+    +    expressions = frozenset(
+    +        field_to_expression[field_query.field]
+    +        for field_query in query.element_query.fields
+    +    )
+    +
+    +    books = session.query(*expressions).all()
+
+         def resolve_field(book, field):
+             if field == Book.fields.title:
+
+.. diff-doc:: render example
 
     @g.resolver(g.ListType(Book))
     def resolve_books(graph, query):
@@ -778,7 +836,25 @@ At the moment, the code resolves queries for lists of books,
 which doesn't provide a convenient way for us to tell the resolver to only fetch a subset of books.
 To solve this, we'll wrap the object query in our own custom query class.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -60,6 +60,11 @@
+             for field_query in query.fields
+         ))
+
+    +class BookQuery(object):
+    +    def __init__(self, object_query):
+    +        self.type = (BookQuery, object_query.type)
+    +        self.object_query = object_query
+    +
+     @g.resolver(g.ListType(Book))
+     def resolve_books(graph, query):
+         field_to_expression = {
+
+.. diff-doc:: render example
 
     class BookQuery(object):
         def __init__(self, object_query):
@@ -787,7 +863,22 @@ To solve this, we'll wrap the object query in our own custom query class.
 
 We can then create a ``BookQuery`` in the root resolver:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -51,7 +51,7 @@
+             elif field_query.field == Root.fields.book_count:
+                 return session.query(BookRecord).count()
+             elif field_query.field == Root.fields.books:
+    -            return graph.resolve(field_query.type_query)
+    +            return graph.resolve(BookQuery(field_query.type_query.element_query))
+             else:
+                 raise Exception("unknown field: {}".format(field_query.field))
+
+
+.. diff-doc:: render example
 
     elif field_query.field == Root.fields.books:
         return graph.resolve(BookQuery(field_query.type_query.element_query))
@@ -796,7 +887,43 @@ And we'll have to update ``resolve_books`` accordingly.
 Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((BookQuery, Book))``,
 and replace ``query.element_query`` with ``query.object_query``.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -65,7 +65,7 @@
+             self.type = (BookQuery, object_query.type)
+             self.object_query = object_query
+
+    -@g.resolver(g.ListType(Book))
+    +@g.resolver((BookQuery, Book))
+     def resolve_books(graph, query):
+         field_to_expression = {
+             Book.fields.title: BookRecord.title,
+    @@ -74,7 +74,7 @@
+
+         expressions = frozenset(
+             field_to_expression[field_query.field]
+    -        for field_query in query.element_query.fields
+    +        for field_query in query.object_query.fields
+         )
+
+         books = session.query(*expressions).all()
+    @@ -88,9 +88,9 @@
+                 raise Exception("unknown field: {}".format(field))
+
+         return [
+    -        query.element_query.create_object(dict(
+    +        query.object_query.create_object(dict(
+                 (field_query.key, resolve_field(book, field_query.field))
+    -            for field_query in query.element_query.fields
+    +            for field_query in query.object_query.fields
+             ))
+             for book in books
+         ]
+
+.. diff-doc:: render example
 
     @g.resolver((BookQuery, Book))
     def resolve_books(graph, query):
@@ -831,7 +958,24 @@ and replace ``query.element_query`` with ``query.object_query``.
 Now we can get on with actually adding the parameter.
 We'll first need to update the definition of the ``books`` field on ``Root``:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -40,7 +40,9 @@
+     Root = g.ObjectType("Root", fields=(
+         g.field("author_count", type=g.Int),
+         g.field("book_count", type=g.Int),
+    -    g.field("books", type=g.ListType(Book)),
+    +    g.field("books", type=g.ListType(Book), params=(
+    +        g.param("genre", type=g.String, default=None),
+    +    )),
+     ))
+
+     @g.resolver(Root)
+
+.. diff-doc:: render example
 
     Root = g.ObjectType("Root", fields=(
         g.field("author_count", type=g.Int),
@@ -843,7 +987,28 @@ We'll first need to update the definition of the ``books`` field on ``Root``:
 
 Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` method:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -63,9 +63,13 @@
+         ))
+
+     class BookQuery(object):
+    -    def __init__(self, object_query):
+    +    def __init__(self, object_query, genre=None):
+             self.type = (BookQuery, object_query.type)
+             self.object_query = object_query
+    +        self.genre = genre
+    +
+    +    def where(self, *, genre):
+    +        return BookQuery(self.object_query, genre=genre)
+
+     @g.resolver((BookQuery, Book))
+     def resolve_books(graph, query):
+
+.. diff-doc:: render example
 
     class BookQuery(object):
         def __init__(self, object_query, genre=None):
@@ -856,7 +1021,27 @@ Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` meth
 
 We can use this ``where`` method when resolving the ``books`` field in the root resolver.
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -53,7 +53,12 @@
+             elif field_query.field == Root.fields.book_count:
+                 return session.query(BookRecord).count()
+             elif field_query.field == Root.fields.books:
+    -            return graph.resolve(BookQuery(field_query.type_query.element_query))
+    +            book_query = BookQuery(field_query.type_query.element_query)
+    +
+    +            if field_query.args.genre is not None:
+    +                book_query = book_query.where(genre=field_query.args.genre)
+    +
+    +            return graph.resolve(book_query)
+             else:
+                 raise Exception("unknown field: {}".format(field_query.field))
+
+
+.. diff-doc:: render example
 
     elif field_query.field == Root.fields.books:
         book_query = BookQuery(field_query.type_query.element_query)
@@ -869,13 +1054,33 @@ We can use this ``where`` method when resolving the ``books`` field in the root 
 Finally, we need to filter the books we fetch from the database.
 We'll replace:
 
-.. code-block:: python
+.. diff-doc:: render example
 
     books = session.query(*expressions).all()
 
 with:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
+
+    ---
+    +++
+    @@ -88,7 +88,12 @@
+             for field_query in query.object_query.fields
+         )
+
+    -    books = session.query(*expressions).all()
+    +    sqlalchemy_query = session.query(*expressions)
+    +
+    +    if query.genre is not None:
+    +        sqlalchemy_query = sqlalchemy_query.filter(BookRecord.genre == query.genre)
+    +
+    +    books = sqlalchemy_query.all()
+
+         def resolve_field(book, field):
+             if field == Book.fields.title:
+
+.. diff-doc:: render example
 
     sqlalchemy_query = session.query(*expressions)
 
@@ -886,9 +1091,24 @@ with:
 
 If we update our script with the new query:
 
-.. code-block:: python
+.. diff-doc:: diff example
+    :render: False
 
-    print("result", execute(
+    ---
+    +++
+    @@ -118,7 +118,7 @@
+     print("result:", execute(
+         """
+             query {
+    -            books {
+    +            books(genre: "comedy") {
+                     title
+                 }
+             }
+
+.. diff-doc:: render example
+
+    print("result:", execute(
         """
             query {
                 books(genre: "comedy") {
@@ -902,9 +1122,10 @@ If we update our script with the new query:
 
 We should see only books in the comedy genre in the output:
 
-::
+.. diff-doc:: output example
+    :render: True
 
-    result {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}]}
+    result: {'books': [{'title': 'Leave It to Psmith'}, {'title': 'Right Ho, Jeeves'}]}
 
 Adding authors to the root
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
