@@ -234,7 +234,6 @@ For instance, we could add an author count to the root:
          g.field("book_count", type=g.Int),
      ))
 
-
 .. diff-doc:: render example
 
     Root = g.ObjectType("Root", fields=(
