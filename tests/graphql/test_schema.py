@@ -72,7 +72,7 @@ def test_object_type_is_converted_to_non_null_graphql_object_type():
     graph_type = g.ObjectType("Obj", fields=(
         g.field("value", type=g.String),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_object_type(
             name="Obj",
@@ -87,7 +87,7 @@ def test_object_type_field_names_are_converted_from_snake_case_to_camel_case():
     graph_type = g.ObjectType("Obj", fields=(
         g.field("field_name", type=g.String),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_object_type(
             fields=is_mapping({
@@ -101,7 +101,7 @@ def test_recursive_object_type_is_converted_to_non_null_graphql_object_type():
     graph_type = g.ObjectType("Obj", fields=lambda: (
         g.field("self", type=graph_type),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_object_type(
             name="Obj",
@@ -140,7 +140,7 @@ def test_field_param_is_converted_to_non_null_graphql_arg():
             g.param("arg", g.Int),
         )),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_object_type(
             fields=is_mapping({
@@ -158,7 +158,7 @@ def test_when_param_has_default_then_param_is_converted_to_nullable_graphql_arg(
             g.param("arg", g.Int, default=42),
         )),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_object_type(
             fields=is_mapping({
@@ -174,7 +174,7 @@ def test_input_object_type_is_converted_to_non_null_graphql_input_object_type():
     graph_type = g.InputObjectType("Obj", fields=(
         g.input_field("value", type=g.String),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_input_object_type(
             name="Obj",
@@ -189,7 +189,7 @@ def test_input_object_type_field_names_are_converted_from_snake_case_to_camel_ca
     graph_type = g.InputObjectType("Obj", fields=(
         g.input_field("field_name", type=g.String),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_input_object_type(
             fields=is_mapping({
@@ -203,7 +203,7 @@ def test_when_input_field_has_default_then_input_field_type_is_nullable():
     graph_type = g.InputObjectType("Obj", fields=(
         g.input_field("value", type=g.String, default=""),
     ))
-    
+
     assert_that(to_graphql_type(graph_type), is_graphql_non_null(
         is_graphql_input_object_type(
             name="Obj",
@@ -212,8 +212,8 @@ def test_when_input_field_has_default_then_input_field_type_is_nullable():
             }),
         ),
     ))
-    
-    
+
+
 
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
 is_graphql_float = equal_to(graphql.GraphQLFloat)
@@ -246,8 +246,8 @@ def is_graphql_input_object_type(name=None, fields=None):
     if name is None:
         name = anything
     if fields is None:
-        fields = anything   
-    
+        fields = anything
+
     return all_of(
         is_instance(graphql.GraphQLInputObjectType),
         has_attrs(
@@ -287,10 +287,10 @@ def is_graphql_non_null(element_matcher):
 def is_graphql_object_type(name=None, fields=None, interfaces=None):
     if name is None:
         name = anything
-    
+
     if fields is None:
         fields = anything
-    
+
     if interfaces is None:
         interfaces = anything
 
@@ -307,10 +307,10 @@ def is_graphql_object_type(name=None, fields=None, interfaces=None):
 def is_graphql_field(type=None, args=None):
     if type is None:
         type = anything
-    
+
     if args is None:
         args = anything
-    
+
     return all_of(
         is_instance(graphql.GraphQLField),
         has_attrs(type=type, args=args),

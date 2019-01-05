@@ -32,9 +32,9 @@ __all__ = [
 
     "constant_object_resolver",
     "root_object_resolver",
-    
+
     "Object",
-    
+
     "Boolean",
     "EnumType",
     "field",

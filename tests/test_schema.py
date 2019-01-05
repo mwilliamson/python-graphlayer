@@ -11,9 +11,9 @@ from .matchers import is_query
 
 def test_when_param_does_not_exist_on_params_then_error_is_raised():
     params = schema.Params("book", {})
-    
+
     error = pytest.raises(ValueError, lambda: params.author)
-    
+
     assert_that(str(error.value), equal_to("book has no param author"))
 
 
@@ -21,9 +21,9 @@ def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
     book = schema.ObjectType("Book", fields=(
         schema.field("title", schema.String),
     ))
-    
+
     error = pytest.raises(ValueError, lambda: book.fields.author)
-    
+
     assert_that(str(error.value), equal_to("Book has no field author"))
 
 
@@ -35,7 +35,7 @@ def test_given_input_field_has_default_when_input_field_is_not_set_then_default_
             schema.input_field("field1", type=schema.Int, default=42),
         ),
     )
-    
+
     input_value = Input()
     assert_that(input_value, has_attrs(
         field0=None,
@@ -50,7 +50,7 @@ def test_given_input_field_has_no_default_when_input_field_is_not_set_then_error
             schema.input_field("field0", type=schema.Int),
         ),
     )
-    
+
     error = pytest.raises(ValueError, lambda: Input())
     assert_that(str(error.value), equal_to("missing value for field0"))
 
@@ -65,7 +65,7 @@ def test_given_field_arg_has_default_when_field_arg_is_not_set_then_default_is_u
             ]),
         ),
     )
-    
+
     field_query = Root.fields.one()
     assert_that(field_query.args, has_attrs(
         arg0=None,
@@ -82,7 +82,7 @@ def test_given_field_arg_has_no_default_when_field_arg_is_not_set_then_error_is_
             ]),
         ),
     )
-    
+
     error = pytest.raises(ValueError, lambda: Root.fields.one())
     assert_that(str(error.value), equal_to("missing value for arg0"))
 
@@ -110,7 +110,7 @@ class TestAdd(object):
                 schema.field("address", type=Address),
             ),
         )
-        
+
         Address = schema.ObjectType(
             "Address",
             fields=lambda: (
@@ -119,7 +119,7 @@ class TestAdd(object):
                 schema.field("postcode", type=schema.String),
             ),
         )
-        
+
         left_query = User(
             schema.key("address", User.fields.address(
                 schema.key("first_line", Address.fields.first_line()),
@@ -132,7 +132,7 @@ class TestAdd(object):
                 schema.key("postcode", Address.fields.postcode()),
             )),
         )
-        
+
         assert_that(left_query + right_query, is_query(
             User(
                 schema.key("address", User.fields.address(
@@ -208,12 +208,12 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
             schema.key("length", Book.fields.length()),
         )
-        
+
         assert_that(query.for_type(Song), is_query(Song(
             schema.key("title", Song.fields.title()),
             schema.key("length", Song.fields.length()),
         )))
-        
+
     def test_object_type_for_type_retains_fields_for_subtypes(self):
         Item = schema.InterfaceType("Item", fields=(
             schema.field("title", type=schema.String),
@@ -231,7 +231,7 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
             schema.key("length", Book.fields.length()),
         )
-        
+
         assert_that(query.for_type(Item), is_query(Item(
             schema.key("title", Item.fields.title()),
             schema.key("length", Song.fields.length()),
@@ -251,7 +251,7 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
             schema.key("length", Book.fields.length()),
         ).for_type(schema.ListType(Song))
-        
+
         assert_that(query, is_query(schema.ListType(Song)(
             schema.key("length", Song.fields.length()),
         )))
@@ -269,7 +269,7 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
             schema.key("length", Book.fields.length()),
         ).for_type(schema.NullableType(Song))
-        
+
         assert_that(query, is_query(schema.NullableType(Song)(
             schema.key("length", Song.fields.length()),
         )))
@@ -289,7 +289,7 @@ class TestFieldQuery(object):
         field_query = Root.fields.song.query(key="song", args=(), type_query=Item(
             schema.key("title", Item.fields.title()),
         ))
-        
+
         assert_that(field_query, is_query(
             Root.fields.song.query(key="song", args=(), type_query=Song(
                 schema.key("title", Song.fields.title()),
@@ -400,18 +400,18 @@ class TestQueryString(object):
                 element_query=scalar_query,
             )
         """)))
-    
+
     def test_object_query_string_includes_type_and_field_queries(self):
         Book = schema.ObjectType("Book", fields=(
             schema.field("title", schema.String),
             schema.field("publication_year", schema.Int),
         ))
-        
+
         query = Book(
             schema.key("title", Book.fields.title()),
             schema.key("year", Book.fields.publication_year()),
         )
-        
+
         assert_that(str(query), equal_to(dedent("""
             ObjectQuery(
                 type=Book,
@@ -436,9 +436,9 @@ class TestQueryString(object):
         Book = schema.ObjectType("Book", fields=(
             schema.field("title", schema.String),
         ))
-        
+
         query = schema.key("title", Book.fields.title())
-        
+
         assert_that(query.to_string(Book), equal_to(dedent("""
             FieldQuery(
                 key="title",
@@ -450,13 +450,13 @@ class TestQueryString(object):
 
     def test_field_can_be_from_subtype(self):
         Item = schema.InterfaceType("Item", fields=())
-        
+
         Book = schema.ObjectType("Book", fields=(
             schema.field("title", schema.String),
         ), interfaces=(Item, ))
-        
+
         query = schema.key("title", Book.fields.title())
-        
+
         assert_that(query.to_string(Item), equal_to(dedent("""
             FieldQuery(
                 key="title",
@@ -472,9 +472,9 @@ class TestQueryString(object):
                 schema.param("truncate", schema.Int),
             )),
         ))
-        
+
         query = schema.key("title", Book.fields.title(Book.fields.title.params.truncate(42)))
-        
+
         assert_that(query.to_string(Book), equal_to(dedent("""
             FieldQuery(
                 key="title",

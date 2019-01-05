@@ -8,14 +8,14 @@ def create_graph(resolvers):
 def define_graph(resolvers):
     return GraphDefinition(resolvers)
 
-    
+
 class GraphDefinition(object):
     def __init__(self, resolvers):
         self._resolvers = iterables.to_dict(
             (resolver.type, resolver)
             for resolver in _flatten(resolvers)
         )
-    
+
     def create_graph(self, dependencies):
         return Graph(self._resolvers, dependencies)
 
@@ -24,7 +24,7 @@ class Graph(object):
     def __init__(self, resolvers, dependencies):
         self._resolvers = resolvers
         self._injector = Injector(dependencies)
-    
+
     def resolve(self, *args, **kwargs):
         type = kwargs.pop("type", None)
         if type is None:
@@ -39,7 +39,7 @@ class Injector(object):
     def __init__(self, dependencies):
         self._dependencies = dependencies.copy()
         self._dependencies[Injector] = self
-        
+
     def call_with_dependencies(self, func, *args, **kwargs):
         dependencies = getattr(func, "dependencies", dict())
         dependency_kwargs = iterables.to_dict(
@@ -64,7 +64,7 @@ def resolver(type):
     def register_resolver(func):
         func.type = type
         return func
-    
+
     return register_resolver
 
 
@@ -72,5 +72,5 @@ def dependencies(**kwargs):
     def register_dependency(func):
         func.dependencies = kwargs
         return func
-    
+
     return register_dependency

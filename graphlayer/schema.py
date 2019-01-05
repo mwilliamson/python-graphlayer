@@ -13,7 +13,7 @@ class ScalarType(object):
 
     def __call__(self):
         return scalar_query
-    
+
     def __str__(self):
         return self.name
 
@@ -36,7 +36,7 @@ class ScalarQuery(object):
             return self
         else:
             return NotImplemented
-    
+
     def __str__(self):
         return "scalar_query"
 
@@ -68,16 +68,16 @@ class InputObjectType(object):
     def __init__(self, name, fields):
         self.name = name
         self.fields = Fields(name, fields)
-    
+
     def __call__(self, **explicit_field_values):
         def get_field_value(field):
             value = explicit_field_values.get(field.name, field.default)
-            
+
             if value is _undefined:
                 raise ValueError("missing value for {}".format(field.name))
             else:
                 return value
-        
+
         field_values = iterables.to_dict(
             (field.name, get_field_value(field))
             for field in self.fields
@@ -98,11 +98,11 @@ class InputField(object):
         self.name = name
         self.type = type
         self.default = default
-    
+
     @property
     def has_default(self):
         return self.default is not _undefined
-    
+
     def __repr__(self):
         return "InputField(name={!r}, type={!r})".format(self.name, self.type)
 
@@ -123,25 +123,25 @@ class InterfaceType(object):
 class ListType(object):
     def __init__(self, element_type):
         self.element_type = element_type
-    
+
     def __call__(self, *args, **kwargs):
         return ListQuery(self, self.element_type(*args, **kwargs))
-    
+
     def __eq__(self, other):
         if isinstance(other, ListType):
             return self.element_type == other.element_type
         else:
             return NotImplemented
-    
+
     def __ne__(self, other):
         return not (self == other)
-    
+
     def __hash__(self):
         return hash(self.element_type)
-    
+
     def __repr__(self):
         return "ListType(element_type={!r})".format(self.element_type)
-    
+
     def __str__(self):
         return "List({})".format(self.element_type)
 
@@ -169,7 +169,7 @@ class ListQuery(object):
             self.element_query.to_json_value(element)
             for element in value
         ]
-    
+
     def __str__(self):
         return _format_call_tree("ListQuery", (
             ("type", self.type),
@@ -181,22 +181,22 @@ class ListQuery(object):
 class NullableType(object):
     def __init__(self, element_type):
         self.element_type = element_type
-    
+
     def __call__(self, *args, **kwargs):
         return NullableQuery(self, self.element_type(*args, **kwargs))
-    
+
     def __eq__(self, other):
         if isinstance(other, NullableType):
             return self.element_type == other.element_type
         else:
             return NotImplemented
-    
+
     def __ne__(self, other):
         return not (self == other)
-    
+
     def __hash__(self):
         return hash(self.element_type)
-    
+
     def __repr__(self):
         return "NullableType(element_type={!r})".format(self.element_type)
 
@@ -231,13 +231,13 @@ class ObjectType(object):
         # TODO: avoiding mutation of the interface would be nicer
         for interface in interfaces:
             interface.subtypes.append(self)
-    
+
     def __call__(self, *fields):
         return ObjectQuery(self, fields=fields)
 
     def __repr__(self):
         return "ObjectType(name={!r})".format(self.name)
-    
+
     def __str__(self):
         return self.name
 
@@ -248,10 +248,10 @@ class Fields(object):
         if not callable(fields):
             fields = _lambdaise(fields)
         self._fields = _memoize(fields)
-    
+
     def __iter__(self):
         return iter(self._fields())
-    
+
     def __getattr__(self, field_name):
         field = iterables.find(lambda field: field.name == field_name, self._fields(), default=None)
         if field is None:
@@ -262,13 +262,13 @@ class Fields(object):
 
 def _memoize(func):
     result = []
-    
+
     def get():
         if len(result) == 0:
             result.append(func())
-        
+
         return result[0]
-    
+
     return get
 
 
@@ -289,7 +289,7 @@ class ObjectQuery(object):
         if isinstance(other, ObjectQuery):
             # TODO: better handling of other types
             assert self.type == other.type
-            
+
             fields = list(map(
                 _merge_field_queries,
                 iterables.to_multidict(
@@ -297,7 +297,7 @@ class ObjectQuery(object):
                     for field in (self.fields + other.fields)
                 ).values(),
             ))
-            
+
             return ObjectQuery(
                 type=self.type,
                 fields=fields,
@@ -316,7 +316,7 @@ class ObjectQuery(object):
             for possible_type in target_type.interfaces
             for field in possible_type.fields
         )
-        
+
         def field_query_for_type(field_query):
             if field_query.field in target_type.fields:
                 return field_query
@@ -329,7 +329,7 @@ class ObjectQuery(object):
             else:
                 # TODO: include subtype fields
                 return None
-        
+
         fields = tuple(filter(None, map(field_query_for_type, self.fields)))
         return ObjectQuery(type=target_type, fields=fields)
 
@@ -338,7 +338,7 @@ class ObjectQuery(object):
             (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
             for field_query in self.fields
         )
-    
+
     def __str__(self):
         fields = _format_tuple(
             field.to_string(self.type)
@@ -372,7 +372,7 @@ class Field(object):
         self.name = name
         self.type = type
         self.params = Params(name, params)
-    
+
     def __call__(self, *args):
         # TODO: check for unhandled args
 
@@ -380,35 +380,35 @@ class Field(object):
             lambda arg: isinstance(arg, FieldQuery),
             args,
         ))
-        
+
         type_query = self.type(*field_query_args)
-        
+
         field_args = tuple(filter(lambda arg: isinstance(arg, Argument), args))
-        
+
         # TODO: handle extra args
         return self.query(key=self.name, type_query=type_query, args=field_args)
-    
+
     def query(self, args, key, type_query):
         explicit_args = iterables.to_dict(
             (arg.parameter.name, arg.value)
             for arg in args
         )
-        
+
         def get_arg(param):
             value = explicit_args.get(param.name, param.default)
-            
+
             if value is _undefined:
                 raise ValueError("missing value for {}".format(param.name))
             else:
                 return value
-        
+
         field_args = Object(iterables.to_dict(
             (param.name, get_arg(param))
             for param in self.params
         ))
-        
+
         return FieldQuery(key=key, field=self, type_query=type_query.for_type(self.type), args=field_args)
-    
+
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
 
@@ -417,10 +417,10 @@ class Params(object):
     def __init__(self, field_name, params):
         self._field_name = field_name
         self._params = params
-    
+
     def __iter__(self):
         return iter(self._params)
-    
+
     def __getattr__(self, param_name):
         param = iterables.find(lambda param: param.name == param_name, self._params, default=None)
         if param is None:
@@ -435,7 +435,7 @@ class FieldQuery(object):
         self.field = field
         self.type_query = type_query
         self.args = args
-    
+
     def __add__(self, other):
         if isinstance(other, FieldQuery):
             assert self.key == other.key
@@ -458,7 +458,7 @@ class FieldQuery(object):
             type_query=self.type_query,
             args=self.args,
         )
-    
+
     def to_string(self, type):
         if isinstance(type, InterfaceType):
             subtype_fields = iterables.to_dict(
@@ -468,14 +468,14 @@ class FieldQuery(object):
             )
         else:
             subtype_fields = {}
-        
+
         parent_type = subtype_fields.get(self.field, type)
         field = "{}.fields.{}".format(parent_type.name, self.field.name)
         args = _format_tuple(
             "{}.params.{}({})".format(field, param.name, getattr(self.args, param.name))
             for param in self.field.params
         )
-        
+
         return _format_call_tree("FieldQuery", (
             ("key", '"{}"'.format(self.key)),
             ("field", field),
@@ -502,11 +502,11 @@ class Parameter(object):
         self.name = name
         self.type = type
         self.default = default
-    
+
     @property
     def has_default(self):
         return self.default is not _undefined
-    
+
     def __call__(self, value):
         return Argument(parameter=self, value=value)
 

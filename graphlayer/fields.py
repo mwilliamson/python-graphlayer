@@ -20,6 +20,6 @@ def single_or_null(field):
             return values[0]
         else:
             raise ValueError("expected zero or one values")
-    
+
     return field.map_values(select_value)
 
