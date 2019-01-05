@@ -3,8 +3,7 @@ from __future__ import absolute_import
 import sqlalchemy.orm
 
 import graphlayer as g
-from . import iterables
-from .schema import ListQuery
+from . import iterables, schema
 
 
 def expression(expression):
@@ -47,8 +46,7 @@ class _DirectSqlJoinField(object):
         foreign_key_expression = _to_sql_expression(self._join.values())
         where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
 
-        list_query = _to_list_query(field_query)
-        sql_query = select(list_query) \
+        sql_query = select(field_query.type_query) \
             .where(where) \
             .index_by(self._join.values())
         result = graph.resolve(sql_query)
@@ -95,8 +93,7 @@ class _AssociationSqlJoinField(object):
         foreign_key_expression = _to_sql_expression(self._right_join.values())
         where = foreign_key_expression.in_(base_association_query.add_columns(*self._right_join.keys()))
 
-        list_query = _to_list_query(field_query)
-        sql_query = select(list_query) \
+        sql_query = select(field_query.type_query) \
             .where(where) \
             .index_by(self._right_join.values())
         right_result = graph.resolve(sql_query)
@@ -110,16 +107,6 @@ class _AssociationSqlJoinField(object):
             return result.get(tuple(row), ())
 
         return read
-
-
-def _to_list_query(field_query):
-    element_type = field_query.field.type
-    type_query = field_query.type_query
-    while isinstance(element_type, (g.ListType, g.NullableType)):
-        element_type = element_type.element_type
-        type_query = type_query.element_query
-
-    return ListQuery(g.ListType(element_type), type_query)
 
 
 def _to_sql_expression(expressions):
@@ -150,12 +137,11 @@ def select(query):
     if isinstance(query, _SqlQuery):
         return query
     else:
-        if isinstance(query, ListQuery):
-            element_query = query.element_query
-        else:
-            element_query = query
-
-        return _SqlQuery(element_query, index_expressions=None, where_clauses=())
+        return _SqlQuery(
+            element_query=_to_element_query(query),
+            index_expressions=None,
+            where_clauses=(),
+        )
 
 
 _sql_query_type_key = object()
@@ -166,25 +152,32 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, type_query, where_clauses, index_expressions):
-        self.type = _sql_query_type(type_query.type)
-        self.type_query = type_query
+    def __init__(self, element_query, where_clauses, index_expressions):
+        self.type = _sql_query_type(element_query.type)
+        self.element_query = element_query
         self.where_clauses = where_clauses
         self.index_expressions = index_expressions
 
     def index_by(self, index_expressions):
         return _SqlQuery(
-            type_query=self.type_query,
+            element_query=self.element_query,
             where_clauses=self.where_clauses,
             index_expressions=index_expressions,
         )
 
     def where(self, where):
         return _SqlQuery(
-            type_query=self.type_query,
+            element_query=self.element_query,
             where_clauses=self.where_clauses + (where, ),
             index_expressions=self.index_expressions,
         )
+
+
+def _to_element_query(query):
+    while isinstance(query, (schema.ListQuery, schema.NullableQuery)):
+        query = query.element_query
+
+    return query
 
 
 def sql_table_resolver(type, model, fields):
@@ -196,7 +189,7 @@ def sql_table_resolver(type, model, fields):
         if query.index_expressions is None:
             return resolve(
                 graph,
-                query=query.type_query,
+                query=query.element_query,
                 where=where,
                 extra_expressions=(),
                 process_row=lambda row, result: result,
@@ -205,7 +198,7 @@ def sql_table_resolver(type, model, fields):
         else:
             return iterables.to_multidict(resolve(
                 graph,
-                query=query.type_query,
+                query=query.element_query,
                 where=where,
                 extra_expressions=query.index_expressions,
                 process_row=lambda row, result: (tuple(row), result),
