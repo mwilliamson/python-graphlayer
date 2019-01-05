@@ -149,6 +149,24 @@ class TestReturnShapeMatchesQueryShape(object):
 
         assert_that(result, has_attrs(title="Leave it to Psmith"))
 
+    def test_given_there_is_more_than_one_row_then_requesting_nullable_raises_error(self):
+        self.add_books("Leave it to Psmith", "Pericles, Prince of Tyre")
+
+        query = gsql.select(g.NullableType(self.Book)(
+            g.key("title", self.Book.fields.title()),
+        ))
+        error = pytest.raises(ValueError, lambda: self.resolve(query))
+
+        assert_that(str(error.value), equal_to("expected exactly zero or one values"))
+
+    def test_given_there_are_no_rows_then_requesting_object_raises_error(self):
+        query = gsql.select(self.Book(
+            g.key("title", self.Book.fields.title()),
+        ))
+        error = pytest.raises(ValueError, lambda: self.resolve(query))
+
+        assert_that(str(error.value), equal_to("expected exactly one value"))
+
     def test_given_there_is_one_row_then_requesting_object_returns_object(self):
         self.add_books("Leave it to Psmith")
 
@@ -158,6 +176,16 @@ class TestReturnShapeMatchesQueryShape(object):
         result = self.resolve(query)
 
         assert_that(result, has_attrs(title="Leave it to Psmith"))
+
+    def test_given_there_is_more_than_one_row_then_requesting_object_raises_error(self):
+        self.add_books("Leave it to Psmith", "Pericles, Prince of Tyre")
+
+        query = gsql.select(self.Book(
+            g.key("title", self.Book.fields.title()),
+        ))
+        error = pytest.raises(ValueError, lambda: self.resolve(query))
+
+        assert_that(str(error.value), equal_to("expected exactly one value"))
 
     def add_books(self, *titles):
         for title in titles:
