@@ -140,6 +140,12 @@ def select(query):
         if isinstance(query, schema.ObjectQuery):
             element_query = query
 
+            def read_result(value):
+                if len(value) == 1:
+                    return value[0]
+                else:
+                    raise ValueError("expected exactly one value")
+
             def read_results(iterable):
                 result = {}
 
@@ -154,6 +160,9 @@ def select(query):
         elif isinstance(query, schema.ListQuery) and isinstance(query.element_query, schema.ObjectQuery):
             element_query = query.element_query
 
+            def read_result(value):
+                return value
+
             def read_results(iterable):
                 result = collections.defaultdict(list)
 
@@ -164,6 +173,14 @@ def select(query):
 
         elif isinstance(query, schema.NullableQuery) and isinstance(query.element_query, schema.ObjectQuery):
             element_query = query.element_query
+
+            def read_result(value):
+                if len(value) == 0:
+                    return None
+                elif len(value) == 1:
+                    return value[0]
+                else:
+                    raise ValueError("expected exactly zero or one values")
 
             def read_results(iterable):
                 result = collections.defaultdict(lambda: None)
@@ -178,6 +195,7 @@ def select(query):
 
         return _SqlQuery(
             element_query=element_query,
+            read_result=read_result,
             read_results=read_results,
             index_expressions=None,
             where_clauses=(),
@@ -192,9 +210,10 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, element_query, read_results, where_clauses, index_expressions):
+    def __init__(self, element_query, read_result, read_results, where_clauses, index_expressions):
         self.type = _sql_query_type(element_query.type)
         self.element_query = element_query
+        self.read_result = read_result
         self.read_results = read_results
         self.where_clauses = where_clauses
         self.index_expressions = index_expressions
@@ -202,6 +221,7 @@ class _SqlQuery(object):
     def index_by(self, index_expressions):
         return _SqlQuery(
             element_query=self.element_query,
+            read_result=self.read_result,
             read_results=self.read_results,
             where_clauses=self.where_clauses,
             index_expressions=index_expressions,
@@ -210,6 +230,7 @@ class _SqlQuery(object):
     def where(self, where):
         return _SqlQuery(
             element_query=self.element_query,
+            read_result=self.read_result,
             read_results=self.read_results,
             where_clauses=self.where_clauses + (where, ),
             index_expressions=self.index_expressions,
@@ -223,15 +244,14 @@ def sql_table_resolver(type, model, fields):
         where = sqlalchemy.and_(*query.where_clauses)
 
         if query.index_expressions is None:
-            # TODO: add query.read()
-            return resolve(
+            return query.read_result(resolve(
                 graph,
                 query=query.element_query,
                 where=where,
                 extra_expressions=(),
                 process_row=lambda row, result: result,
                 session=session,
-            )
+            ))
         else:
             return query.read_results(resolve(
                 graph,

@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 
-from precisely import assert_that, contains_exactly, has_attrs
+from precisely import assert_that, contains_exactly, equal_to, has_attrs
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
+import pytest
 
 import graphlayer as g
 from graphlayer import sqlalchemy as gsql
@@ -61,6 +62,110 @@ def test_can_get_fields_backed_by_expressions():
             title="Pericles, Prince of Tyre",
         ),
     ))
+
+
+class TestReturnShapeMatchesQueryShape(object):
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        Base = sqlalchemy.ext.declarative.declarative_base()
+
+        class BookRow(Base):
+            __tablename__ = "book"
+
+            c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+        engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+        Base.metadata.create_all(engine)
+
+        session = sqlalchemy.orm.Session(engine)
+
+        Book = g.ObjectType(
+            "Book",
+            fields=lambda: [
+                g.field("title", type=g.String),
+            ],
+        )
+
+        book_resolver = gsql.sql_table_resolver(
+            Book,
+            BookRow,
+            fields={
+                Book.fields.title: gsql.expression(BookRow.c_title),
+            },
+        )
+
+        resolvers = [book_resolver]
+
+        graph_definition = g.define_graph(resolvers)
+        self.graph = graph_definition.create_graph({
+            sqlalchemy.orm.Session: session,
+        })
+        self.Book = Book
+        self.BookRow = BookRow
+        self.session = session
+
+    def test_given_there_are_no_rows_then_requesting_list_returns_empty_list(self):
+        query = gsql.select(g.ListType(self.Book)(
+            g.key("title", self.Book.fields.title()),
+        ))
+        result = self.resolve(query)
+
+        assert_that(result, contains_exactly())
+
+    def test_given_there_are_rows_then_requesting_list_returns_list(self):
+        self.add_books("Leave it to Psmith", "Pericles, Prince of Tyre")
+
+        query = gsql.select(g.ListType(self.Book)(
+            g.key("title", self.Book.fields.title()),
+        ))
+        result = self.resolve(query)
+
+        assert_that(result, contains_exactly(
+            has_attrs(
+                title="Leave it to Psmith",
+            ),
+            has_attrs(
+                title="Pericles, Prince of Tyre",
+            ),
+        ))
+
+    def test_given_there_are_no_rows_then_requesting_nullable_returns_null(self):
+        query = gsql.select(g.NullableType(self.Book)(
+            g.key("title", self.Book.fields.title()),
+        ))
+        result = self.resolve(query)
+
+        assert_that(result, equal_to(None))
+
+    def test_given_there_is_one_row_then_requesting_nullable_returns_object(self):
+        self.add_books("Leave it to Psmith")
+
+        query = gsql.select(g.NullableType(self.Book)(
+            g.key("title", self.Book.fields.title()),
+        ))
+        result = self.resolve(query)
+
+        assert_that(result, has_attrs(title="Leave it to Psmith"))
+
+    def test_given_there_is_one_row_then_requesting_object_returns_object(self):
+        self.add_books("Leave it to Psmith")
+
+        query = gsql.select(self.Book(
+            g.key("title", self.Book.fields.title()),
+        ))
+        result = self.resolve(query)
+
+        assert_that(result, has_attrs(title="Leave it to Psmith"))
+
+    def add_books(self, *titles):
+        for title in titles:
+            self.session.add(self.BookRow(c_title=title))
+        self.session.commit()
+
+    def resolve(self, query):
+        return self.graph.resolve(query)
 
 
 def test_can_pass_arguments_to_expression():
