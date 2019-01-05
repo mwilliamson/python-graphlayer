@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+import collections
 
 import sqlalchemy.orm
 
@@ -52,7 +52,7 @@ class _DirectSqlJoinField(object):
         result = graph.resolve(sql_query)
 
         def read(row):
-            return result.get(tuple(row), ())
+            return result[tuple(row)]
 
         return read
 
@@ -97,14 +97,14 @@ class _AssociationSqlJoinField(object):
             .where(where) \
             .index_by(self._right_join.values())
         right_result = graph.resolve(sql_query)
-        result = iterables.to_multidict(
+        result = sql_query.read_results(
             (left_key, right_value)
             for left_key, right_key in associations
-            for right_value in right_result.get(right_key, ())
+            for right_value in right_result[right_key]
         )
 
         def read(row):
-            return result.get(tuple(row), ())
+            return result[tuple(row)]
 
         return read
 
@@ -137,8 +137,48 @@ def select(query):
     if isinstance(query, _SqlQuery):
         return query
     else:
+        if isinstance(query, schema.ObjectQuery):
+            element_query = query
+
+            def read_results(iterable):
+                result = {}
+
+                for key, value in iterable:
+                    if key in result:
+                        raise ValueError("expected exactly one value")
+                    else:
+                        result[key] = value
+
+                return result
+
+        elif isinstance(query, schema.ListQuery) and isinstance(query.element_query, schema.ObjectQuery):
+            element_query = query.element_query
+
+            def read_results(iterable):
+                result = collections.defaultdict(list)
+
+                for key, value in iterable:
+                    result[key].append(value)
+
+                return result
+
+        elif isinstance(query, schema.NullableQuery) and isinstance(query.element_query, schema.ObjectQuery):
+            element_query = query.element_query
+
+            def read_results(iterable):
+                result = collections.defaultdict(lambda: None)
+
+                for key, value in iterable:
+                    if key in result:
+                        raise ValueError("expected exactly zero or one values")
+                    else:
+                        result[key] = value
+
+                return result
+
         return _SqlQuery(
-            element_query=_to_element_query(query),
+            element_query=element_query,
+            read_results=read_results,
             index_expressions=None,
             where_clauses=(),
         )
@@ -152,15 +192,17 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, element_query, where_clauses, index_expressions):
+    def __init__(self, element_query, read_results, where_clauses, index_expressions):
         self.type = _sql_query_type(element_query.type)
         self.element_query = element_query
+        self.read_results = read_results
         self.where_clauses = where_clauses
         self.index_expressions = index_expressions
 
     def index_by(self, index_expressions):
         return _SqlQuery(
             element_query=self.element_query,
+            read_results=self.read_results,
             where_clauses=self.where_clauses,
             index_expressions=index_expressions,
         )
@@ -168,16 +210,10 @@ class _SqlQuery(object):
     def where(self, where):
         return _SqlQuery(
             element_query=self.element_query,
+            read_results=self.read_results,
             where_clauses=self.where_clauses + (where, ),
             index_expressions=self.index_expressions,
         )
-
-
-def _to_element_query(query):
-    while isinstance(query, (schema.ListQuery, schema.NullableQuery)):
-        query = query.element_query
-
-    return query
 
 
 def sql_table_resolver(type, model, fields):
@@ -187,6 +223,7 @@ def sql_table_resolver(type, model, fields):
         where = sqlalchemy.and_(*query.where_clauses)
 
         if query.index_expressions is None:
+            # TODO: add query.read()
             return resolve(
                 graph,
                 query=query.element_query,
@@ -196,7 +233,7 @@ def sql_table_resolver(type, model, fields):
                 session=session,
             )
         else:
-            return iterables.to_multidict(resolve(
+            return query.read_results(resolve(
                 graph,
                 query=query.element_query,
                 where=where,
