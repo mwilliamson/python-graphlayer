@@ -56,9 +56,6 @@ class _DirectSqlJoinField(object):
 
         return read
 
-    def map_values(self, func):
-        return _DecoratedReadField(self, func)
-
 
 def _association_sql_join(left_join, association, right_join):
     return _AssociationSqlJoinField(
