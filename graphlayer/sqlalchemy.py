@@ -23,6 +23,9 @@ class _ExpressionField(object):
 
         return read
 
+    def map_value(self, func):
+        return _DecoratedReadField(self, func)
+
 
 def sql_join(*args):
     if len(args) == 3:
