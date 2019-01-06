@@ -2037,7 +2037,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     +    fields={
     +        Book.fields.title: gsql.expression(BookRecord.title),
     +        Book.fields.genre: gsql.expression(BookRecord.genre),
-    +        Book.fields.author: g.single(gsql.sql_join({BookRecord.author_id: AuthorRecord.id})),
+    +        Book.fields.author: gsql.sql_join({BookRecord.author_id: AuthorRecord.id}),
     +    },
     +)
 
@@ -2075,7 +2075,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
         fields={
             Book.fields.title: gsql.expression(BookRecord.title),
             Book.fields.genre: gsql.expression(BookRecord.genre),
-            Book.fields.author: g.single(gsql.sql_join({BookRecord.author_id: AuthorRecord.id})),
+            Book.fields.author: gsql.sql_join({BookRecord.author_id: AuthorRecord.id}),
         },
     )
 

@@ -1,8 +1,15 @@
-.PHONY: test upload clean bootstrap
+.PHONY: README.rst test test-pyflakes test-pytest upload clean bootstrap
 
-test:
+test: test-pyflakes test-pytest README.rst
+
+test-pyflakes:
 	.venv/bin/pyflakes graphlayer tests
+
+test-pytest:
 	sh -c '. .venv/bin/activate; pytest tests'
+
+README.rst:
+	.venv/bin/diff-doc compile README.src.rst > README.rst
 
 test-all:
 	tox
@@ -10,17 +17,17 @@ test-all:
 upload: test-all
 	python setup.py sdist bdist_wheel upload
 	make clean
-	
+
 register:
 	python setup.py register
 
 clean:
 	rm -f MANIFEST
 	rm -rf dist build
-	
+
 bootstrap: .venv
 	.venv/bin/pip install -e .
-ifneq ($(wildcard test-requirements.txt),) 
+ifneq ($(wildcard test-requirements.txt),)
 	.venv/bin/pip install -r test-requirements.txt
 endif
 	make clean
