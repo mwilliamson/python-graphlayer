@@ -1,3 +1,4 @@
+diff-doc==0.1.0
 flask==1.0.2
 graphql-core==2.1
 precisely==0.1.6
