@@ -590,6 +590,13 @@ class Season(enum.Enum):
         '{id: 42, name: "Bob"}',
         g.Object({"id": 42, "name": "Bob"}),
     ),
+    (
+        g.InputObjectType("Casing", fields=(
+            g.input_field("field_zero", type=g.Int),
+        )),
+        '{fieldZero: 1}',
+        g.Object({"field_zero": 1}),
+    ),
 ])
 def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     Root = g.ObjectType(
