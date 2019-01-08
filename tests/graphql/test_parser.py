@@ -538,6 +538,33 @@ def test_graphql_field_args_are_read():
     ))
 
 
+def test_graphql_field_args_are_converted_to_snake_case():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, params=[
+                g.param("arg_zero", type=g.String),
+            ]),
+        ),
+    )
+
+    graphql_query = """
+        query {
+            one(argZero: "one")
+        }
+    """
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("one", Root.fields.one(
+                Root.fields.one.params.arg_zero("one"),
+            )),
+        ),
+    ))
+
+
 class Season(enum.Enum):
     winter = "WINTER"
     spring = "SPRING"

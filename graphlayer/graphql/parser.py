@@ -138,7 +138,7 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
     field = _get_field(graph_type, field_name)
 
     def get_arg_value(arg):
-        param = getattr(field.params, arg.name.value)
+        param = getattr(field.params, _camel_case_to_snake_case(arg.name.value))
         value = _read_value(arg.value, variables=variables, value_type=param.type)
         return param(value)
 
