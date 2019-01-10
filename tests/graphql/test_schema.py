@@ -152,6 +152,24 @@ def test_field_param_is_converted_to_non_null_graphql_arg():
     ))
 
 
+def test_param_names_are_converted_from_snake_case_to_camel_case():
+    graph_type = g.ObjectType("Obj", fields=(
+        g.field("value", type=g.String, params=(
+            g.param("arg_zero", g.Int),
+        )),
+    ))
+
+    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+        is_graphql_object_type(
+            fields=is_mapping({
+                "value": is_graphql_field(args=is_mapping({
+                    "argZero": is_graphql_argument(),
+                })),
+            }),
+        ),
+    ))
+
+
 def test_when_param_has_default_then_param_is_converted_to_nullable_graphql_arg():
     graph_type = g.ObjectType("Obj", fields=(
         g.field("value", type=g.String, params=(
@@ -317,7 +335,10 @@ def is_graphql_field(type=None, args=None):
     )
 
 
-def is_graphql_argument(type):
+def is_graphql_argument(type=None):
+    if type is None:
+        type = anything
+
     return all_of(
         is_instance(graphql.GraphQLArgument),
         has_attrs(type=type),

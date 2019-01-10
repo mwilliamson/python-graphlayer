@@ -86,7 +86,7 @@ def to_graphql_type(graph_type):
         return graphql.GraphQLField(
             type=to_graphql_type(graph_field.type),
             args=iterables.to_dict(
-                (param.name, to_graphql_argument(param))
+                (_snake_case_to_camel_case(param.name), to_graphql_argument(param))
                 for param in graph_field.params
             ),
         )
