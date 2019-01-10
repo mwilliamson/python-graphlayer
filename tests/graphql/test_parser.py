@@ -637,7 +637,7 @@ def test_when_arg_is_not_set_then_default_is_used():
     )
 
     graphql_query = """
-        query ($value: Int!) {
+        query {
             one
         }
     """
@@ -668,7 +668,7 @@ def test_when_field_value_is_not_set_then_default_is_used():
     )
 
     graphql_query = """
-        query ($value: Int!) {
+        query {
             one(arg: {})
         }
     """
@@ -698,7 +698,7 @@ def test_when_field_value_in_nullable_input_object_is_not_set_then_default_is_us
     )
 
     graphql_query = """
-        query ($value: Int!) {
+        query {
             one(arg: {})
         }
     """
@@ -727,7 +727,7 @@ def test_when_field_value_in_input_object_in_list_is_not_set_then_default_is_use
     )
 
     graphql_query = """
-        query ($value: Int!) {
+        query {
             one(arg: [{}])
         }
     """
@@ -764,7 +764,7 @@ def test_when_field_value_in_input_object_in_input_object_is_not_set_then_defaul
     )
 
     graphql_query = """
-        query ($value: Int!) {
+        query {
             one(arg: {value: {}})
         }
     """
