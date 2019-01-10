@@ -4,7 +4,7 @@ import graphql
 from precisely import all_of, anything, assert_that, contains_exactly, equal_to, has_attrs, is_instance, is_mapping
 
 import graphlayer as g
-from graphlayer.graphql.schema import to_graphql_type
+from graphlayer.graphql.schema import create_graphql_schema
 
 
 def test_boolean_is_converted_to_non_null_graphql_boolean():
@@ -193,7 +193,7 @@ def test_input_object_type_is_converted_to_non_null_graphql_input_object_type():
         g.input_field("value", type=g.String),
     ))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+    assert_that(to_graphql_input_type(graph_type), is_graphql_non_null(
         is_graphql_input_object_type(
             name="Obj",
             fields=is_mapping({
@@ -208,7 +208,7 @@ def test_input_object_type_field_names_are_converted_from_snake_case_to_camel_ca
         g.input_field("field_name", type=g.String),
     ))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+    assert_that(to_graphql_input_type(graph_type), is_graphql_non_null(
         is_graphql_input_object_type(
             fields=is_mapping({
                 "fieldName": anything,
@@ -222,7 +222,7 @@ def test_when_input_field_has_default_then_input_field_type_is_nullable():
         g.input_field("value", type=g.String, default=""),
     ))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
+    assert_that(to_graphql_input_type(graph_type), is_graphql_non_null(
         is_graphql_input_object_type(
             name="Obj",
             fields=is_mapping({
@@ -231,6 +231,23 @@ def test_when_input_field_has_default_then_input_field_type_is_nullable():
         ),
     ))
 
+
+def to_graphql_type(graph_type):
+    root_type = g.ObjectType("Root", fields=(
+        g.field("value", type=graph_type),
+    ))
+    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None)
+    return graphql_schema.get_query_type().fields["value"].type
+
+
+def to_graphql_input_type(graph_type):
+    root_type = g.ObjectType("Root", fields=(
+        g.field("value", type=g.String, params=(
+            g.param("arg0", type=graph_type),
+        )),
+    ))
+    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None)
+    return graphql_schema.get_query_type().fields["value"].args["arg0"].type
 
 
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
