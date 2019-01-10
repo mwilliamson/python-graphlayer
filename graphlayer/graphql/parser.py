@@ -3,9 +3,11 @@ from functools import reduce
 import re
 
 from graphql.language import ast as graphql_ast, parser as graphql_parser
+from graphql.validation import validate as graphql_validate
 
 from .. import schema
 from ..iterables import find, partition, to_dict
+from .schema import create_graphql_schema
 
 
 # TODO: validation
@@ -23,6 +25,11 @@ def document_text_to_query(document_text, query_type, mutation_type=None, variab
         variables = {}
 
     document_ast = graphql_parser.parse(document_text)
+
+    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type)
+    graphql_validation_errors = graphql_validate(graphql_schema, document_ast)
+    if graphql_validation_errors:
+        raise(graphql_validation_errors[0])
 
     operation_index, operation = find(
         lambda definition: isinstance(definition[1], graphql_ast.OperationDefinition),
