@@ -103,7 +103,7 @@ def create_graphql_schema(query_type, mutation_type):
     if mutation_type is None:
         graphql_mutation_type = None
     else:
-        graphql_mutation_type = to_graphql_type(query_type).of_type
+        graphql_mutation_type = to_graphql_type(mutation_type).of_type
 
     return graphql.GraphQLSchema(
         query=graphql_query_type,
