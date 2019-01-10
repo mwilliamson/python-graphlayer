@@ -174,6 +174,8 @@ def _read_value(value, value_type, variables):
         return _read_value(value, value_type=value_type.element_type, variables=variables)
     elif isinstance(value, graphql_ast.BooleanValue):
         return value.value
+    elif isinstance(value, graphql_ast.EnumValue):
+        return value.value
     elif isinstance(value, graphql_ast.FloatValue):
         return float(value.value)
     elif isinstance(value, graphql_ast.IntValue):
