@@ -572,6 +572,7 @@ class Season(enum.Enum):
     autumn = "AUTUMN"
 
 
+# TODO: deduplicate arg/variable tests
 @pytest.mark.parametrize("arg_type, arg_string, arg_value", [
     (g.Boolean, "true", True),
     (g.Float, "4.2", 4.2),
@@ -598,7 +599,7 @@ class Season(enum.Enum):
         g.Object({"field_zero": 1}),
     ),
 ])
-def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
+def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     Root = g.ObjectType(
         "Root",
         fields=(
@@ -615,6 +616,62 @@ def test_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
     """ % (arg_string, )
 
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("one", Root.fields.one(
+                Root.fields.one.params.arg(arg_value),
+            )),
+        ),
+    ))
+
+
+# TODO: deduplicate arg/variable tests
+@pytest.mark.parametrize("graph_type, graphql_type, variable_value, arg_value", [
+    (g.Boolean, "Boolean!", True, True),
+    (g.Float, "Float!", 4.2, 4.2),
+    (g.Int, "Int!", 42, 42),
+    (g.String, "String!", "value", "value"),
+    (g.EnumType(Season), "Season!", "WINTER", Season.winter),
+    (g.NullableType(g.Int), "Int", 42, 42),
+    (g.NullableType(g.Int), "Int", None, None),
+    (g.ListType(g.Int), "[Int!]!", [], []),
+    (g.ListType(g.EnumType(Season)), "[Season!]!", ["WINTER"], [Season.winter]),
+    (
+        g.InputObjectType("User", fields=(
+            g.input_field("id", type=g.Int),
+            g.input_field("name", type=g.String),
+        )),
+        "User!",
+        {"id": 42, "name": "Bob"},
+        g.Object({"id": 42, "name": "Bob"}),
+    ),
+    (
+        g.InputObjectType("Casing", fields=(
+            g.input_field("field_zero", type=g.Int),
+        )),
+        "Casing!",
+        {"fieldZero": 1},
+        g.Object({"field_zero": 1}),
+    ),
+])
+def test_graphql_arg_values_from_variables_are_converted(graph_type, graphql_type, variable_value, arg_value):
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, params=[
+                g.param("arg", type=graph_type),
+            ]),
+        ),
+    )
+
+    graphql_query = """
+        query ($var: %s) {
+            one(arg: $var)
+        }
+    """ % (graphql_type, )
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root, variables={"var": variable_value})
 
     assert_that(object_query, is_query(
         Root(
@@ -773,33 +830,6 @@ def test_when_field_value_in_input_object_in_input_object_is_not_set_then_defaul
     assert_that(object_query.fields[0].args.arg, has_attrs(
         value=has_attrs(
             field0=42,
-        ),
-    ))
-
-
-def test_graphql_query_variables_are_read():
-    Root = g.ObjectType(
-        "Root",
-        fields=(
-            g.field("one", type=g.Int, params=[
-                g.param("arg", type=g.Int),
-            ]),
-        ),
-    )
-
-    graphql_query = """
-        query ($value: Int!) {
-            one(arg: $value)
-        }
-    """
-
-    object_query = _document_text_to_graph_query(graphql_query, query_type=Root, variables={"value": 42})
-
-    assert_that(object_query, is_query(
-        Root(
-            g.key("one", Root.fields.one(
-                Root.fields.one.params.arg(42),
-            )),
         ),
     ))
 

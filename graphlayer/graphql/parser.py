@@ -146,7 +146,7 @@ def _read_graphql_field(graphql_field, graph_type, fragments, variables):
 
     def get_arg_value(arg):
         param = getattr(field.params, _camel_case_to_snake_case(arg.name.value))
-        value = _read_value(arg.value, variables=variables, value_type=param.type)
+        value = _read_value_node(arg.value, variables=variables, value_type=param.type)
         return param(value)
 
     args = [
@@ -169,17 +169,47 @@ def _get_field(graph_type, field_name):
     return getattr(graph_type.fields, field_name)
 
 
-def _read_value(value, value_type, variables):
+def _read_value_node(value, value_type, variables):
+    graphql_value = _read_graphql_value(value, variables=variables)
+    return _convert_graphql_value(graphql_value, value_type=value_type)
+
+
+def _convert_graphql_value(graphql_value, value_type):
     if isinstance(value_type, schema.EnumType):
-        raw_value = _read_value(value, schema.String, variables)
         enum_values = list(filter(
-            lambda enum_value: enum_value.value == raw_value,
+            lambda enum_value: enum_value.value == graphql_value,
             value_type.enum,
         ))
         return enum_values[0]
+
     elif isinstance(value_type, schema.NullableType):
-        return _read_value(value, value_type=value_type.element_type, variables=variables)
-    elif isinstance(value, graphql_ast.BooleanValue):
+        return _convert_graphql_value(graphql_value, value_type=value_type.element_type)
+
+    elif value_type in (schema.Boolean, schema.Float, schema.Int, schema.String):
+        return graphql_value
+
+    elif isinstance(value_type, schema.ListType):
+        return [
+            _convert_graphql_value(element, value_type=value_type.element_type)
+            for element in graphql_value
+        ]
+
+    elif isinstance(value_type, schema.InputObjectType):
+        def get_field_value(key, value):
+            field = getattr(value_type.fields, _camel_case_to_snake_case(key))
+            return _convert_graphql_value(value, value_type=field.type)
+
+        return value_type(**to_dict(
+            (_camel_case_to_snake_case(key), get_field_value(key, value))
+            for key, value in graphql_value.items()
+        ))
+
+    else:
+        raise ValueError("unhandled type: {}".format(type(value_type)))
+
+
+def _read_graphql_value(value, variables):
+    if isinstance(value, graphql_ast.BooleanValue):
         return value.value
     elif isinstance(value, graphql_ast.EnumValue):
         return value.value
@@ -189,18 +219,14 @@ def _read_value(value, value_type, variables):
         return int(value.value)
     elif isinstance(value, graphql_ast.ListValue):
         return [
-            _read_value(element, variables=variables, value_type=value_type.element_type)
+            _read_graphql_value(element, variables=variables)
             for element in value.values
         ]
     elif isinstance(value, graphql_ast.ObjectValue):
-        def get_field_value(field_input):
-            field = getattr(value_type.fields, _camel_case_to_snake_case(field_input.name.value))
-            return _read_value(field_input.value, variables=variables, value_type=field.type)
-
-        return value_type(**to_dict(
-            (_camel_case_to_snake_case(field_input.name.value), get_field_value(field_input))
+        return to_dict(
+            (field_input.name.value, _read_graphql_value(field_input.value, variables=variables))
             for field_input in value.fields
-        ))
+        )
     elif isinstance(value, graphql_ast.StringValue):
         return value.value
     elif isinstance(value, graphql_ast.Variable):
@@ -208,6 +234,7 @@ def _read_value(value, value_type, variables):
         return variables[name]
     else:
         raise ValueError("unhandled value: {}".format(type(value)))
+
 
 
 def _field_key(selection):
