@@ -777,7 +777,7 @@ def test_when_field_value_in_input_object_in_input_object_is_not_set_then_defaul
     ))
 
 
-def test_graphql_query_args_are_read():
+def test_graphql_query_variables_are_read():
     Root = g.ObjectType(
         "Root",
         fields=(
