@@ -11,7 +11,6 @@ from .schema import create_graphql_schema
 
 
 # TODO: validation
-# TODO: type conditions on fragments
 
 
 class GraphQLQuery(object):
