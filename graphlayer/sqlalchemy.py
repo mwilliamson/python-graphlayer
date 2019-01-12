@@ -27,6 +27,27 @@ class _ExpressionField(object):
         return _DecoratedReadField(self, func)
 
 
+def join(*, foreign_key, resolve):
+    return _JoinField(foreign_key=foreign_key, resolve=resolve)
+
+
+class _JoinField(object):
+    def __init__(self, foreign_key, resolve):
+        self._foreign_key = foreign_key
+        self._resolve = resolve
+
+    def expressions(self):
+        return self._foreign_key
+
+    def create_reader(self, graph, field_query, base_query, session):
+        result = self._resolve(graph, field_query, base_query.add_columns(*self._foreign_key))
+
+        def read(row):
+            return result[tuple(row)]
+
+        return read
+
+
 def sql_join(*args):
     if len(args) == 3:
         return _association_sql_join(*args)
@@ -34,30 +55,20 @@ def sql_join(*args):
         return _direct_sql_join(*args)
 
 
-def _direct_sql_join(join):
-    return _DirectSqlJoinField(join)
-
-
-class _DirectSqlJoinField(object):
-    def __init__(self, join):
-        self._join = join
-
-    def expressions(self):
-        return self._join.keys()
-
-    def create_reader(self, graph, field_query, base_query, session):
-        foreign_key_expression = _to_sql_expression(self._join.values())
-        where = foreign_key_expression.in_(base_query.add_columns(*self._join.keys()))
+def _direct_sql_join(join_on):
+    def resolve(graph, field_query, foreign_key_sql_query):
+        foreign_key_expression = _to_sql_expression(join_on.values())
+        where = foreign_key_expression.in_(foreign_key_sql_query)
 
         sql_query = select(field_query.type_query) \
             .where(where) \
-            .index_by(self._join.values())
-        result = graph.resolve(sql_query)
+            .index_by(join_on.values())
+        return graph.resolve(sql_query)
 
-        def read(row):
-            return result[tuple(row)]
-
-        return read
+    return join(
+        foreign_key=join_on.keys(),
+        resolve=resolve,
+    )
 
 
 def _association_sql_join(left_join, association, right_join):
