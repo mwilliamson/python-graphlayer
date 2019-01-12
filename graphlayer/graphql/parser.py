@@ -20,13 +20,13 @@ class GraphQLQuery(object):
         self.graphql_schema_document = graphql_schema_document
 
 
-def document_text_to_query(document_text, query_type, mutation_type=None, variables=None):
+def document_text_to_query(document_text, query_type, mutation_type=None, types=None, variables=None):
     if variables is None:
         variables = {}
 
     document_ast = graphql_parser.parse(document_text)
 
-    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type)
+    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
     graphql_validation_errors = graphql_validate(graphql_schema, document_ast)
     if graphql_validation_errors:
         raise(graphql_validation_errors[0])

@@ -5,19 +5,15 @@ import graphql
 from .. import iterables, schema
 
 
-def create_graphql_schema(query_type, mutation_type):
-    # TODO: pass in schema instead?
+def create_graphql_schema(query_type, mutation_type, types=None):
+    if types is None:
+        types = ()
+
     graphql_types = {}
 
     def to_graphql_type(graph_type):
         if graph_type not in graphql_types:
             graphql_types[graph_type] = generate_graphql_type(graph_type)
-            # TODO: handle input object ttypes and interfaces as well
-            if isinstance(graph_type, schema.ObjectType):
-                graphql_types[graph_type].of_type.fields
-            if isinstance(graph_type, schema.InterfaceType):
-                for subtype in graph_type.subtypes:
-                    to_graphql_type(subtype)
 
         return graphql_types[graph_type]
 
@@ -111,6 +107,9 @@ def create_graphql_schema(query_type, mutation_type):
         graphql_mutation_type = None
     else:
         graphql_mutation_type = to_graphql_type(mutation_type).of_type
+
+    for extra_type in types:
+        to_graphql_type(extra_type)
 
     return graphql.GraphQLSchema(
         query=graphql_query_type,

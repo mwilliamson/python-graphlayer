@@ -314,7 +314,7 @@ def test_fragments_can_be_on_more_specific_type():
         }
     """
 
-    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root, types=(Cat, ))
 
     assert_that(object_query, is_query(
         Root(
