@@ -700,7 +700,7 @@ def test_when_arg_is_not_set_then_default_is_used():
     """
 
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields[0].args, has_attrs(
+    assert_that(object_query.field_queries[0].args, has_attrs(
         arg0=None,
         arg1=42,
     ))
@@ -731,7 +731,7 @@ def test_when_field_value_is_not_set_then_default_is_used():
     """
 
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields[0].args.arg, has_attrs(
+    assert_that(object_query.field_queries[0].args.arg, has_attrs(
         field0=None,
         field1=42,
     ))
@@ -761,7 +761,7 @@ def test_when_field_value_in_nullable_input_object_is_not_set_then_default_is_us
     """
 
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields[0].args.arg, has_attrs(
+    assert_that(object_query.field_queries[0].args.arg, has_attrs(
         field0=42,
     ))
 
@@ -790,7 +790,7 @@ def test_when_field_value_in_input_object_in_list_is_not_set_then_default_is_use
     """
 
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields[0].args.arg, is_sequence(
+    assert_that(object_query.field_queries[0].args.arg, is_sequence(
         has_attrs(
             field0=42,
         ),
@@ -827,7 +827,7 @@ def test_when_field_value_in_input_object_in_input_object_is_not_set_then_defaul
     """
 
     object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
-    assert_that(object_query.fields[0].args.arg, has_attrs(
+    assert_that(object_query.field_queries[0].args.arg, has_attrs(
         value=has_attrs(
             field0=42,
         ),

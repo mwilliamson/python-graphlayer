@@ -22,7 +22,7 @@ def test_can_get_scalar_from_root():
 
         return query.create_object(iterables.to_dict(
             (field_query.key, values[field_query.field.name])
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
     resolvers = [resolve_root]
@@ -75,7 +75,7 @@ def test_can_recursively_resolve():
     def resolve_root(graph, query):
         return query.create_object(iterables.to_dict(
             (field_query.key, graph.resolve(field_query.type_query))
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
     @g.resolver(g.ListType(Book))
@@ -87,7 +87,7 @@ def test_can_recursively_resolve():
         return [
             query.element_query.create_object(iterables.to_dict(
                 (field_query.key, book[field_query.field.name])
-                for field_query in query.element_query.fields
+                for field_query in query.element_query.field_queries
             ))
             for book in books
         ]
@@ -136,7 +136,7 @@ def test_can_recursively_resolve_selected_fields():
     def resolve_root(graph, query):
         return query.create_object(iterables.to_dict(
             (field_query.key, graph.resolve(field_query.type_query))
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
     books = [
@@ -170,7 +170,7 @@ def test_can_recursively_resolve_selected_fields():
         return [
             query.element_query.create_object(iterables.to_dict(
                 (field_query.key, resolve_field(graph, book, field_query))
-                for field_query in query.element_query.fields
+                for field_query in query.element_query.field_queries
             ))
             for book in books
         ]
@@ -185,7 +185,7 @@ def test_can_recursively_resolve_selected_fields():
         author = authors[query.author_id]
         return query.type_query.create_object(iterables.to_dict(
             (field_query.key, author[field_query.field.name])
-            for field_query in query.type_query.fields
+            for field_query in query.type_query.field_queries
         ))
 
     resolvers = [resolve_root, resolve_book, resolve_author]

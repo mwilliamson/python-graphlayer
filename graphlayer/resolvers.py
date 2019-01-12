@@ -6,7 +6,7 @@ def constant_object_resolver(type, values):
     def resolve(graph, query):
         return query.create_object(iterables.to_dict(
             (field_query.key, values[field_query.field.name])
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
     return resolve
@@ -26,7 +26,7 @@ def root_object_resolver(type):
 
         return query.create_object(iterables.to_dict(
             (field_query.key, resolve_field(field_query))
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
     def field(field):

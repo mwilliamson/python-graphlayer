@@ -427,7 +427,7 @@ class TestQueryString(object):
         assert_that(str(query), equal_to(dedent("""
             ObjectQuery(
                 type=Book,
-                fields=(
+                field_queries=(
                     FieldQuery(
                         key="title",
                         field=Book.fields.title,

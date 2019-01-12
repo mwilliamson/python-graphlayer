@@ -291,14 +291,14 @@ def sql_table_resolver(type, model, fields):
         row_slices = []
         readers = []
 
-        for field_query in query.fields:
+        for field_query in query.field_queries:
             expressions = get_field(field_query).expressions()
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions)))
             query_expressions += expressions
 
         rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
 
-        for field_query, row_slice in zip(query.fields, row_slices):
+        for field_query, row_slice in zip(query.field_queries, row_slices):
             reader = get_field(field_query).create_reader(graph, field_query, base_query, session=session)
             readers.append((field_query.key, row_slice, reader))
 

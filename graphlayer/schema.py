@@ -116,8 +116,8 @@ class InterfaceType(object):
         self.name = name
         self.fields = Fields(name, fields)
 
-    def __call__(self, *fields):
-        return ObjectQuery(self, fields=fields)
+    def __call__(self, *field_queries):
+        return ObjectQuery(self, field_queries=field_queries)
 
     def __repr__(self):
         return "InterfaceType(name={!r})".format(self.name)
@@ -238,8 +238,8 @@ class ObjectType(object):
         # TODO: validation of interfaces, especially default values of arguments
         self.interfaces = interfaces
 
-    def __call__(self, *fields):
-        return ObjectQuery(self, fields=fields)
+    def __call__(self, *field_queries):
+        return ObjectQuery(self, field_queries=field_queries)
 
     def __repr__(self):
         return "ObjectType(name={!r})".format(self.name)
@@ -286,9 +286,9 @@ def _lambdaise(value):
 class ObjectQuery(object):
     create_object = Object
 
-    def __init__(self, type, fields):
+    def __init__(self, type, field_queries):
         self.type = type
-        self.fields = tuple(fields)
+        self.field_queries = tuple(field_queries)
 
     # TODO: test this directly
     # TODO: handling merging of other query types
@@ -297,17 +297,17 @@ class ObjectQuery(object):
             # TODO: better handling of other types
             assert self.type == other.type
 
-            fields = list(map(
+            field_queries = list(map(
                 _merge_field_queries,
                 iterables.to_multidict(
                     ((field.field, field.key), field)
-                    for field in (self.fields + other.fields)
+                    for field in (self.field_queries + other.field_queries)
                 ).values(),
             ))
 
             return ObjectQuery(
                 type=self.type,
-                fields=fields,
+                field_queries=field_queries,
             )
         else:
             return NotImplemented
@@ -316,7 +316,7 @@ class ObjectQuery(object):
         if self.type == target_type:
             return self
         elif isinstance(target_type, InterfaceType):
-            return ObjectQuery(type=target_type, fields=self.fields)
+            return ObjectQuery(type=target_type, field_queries=self.field_queries)
 
         supertype_fields = frozenset(
             field
@@ -337,23 +337,23 @@ class ObjectQuery(object):
                 # TODO: include subtype fields
                 return None
 
-        fields = tuple(filter(None, map(field_query_for_type, self.fields)))
-        return ObjectQuery(type=target_type, fields=fields)
+        field_queries = tuple(filter(None, map(field_query_for_type, self.field_queries)))
+        return ObjectQuery(type=target_type, field_queries=field_queries)
 
     def to_json_value(self, value):
         return iterables.to_dict(
             (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
-            for field_query in self.fields
+            for field_query in self.field_queries
         )
 
     def __str__(self):
-        fields = _format_tuple(
-            str(field)
-            for field in self.fields
+        field_queries = _format_tuple(
+            str(field_query)
+            for field_query in self.field_queries
         )
         return _format_call_tree("ObjectQuery", (
             ("type", self.type.name),
-            ("fields", fields),
+            ("field_queries", field_queries),
         ))
 
 

@@ -172,7 +172,7 @@ Running this will print out:
 
     query: ObjectQuery(
         type=Root,
-        fields=(
+        field_queries=(
             FieldQuery(
                 key="bookCount",
                 field=Root.fields.book_count,
@@ -196,7 +196,7 @@ we should use the key as passed in the field query.
      @g.resolver(Root)
      def resolve_root(graph, query):
     -    print("query:", query)
-    +    field_query = query.fields[0]
+    +    field_query = query.field_queries[0]
     +
          return query.create_object({
     -        "bookCount": 3,
@@ -209,7 +209,7 @@ we should use the key as passed in the field query.
 
     @g.resolver(Root)
     def resolve_root(graph, query):
-        field_query = query.fields[0]
+        field_query = query.field_queries[0]
 
         return query.create_object({
             field_query.key: 3,
@@ -260,7 +260,7 @@ Now we'll need to check what field is being requested.
     +        else:
     +            raise Exception("unknown field: {}".format(field))
     +
-         field_query = query.fields[0]
+         field_query = query.field_queries[0]
 
          return query.create_object({
     -        field_query.key: 3,
@@ -281,14 +281,14 @@ Now we'll need to check what field is being requested.
             else:
                 raise Exception("unknown field: {}".format(field))
 
-        field_query = query.fields[0]
+        field_query = query.field_queries[0]
 
         return query.create_object({
             field_query.key: resolve_field(field_query.field),
         })
 
 What's more, the user might request more than one field,
-so we should iterate through ``query.fields`` when generating the result.
+so we should iterate through ``query.field_queries`` when generating the result.
 
 .. diff-doc:: diff example
     :render: False
@@ -299,14 +299,14 @@ so we should iterate through ``query.fields`` when generating the result.
              else:
                  raise Exception("unknown field: {}".format(field))
 
-    -    field_query = query.fields[0]
+    -    field_query = query.field_queries[0]
     -
     -    return query.create_object({
     -        field_query.key: resolve_field(field_query.field),
     -    })
     +    return query.create_object(dict(
     +        (field_query.key, resolve_field(field_query.field))
-    +        for field_query in query.fields
+    +        for field_query in query.field_queries
     +    ))
 
      resolvers = (resolve_root, )
@@ -326,7 +326,7 @@ so we should iterate through ``query.fields`` when generating the result.
 
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query.field))
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
 If we wrap the call to ``execute`` in a ``print``:
@@ -488,7 +488,7 @@ Next, we'll update our resolvers to use the database:
 
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query.field))
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
 Adding books to the root
@@ -576,7 +576,7 @@ regardless of where they appear in the query.
          return query.create_object(dict(
     -        (field_query.key, resolve_field(field_query.field))
     +        (field_query.key, resolve_field(field_query))
-             for field_query in query.fields
+             for field_query in query.field_queries
          ))
 
 
@@ -596,7 +596,7 @@ regardless of where they appear in the query.
 
         return query.create_object(dict(
             (field_query.key, resolve_field(field_query))
-            for field_query in query.fields
+            for field_query in query.field_queries
         ))
 
 This means we need to define a resolver for a list of books.
@@ -608,7 +608,7 @@ For now, let's just print the query and return an empty list so we can see what 
     ---
     +++
     @@ -60,7 +60,12 @@
-             for field_query in query.fields
+             for field_query in query.field_queries
          ))
 
     -resolvers = (resolve_root, )
@@ -673,7 +673,7 @@ Then our script should now produce the output:
         type=List(Book),
         element_query=ObjectQuery(
             type=Book,
-            fields=(
+            field_queries=(
                 FieldQuery(
                     key="title",
                     field=Book.fields.title,
@@ -717,7 +717,7 @@ and then mapping each fetched book to an object according to the fields requeste
     +    return [
     +        query.element_query.create_object(dict(
     +            (field_query.key, resolve_field(book, field_query.field))
-    +            for field_query in query.element_query.fields
+    +            for field_query in query.element_query.field_queries
     +        ))
     +        for book in books
     +    ]
@@ -742,7 +742,7 @@ and then mapping each fetched book to an object according to the fields requeste
         return [
             query.element_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
-                for field_query in query.element_query.fields
+                for field_query in query.element_query.field_queries
             ))
             for book in books
         ]
@@ -776,7 +776,7 @@ and with larger data sets.
     +
     +    expressions = frozenset(
     +        field_to_expression[field_query.field]
-    +        for field_query in query.element_query.fields
+    +        for field_query in query.element_query.field_queries
     +    )
     +
     +    books = session.query(*expressions).all()
@@ -795,7 +795,7 @@ and with larger data sets.
 
         expressions = frozenset(
             field_to_expression[field_query.field]
-            for field_query in query.element_query.fields
+            for field_query in query.element_query.field_queries
         )
 
         books = session.query(*expressions).all()
@@ -811,7 +811,7 @@ and with larger data sets.
         return [
             query.element_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
-                for field_query in query.element_query.fields
+                for field_query in query.element_query.field_queries
             ))
             for book in books
         ]
@@ -842,7 +842,7 @@ To solve this, we'll wrap the object query in our own custom query class.
     ---
     +++
     @@ -60,6 +60,11 @@
-             for field_query in query.fields
+             for field_query in query.field_queries
          ))
 
     +class BookQuery(object):
@@ -905,8 +905,8 @@ and replace ``query.element_query`` with ``query.object_query``.
 
          expressions = frozenset(
              field_to_expression[field_query.field]
-    -        for field_query in query.element_query.fields
-    +        for field_query in query.object_query.fields
+    -        for field_query in query.element_query.field_queries
+    +        for field_query in query.object_query.field_queries
          )
 
          books = session.query(*expressions).all()
@@ -917,8 +917,8 @@ and replace ``query.element_query`` with ``query.object_query``.
     -        query.element_query.create_object(dict(
     +        query.object_query.create_object(dict(
                  (field_query.key, resolve_field(book, field_query.field))
-    -            for field_query in query.element_query.fields
-    +            for field_query in query.object_query.fields
+    -            for field_query in query.element_query.field_queries
+    +            for field_query in query.object_query.field_queries
              ))
              for book in books
          ]
@@ -934,7 +934,7 @@ and replace ``query.element_query`` with ``query.object_query``.
 
         expressions = frozenset(
             field_to_expression[field_query.field]
-            for field_query in query.object_query.fields
+            for field_query in query.object_query.field_queries
         )
 
         books = session.query(*expressions).all()
@@ -950,7 +950,7 @@ and replace ``query.element_query`` with ``query.object_query``.
         return [
             query.object_query.create_object(dict(
                 (field_query.key, resolve_field(book, field_query.field))
-                for field_query in query.object_query.fields
+                for field_query in query.object_query.field_queries
             ))
             for book in books
         ]
@@ -1066,7 +1066,7 @@ with:
     ---
     +++
     @@ -88,7 +88,12 @@
-             for field_query in query.object_query.fields
+             for field_query in query.object_query.field_queries
          )
 
     -    books = session.query(*expressions).all()
@@ -1186,7 +1186,7 @@ which can be resolved by a new resolver.
     ---
     +++
     @@ -73,6 +73,29 @@
-             for field_query in query.fields
+             for field_query in query.field_queries
          ))
 
     +class AuthorQuery(object):
@@ -1207,7 +1207,7 @@ which can be resolved by a new resolver.
     +    return [
     +        query.object_query.create_object(dict(
     +            (field_query.key, resolve_field(author, field_query.field))
-    +            for field_query in query.object_query.fields
+    +            for field_query in query.object_query.field_queries
     +        ))
     +        for author in authors
     +    ]
@@ -1245,7 +1245,7 @@ which can be resolved by a new resolver.
         return [
             query.object_query.create_object(dict(
                 (field_query.key, resolve_field(author, field_query.field))
-                for field_query in query.object_query.fields
+                for field_query in query.object_query.field_queries
             ))
             for author in authors
         ]
@@ -1407,7 +1407,7 @@ We then need to update the resolver to handle this:
     +    def to_object(author):
     +        return query.object_query.create_object(dict(
                  (field_query.key, resolve_field(author, field_query.field))
-                 for field_query in query.object_query.fields
+                 for field_query in query.object_query.field_queries
              ))
     -        for author in authors
     -    ]
@@ -1446,7 +1446,7 @@ We then need to update the resolver to handle this:
         def to_object(author):
             return query.object_query.create_object(dict(
                 (field_query.key, resolve_field(author, field_query.field))
-                for field_query in query.object_query.fields
+                for field_query in query.object_query.field_queries
             ))
 
         if query.is_keyed_by_id:
@@ -1473,7 +1473,7 @@ Now we can update the books resolver to fetch the authors using the graph:
 
     +    authors = dict(
     +        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
-    +        for field_query in query.object_query.fields
+    +        for field_query in query.object_query.field_queries
     +        if field_query.field == Book.fields.author
     +    )
     +
@@ -1487,7 +1487,7 @@ Now we can update the books resolver to fetch the authors using the graph:
 
     authors = dict(
         (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
-        for field_query in query.object_query.fields
+        for field_query in query.object_query.field_queries
         if field_query.field == Book.fields.author
     )
 
@@ -1521,7 +1521,7 @@ We can this use this dictionary when resolving each field:
              query.object_query.create_object(dict(
     -            (field_query.key, resolve_field(book, field_query.field))
     +            (field_query.key, resolve_field(book, field_query))
-                 for field_query in query.object_query.fields
+                 for field_query in query.object_query.field_queries
              ))
              for book in books
 
@@ -1540,7 +1540,7 @@ We can this use this dictionary when resolving each field:
     return [
         query.object_query.create_object(dict(
             (field_query.key, resolve_field(book, field_query))
-            for field_query in query.object_query.fields
+            for field_query in query.object_query.field_queries
         ))
         for book in books
     ]
@@ -1690,7 +1690,7 @@ And we set the IDs in the book resolver:
          authors = dict(
     -        (field_query.key, graph.resolve(AuthorQuery(field_query.type_query).key_by_id()))
     +        (field_query.key, get_authors_for_field_query(field_query))
-             for field_query in query.object_query.fields
+             for field_query in query.object_query.field_queries
              if field_query.field == Book.fields.author
          )
 
@@ -1712,7 +1712,7 @@ And we set the IDs in the book resolver:
 
     authors = dict(
         (field_query.key, get_authors_for_field_query(field_query))
-        for field_query in query.object_query.fields
+        for field_query in query.object_query.field_queries
         if field_query.field == Book.fields.author
     )
 
@@ -1823,7 +1823,7 @@ For instance, our root resolver can be rewritten as:
     -
     -    return query.create_object(dict(
     -        (field_query.key, resolve_field(field_query))
-    -        for field_query in query.fields
+    -        for field_query in query.field_queries
     -    ))
     +def root_resolve_author_count(graph, query, args, *, session):
     +    return session.query(AuthorRecord).count()
@@ -1953,7 +1953,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -    def to_object(author):
     -        return query.object_query.create_object(dict(
     -            (field_query.key, resolve_field(author, field_query.field))
-    -            for field_query in query.object_query.fields
+    -            for field_query in query.object_query.field_queries
     -        ))
     -
     -    if query.is_keyed_by_id:
@@ -1986,7 +1986,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -
     -    expressions = frozenset(
     -        field_to_expression[field_query.field]
-    -        for field_query in query.object_query.fields
+    -        for field_query in query.object_query.field_queries
     -    )
     -
     -    sqlalchemy_query = session.query(*expressions)
@@ -2010,7 +2010,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -
     -    authors = dict(
     -        (field_query.key, get_authors_for_field_query(field_query))
-    -        for field_query in query.object_query.fields
+    -        for field_query in query.object_query.field_queries
     -        if field_query.field == Book.fields.author
     -    )
     -
@@ -2027,7 +2027,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -    return [
     -        query.object_query.create_object(dict(
     -            (field_query.key, resolve_field(book, field_query))
-    -            for field_query in query.object_query.fields
+    -            for field_query in query.object_query.field_queries
     -        ))
     -        for book in books
     -    ]
