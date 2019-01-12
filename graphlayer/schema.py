@@ -385,16 +385,8 @@ class Field(object):
         return Field(owner_type=owner_type, name=self.name, type=self.type, params=self.params)
 
     def __call__(self, *args):
-        # TODO: check for unhandled args
-
-        field_query_args = list(filter(
-            lambda arg: isinstance(arg, FieldQuery),
-            args,
-        ))
-
-        type_query = self.type(*field_query_args)
-
-        field_args = tuple(filter(lambda arg: isinstance(arg, Argument), args))
+        field_queries, field_args = _partition_by_type(args, (FieldQuery, Argument))
+        type_query = self.type(*field_queries)
 
         # TODO: handle extra args
         return self.query(key=self.name, type_query=type_query, args=field_args)
@@ -422,6 +414,27 @@ class Field(object):
 
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
+
+
+def _partition_by_type(values, types):
+    results = tuple([] for type in types)
+
+    for value in values:
+        potential_results = [
+            result
+            for type, result in zip(types, results)
+            if isinstance(value, type)
+        ]
+        if potential_results:
+            potential_results[0].append(value)
+        else:
+            raise ValueError("unexpected argument: {!r}\nExpected arguments of type {} but had type {}".format(
+                value,
+                " or ".join(sorted([type.__name__ for type in types])),
+                type(value).__name__,
+            ))
+
+    return results
 
 
 class Params(object):

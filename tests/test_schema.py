@@ -499,5 +499,12 @@ class TestQueryString(object):
         """)))
 
 
+class TestField(object):
+    def test_calling_field_with_unknown_types_raises_error(self):
+        field = schema.field("x", type=schema.Int)
+        error = pytest.raises(ValueError, lambda: field(42))
+        assert_that(str(error.value), equal_to("unexpected argument: 42\nExpected arguments of type Argument or FieldQuery but had type int"))
+
+
 def dedent(value):
     return textwrap.dedent(value).strip()
