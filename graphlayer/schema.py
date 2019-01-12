@@ -111,7 +111,6 @@ class InterfaceType(object):
     def __init__(self, name, fields):
         self.name = name
         self.fields = Fields(name, fields)
-        self.subtypes = []
 
     def __call__(self, *fields):
         return ObjectQuery(self, fields=fields)
@@ -234,10 +233,6 @@ class ObjectType(object):
         self.fields = Fields(name, owned_fields)
         # TODO: validation of interfaces, especially default values of arguments
         self.interfaces = interfaces
-
-        # TODO: avoiding mutation of the interface would be nicer
-        for interface in interfaces:
-            interface.subtypes.append(self)
 
     def __call__(self, *fields):
         return ObjectQuery(self, fields=fields)
