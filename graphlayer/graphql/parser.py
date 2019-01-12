@@ -21,6 +21,9 @@ class GraphQLQuery(object):
 
 
 def document_text_to_query(document_text, query_type, mutation_type=None, types=None, variables=None):
+    if types is None:
+        types = ()
+
     if variables is None:
         variables = {}
 
@@ -77,7 +80,12 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
         )
 
     if non_schema_selections:
-        parser = Parser(fragments=fragments, variables=variables)
+        all_types = _collect_types((query_type, mutation_type) + tuple(types))
+        all_types_by_name = to_dict(
+            (graph_type.name, graph_type)
+            for graph_type in all_types
+        )
+        parser = Parser(fragments=fragments, types=all_types_by_name, variables=variables)
         graph_query = parser.read_selection_set(
             _copy_with(operation.selection_set, selections=non_schema_selections),
             graph_type=root_type,
@@ -91,9 +99,24 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
     )
 
 
+def _collect_types(types):
+    # TODO: extract, recurse
+    all_types = set()
+
+    def collect(graph_type):
+        if graph_type is not None and graph_type not in all_types:
+            all_types.add(graph_type)
+
+    for graph_type in types:
+        collect(graph_type)
+
+    return all_types
+
+
 class Parser(object):
-    def __init__(self, fragments, variables):
+    def __init__(self, fragments, types, variables):
         self._fragments = fragments
+        self._types = types
         self._variables = variables
 
     def read_selection_set(self, selection_set, graph_type):
@@ -117,19 +140,17 @@ class Parser(object):
             return graph_type(field)
 
         elif isinstance(selection, graphql_ast.InlineFragment):
-            return self._read_graphql_fragment(selection, graph_type=graph_type)
+            return self._read_graphql_fragment(selection)
 
         elif isinstance(selection, graphql_ast.FragmentSpread):
-            return self._read_graphql_fragment(self._fragments[selection.name.value], graph_type=graph_type)
+            return self._read_graphql_fragment(self._fragments[selection.name.value])
 
         else:
             raise Exception("Unhandled selection type: {}".format(type(selection)))
 
-    def _read_graphql_fragment(self, fragment, graph_type):
+    def _read_graphql_fragment(self, fragment):
         type_condition_type_name = fragment.type_condition.name.value
-
-        if type_condition_type_name != graph_type.name and isinstance(graph_type, schema.InterfaceType):
-            graph_type = find(lambda subtype: subtype.name == type_condition_type_name, graph_type.subtypes)
+        graph_type = self._find_type(type_condition_type_name)
 
         return self.read_selection_set(
             fragment.selection_set,
@@ -225,6 +246,9 @@ class Parser(object):
             return self._variables[name]
         else:
             raise ValueError("unhandled value: {}".format(type(value)))
+
+    def _find_type(self, name):
+        return self._types[name]
 
 
 def _field_key(selection):
