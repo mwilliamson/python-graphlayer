@@ -25,12 +25,9 @@ class Graph(object):
         self._resolvers = resolvers
         self._injector = Injector(dependencies)
 
-    def resolve(self, *args, **kwargs):
-        type = kwargs.pop("type", None)
+    def resolve(self, *args, type=None):
         if type is None:
             type = args[0].type
-        # TODO: better error
-        assert not kwargs
         resolver = self._resolvers[type]
         return self._injector.call_with_dependencies(resolver, self, *args)
 
