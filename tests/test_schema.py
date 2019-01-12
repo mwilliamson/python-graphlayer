@@ -55,6 +55,18 @@ def test_given_input_field_has_no_default_when_input_field_is_not_set_then_error
     assert_that(str(error.value), equal_to("missing value for field0"))
 
 
+def test_when_passing_unknown_field_values_into_input_object_then_error_is_raised():
+    Input = schema.InputObjectType(
+        "Input",
+        fields=(
+            schema.input_field("field0", type=schema.Int),
+        ),
+    )
+
+    error = pytest.raises(ValueError, lambda: Input(field0=0, field1=1))
+    assert_that(str(error.value), equal_to("Input has no field field1"))
+
+
 def test_given_field_arg_has_default_when_field_arg_is_not_set_then_default_is_used():
     Root = schema.ObjectType(
         "Root",

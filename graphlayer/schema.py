@@ -71,7 +71,7 @@ class InputObjectType(object):
 
     def __call__(self, **explicit_field_values):
         def get_field_value(field):
-            value = explicit_field_values.get(field.name, field.default)
+            value = explicit_field_values.pop(field.name, field.default)
 
             if value is _undefined:
                 raise ValueError("missing value for {}".format(field.name))
@@ -82,7 +82,11 @@ class InputObjectType(object):
             (field.name, get_field_value(field))
             for field in self.fields
         )
-        # TODO: handle extra field values
+
+        if explicit_field_values:
+            key = next(iter(explicit_field_values))
+            raise ValueError("{} has no field {}".format(self.name, key))
+
         return Object(field_values)
 
     def __repr__(self):
