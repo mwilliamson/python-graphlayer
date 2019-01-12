@@ -439,7 +439,7 @@ class TestQueryString(object):
 
         query = schema.key("title", Book.fields.title())
 
-        assert_that(query.to_string(Book), equal_to(dedent("""
+        assert_that(str(query), equal_to(dedent("""
             FieldQuery(
                 key="title",
                 field=Book.fields.title,
@@ -457,7 +457,7 @@ class TestQueryString(object):
 
         query = schema.key("title", Book.fields.title())
 
-        assert_that(query.to_string(Item), equal_to(dedent("""
+        assert_that(str(query), equal_to(dedent("""
             FieldQuery(
                 key="title",
                 field=Book.fields.title,
@@ -475,7 +475,7 @@ class TestQueryString(object):
 
         query = schema.key("title", Book.fields.title(Book.fields.title.params.truncate(42)))
 
-        assert_that(query.to_string(Book), equal_to(dedent("""
+        assert_that(str(query), equal_to(dedent("""
             FieldQuery(
                 key="title",
                 field=Book.fields.title,

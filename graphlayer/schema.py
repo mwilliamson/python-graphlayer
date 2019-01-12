@@ -224,7 +224,14 @@ class ObjectType(object):
             interfaces = ()
 
         self.name = name
-        self.fields = Fields(name, fields)
+        if not callable(fields):
+            fields = _lambdaise(fields)
+        def owned_fields():
+            return tuple(
+                field.with_owner_type(self)
+                for field in fields()
+            )
+        self.fields = Fields(name, owned_fields)
         # TODO: validation of interfaces, especially default values of arguments
         self.interfaces = interfaces
 
@@ -247,6 +254,7 @@ class Fields(object):
         self._type_name = type_name
         if not callable(fields):
             fields = _lambdaise(fields)
+
         self._fields = _memoize(fields)
 
     def __iter__(self):
@@ -341,7 +349,7 @@ class ObjectQuery(object):
 
     def __str__(self):
         fields = _format_tuple(
-            field.to_string(self.type)
+            str(field)
             for field in self.fields
         )
         return _format_call_tree("ObjectQuery", (
@@ -364,14 +372,18 @@ class Args(object):
 def field(name, type, params=None):
     if params is None:
         params = ()
-    return Field(name=name, type=type, params=params)
+    return Field(owner_type=None, name=name, type=type, params=params)
 
 
 class Field(object):
-    def __init__(self, name, type, params):
+    def __init__(self, owner_type, name, type, params):
+        self.owner_type = owner_type
         self.name = name
         self.type = type
         self.params = Params(name, params)
+
+    def with_owner_type(self, owner_type):
+        return Field(owner_type=owner_type, name=self.name, type=self.type, params=self.params)
 
     def __call__(self, *args):
         # TODO: check for unhandled args
@@ -459,18 +471,8 @@ class FieldQuery(object):
             args=self.args,
         )
 
-    def to_string(self, type):
-        if isinstance(type, InterfaceType):
-            subtype_fields = iterables.to_dict(
-                (field, subtype)
-                for subtype in type.subtypes
-                for field in subtype.fields
-            )
-        else:
-            subtype_fields = {}
-
-        parent_type = subtype_fields.get(self.field, type)
-        field = "{}.fields.{}".format(parent_type.name, self.field.name)
+    def __str__(self):
+        field = "{}.fields.{}".format(self.field.owner_type.name, self.field.name)
         args = _format_tuple(
             "{}.params.{}({})".format(field, param.name, getattr(self.args, param.name))
             for param in self.field.params
