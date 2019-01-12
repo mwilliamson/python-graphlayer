@@ -77,11 +77,10 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
         )
 
     if non_schema_selections:
-        graph_query = _read_selection_set(
+        parser = Parser(fragments=fragments, variables=variables)
+        graph_query = parser.read_selection_set(
             _copy_with(operation.selection_set, selections=non_schema_selections),
             graph_type=root_type,
-            fragments=fragments,
-            variables=variables,
         )
     else:
         graph_query=None
@@ -92,149 +91,140 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
     )
 
 
-def _read_selection_set(selection_set, graph_type, fragments, variables):
-    if selection_set is None:
-        return graph_type()
-    else:
-        return reduce(
-            lambda left, right: left + right,
-            (
-                _read_graphql_selection(
-                    graphql_selection,
-                    graph_type=graph_type,
-                    fragments=fragments,
-                    variables=variables,
-                ).for_type(graph_type)
-                for graphql_selection in selection_set.selections
+class Parser(object):
+    def __init__(self, fragments, variables):
+        self._fragments = fragments
+        self._variables = variables
+
+    def read_selection_set(self, selection_set, graph_type):
+        if selection_set is None:
+            return graph_type()
+        else:
+            return reduce(
+                lambda left, right: left + right,
+                (
+                    self._read_graphql_selection(
+                        graphql_selection,
+                        graph_type=graph_type,
+                    ).for_type(graph_type)
+                    for graphql_selection in selection_set.selections
+                )
             )
+
+    def _read_graphql_selection(self, selection, graph_type):
+        if isinstance(selection, graphql_ast.Field):
+            field = self._read_graphql_field(selection, graph_type=graph_type)
+            return graph_type(field)
+
+        elif isinstance(selection, graphql_ast.InlineFragment):
+            return self._read_graphql_fragment(selection, graph_type=graph_type)
+
+        elif isinstance(selection, graphql_ast.FragmentSpread):
+            return self._read_graphql_fragment(self._fragments[selection.name.value], graph_type=graph_type)
+
+        else:
+            raise Exception("Unhandled selection type: {}".format(type(selection)))
+
+    def _read_graphql_fragment(self, fragment, graph_type):
+        type_condition_type_name = fragment.type_condition.name.value
+
+        if type_condition_type_name != graph_type.name and isinstance(graph_type, schema.InterfaceType):
+            graph_type = find(lambda subtype: subtype.name == type_condition_type_name, graph_type.subtypes)
+
+        return self.read_selection_set(
+            fragment.selection_set,
+            graph_type=graph_type,
         )
 
+    def _read_graphql_field(self, graphql_field, graph_type):
+        key = _field_key(graphql_field)
+        field_name = _camel_case_to_snake_case(graphql_field.name.value)
+        field = self._get_field(graph_type, field_name)
 
-def _read_graphql_selection(selection, graph_type, fragments, variables):
-    if isinstance(selection, graphql_ast.Field):
-        field = _read_graphql_field(selection, graph_type=graph_type, fragments=fragments, variables=variables)
-        return graph_type(field)
+        def get_arg_value(arg):
+            param = getattr(field.params, _camel_case_to_snake_case(arg.name.value))
+            value = self._read_value_node(arg.value, value_type=param.type)
+            return param(value)
 
-    elif isinstance(selection, graphql_ast.InlineFragment):
-        return _read_graphql_fragment(selection, graph_type=graph_type, fragments=fragments, variables=variables)
-
-    elif isinstance(selection, graphql_ast.FragmentSpread):
-        return _read_graphql_fragment(fragments[selection.name.value], graph_type=graph_type, fragments=fragments, variables=variables)
-
-    else:
-        raise Exception("Unhandled selection type: {}".format(type(selection)))
-
-
-def _read_graphql_fragment(fragment, graph_type, fragments, variables):
-    type_condition_type_name = fragment.type_condition.name.value
-
-    if type_condition_type_name != graph_type.name and isinstance(graph_type, schema.InterfaceType):
-        graph_type = find(lambda subtype: subtype.name == type_condition_type_name, graph_type.subtypes)
-
-    return _read_selection_set(
-        fragment.selection_set,
-        graph_type=graph_type,
-        fragments=fragments,
-        variables=variables,
-    )
-
-
-def _read_graphql_field(graphql_field, graph_type, fragments, variables):
-    key = _field_key(graphql_field)
-    field_name = _camel_case_to_snake_case(graphql_field.name.value)
-    field = _get_field(graph_type, field_name)
-
-    def get_arg_value(arg):
-        param = getattr(field.params, _camel_case_to_snake_case(arg.name.value))
-        value = _read_value_node(arg.value, variables=variables, value_type=param.type)
-        return param(value)
-
-    args = [
-        get_arg_value(arg)
-        for arg in graphql_field.arguments
-    ]
-    type_query = _read_selection_set(
-        graphql_field.selection_set,
-        graph_type=field.type,
-        fragments=fragments,
-        variables=variables,
-    )
-    return field.query(key=key, args=args, type_query=type_query)
-
-
-def _get_field(graph_type, field_name):
-    while isinstance(graph_type, (schema.ListType, schema.NullableType)):
-        graph_type = graph_type.element_type
-
-    return getattr(graph_type.fields, field_name)
-
-
-def _read_value_node(value, value_type, variables):
-    graphql_value = _read_graphql_value(value, variables=variables)
-    return _convert_graphql_value(graphql_value, value_type=value_type)
-
-
-def _convert_graphql_value(graphql_value, value_type):
-    if isinstance(value_type, schema.EnumType):
-        enum_values = list(filter(
-            lambda enum_value: enum_value.value == graphql_value,
-            value_type.enum,
-        ))
-        return enum_values[0]
-
-    elif isinstance(value_type, schema.NullableType):
-        return _convert_graphql_value(graphql_value, value_type=value_type.element_type)
-
-    elif value_type in (schema.Boolean, schema.Float, schema.Int, schema.String):
-        return graphql_value
-
-    elif isinstance(value_type, schema.ListType):
-        return [
-            _convert_graphql_value(element, value_type=value_type.element_type)
-            for element in graphql_value
+        args = [
+            get_arg_value(arg)
+            for arg in graphql_field.arguments
         ]
-
-    elif isinstance(value_type, schema.InputObjectType):
-        def get_field_value(key, value):
-            field = getattr(value_type.fields, _camel_case_to_snake_case(key))
-            return _convert_graphql_value(value, value_type=field.type)
-
-        return value_type(**to_dict(
-            (_camel_case_to_snake_case(key), get_field_value(key, value))
-            for key, value in graphql_value.items()
-        ))
-
-    else:
-        raise ValueError("unhandled type: {}".format(type(value_type)))
-
-
-def _read_graphql_value(value, variables):
-    if isinstance(value, graphql_ast.BooleanValue):
-        return value.value
-    elif isinstance(value, graphql_ast.EnumValue):
-        return value.value
-    elif isinstance(value, graphql_ast.FloatValue):
-        return float(value.value)
-    elif isinstance(value, graphql_ast.IntValue):
-        return int(value.value)
-    elif isinstance(value, graphql_ast.ListValue):
-        return [
-            _read_graphql_value(element, variables=variables)
-            for element in value.values
-        ]
-    elif isinstance(value, graphql_ast.ObjectValue):
-        return to_dict(
-            (field_input.name.value, _read_graphql_value(field_input.value, variables=variables))
-            for field_input in value.fields
+        type_query = self.read_selection_set(
+            graphql_field.selection_set,
+            graph_type=field.type,
         )
-    elif isinstance(value, graphql_ast.StringValue):
-        return value.value
-    elif isinstance(value, graphql_ast.Variable):
-        name = value.name.value
-        return variables[name]
-    else:
-        raise ValueError("unhandled value: {}".format(type(value)))
+        return field.query(key=key, args=args, type_query=type_query)
 
+    def _get_field(self, graph_type, field_name):
+        while isinstance(graph_type, (schema.ListType, schema.NullableType)):
+            graph_type = graph_type.element_type
+
+        return getattr(graph_type.fields, field_name)
+
+    def _read_value_node(self, value, value_type):
+        graphql_value = self._read_graphql_value(value)
+        return self._convert_graphql_value(graphql_value, value_type=value_type)
+
+    def _convert_graphql_value(self, graphql_value, value_type):
+        if isinstance(value_type, schema.EnumType):
+            enum_values = list(filter(
+                lambda enum_value: enum_value.value == graphql_value,
+                value_type.enum,
+            ))
+            return enum_values[0]
+
+        elif isinstance(value_type, schema.NullableType):
+            return self._convert_graphql_value(graphql_value, value_type=value_type.element_type)
+
+        elif value_type in (schema.Boolean, schema.Float, schema.Int, schema.String):
+            return graphql_value
+
+        elif isinstance(value_type, schema.ListType):
+            return [
+                self._convert_graphql_value(element, value_type=value_type.element_type)
+                for element in graphql_value
+            ]
+
+        elif isinstance(value_type, schema.InputObjectType):
+            def get_field_value(key, value):
+                field = getattr(value_type.fields, _camel_case_to_snake_case(key))
+                return self._convert_graphql_value(value, value_type=field.type)
+
+            return value_type(**to_dict(
+                (_camel_case_to_snake_case(key), get_field_value(key, value))
+                for key, value in graphql_value.items()
+            ))
+
+        else:
+            raise ValueError("unhandled type: {}".format(type(value_type)))
+
+    def _read_graphql_value(self, value):
+        if isinstance(value, graphql_ast.BooleanValue):
+            return value.value
+        elif isinstance(value, graphql_ast.EnumValue):
+            return value.value
+        elif isinstance(value, graphql_ast.FloatValue):
+            return float(value.value)
+        elif isinstance(value, graphql_ast.IntValue):
+            return int(value.value)
+        elif isinstance(value, graphql_ast.ListValue):
+            return [
+                self._read_graphql_value(element)
+                for element in value.values
+            ]
+        elif isinstance(value, graphql_ast.ObjectValue):
+            return to_dict(
+                (field_input.name.value, self._read_graphql_value(field_input.value))
+                for field_input in value.fields
+            )
+        elif isinstance(value, graphql_ast.StringValue):
+            return value.value
+        elif isinstance(value, graphql_ast.Variable):
+            name = value.name.value
+            return self._variables[name]
+        else:
+            raise ValueError("unhandled value: {}".format(type(value)))
 
 
 def _field_key(selection):
