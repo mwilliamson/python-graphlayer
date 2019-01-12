@@ -19,7 +19,6 @@ def root_object_resolver(type):
     @core.dependencies(injector=core.Injector)
     def resolve_root(graph, query, *, injector):
         def resolve_field(field_query):
-            # TODO: handle unhandled args
             field_resolver = field_handlers[field_query.field]
             return injector.call_with_dependencies(field_resolver, graph, field_query.type_query, field_query.args)
 
