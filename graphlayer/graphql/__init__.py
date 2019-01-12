@@ -6,8 +6,8 @@ from . import parser
 from .schema import create_graphql_schema
 
 
-def execute(document_text, *, graph, query_type, mutation_type=None, variables=None):
-    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type)
+def execute(document_text, *, graph, query_type, mutation_type=None, types=None, variables=None):
+    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
     graphql_document_ast = graphql_parse(document_text)
     graphql_validation_errors = graphql_validate(graphql_schema, graphql_document_ast)
     if graphql_validation_errors:
@@ -17,6 +17,7 @@ def execute(document_text, *, graph, query_type, mutation_type=None, variables=N
         document_text=document_text,
         query_type=query_type,
         mutation_type=mutation_type,
+        types=types,
         variables=variables,
     )
 
