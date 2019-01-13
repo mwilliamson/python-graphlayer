@@ -28,20 +28,20 @@ class _ExpressionField(object):
         return _DecoratedReadField(self, func)
 
 
-def join(*, foreign_key, resolve):
-    return _JoinField(foreign_key=foreign_key, resolve=resolve)
+def join(*, expressions, resolve):
+    return _JoinField(expressions=expressions, resolve=resolve)
 
 
 class _JoinField(object):
-    def __init__(self, foreign_key, resolve):
-        self._foreign_key = foreign_key
+    def __init__(self, expressions, resolve):
+        self._expressions = expressions
         self._resolve = resolve
 
     def expressions(self):
-        return self._foreign_key
+        return self._expressions
 
     def create_reader(self, graph, field_query, base_query, session):
-        result = self._resolve(graph, field_query, base_query.add_columns(*self._foreign_key))
+        result = self._resolve(graph, field_query, base_query.add_columns(*self._expressions))
 
         def read(row):
             return result[tuple(row)]
@@ -67,7 +67,7 @@ def _direct_sql_join(join_on):
         return graph.resolve(sql_query)
 
     return join(
-        foreign_key=join_on.keys(),
+        expressions=join_on.keys(),
         resolve=resolve,
     )
 
