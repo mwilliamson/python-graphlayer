@@ -18,7 +18,7 @@ class BookQuery(object):
 
     @staticmethod
     def select_by_author_ids(type_query, author_ids):
-        return gsql.select(type_query).by(database.Book.author_id, author_ids)
+        return BookQuery.select(type_query).by(database.Book.author_id, author_ids)
 
 
 book_sql_resolver = gsql.sql_table_resolver(
