@@ -4,6 +4,7 @@ import sqlalchemy.orm
 
 import graphlayer as g
 from . import iterables, schema
+from .memo import memoize
 
 
 def expression(expression):
@@ -249,6 +250,8 @@ class _SqlQuery(object):
 
 
 def sql_table_resolver(type, model, fields):
+    fields = memoize(fields)
+
     @g.resolver(_sql_query_type(type))
     @g.dependencies(session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, session):
@@ -275,7 +278,7 @@ def sql_table_resolver(type, model, fields):
 
     def resolve(graph, query, where, extra_expressions, process_row, session):
         def get_field(field_query):
-            field = fields[field_query.field]
+            field = fields()[field_query.field]
             if callable(field):
                 return field(field_query.args)
             else:
