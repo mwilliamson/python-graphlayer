@@ -1,6 +1,7 @@
 from functools import reduce
 
 from . import GraphError, iterables
+from .memo import lambdaize, memoize
 from .representations import Object
 
 
@@ -228,7 +229,7 @@ class ObjectType(object):
 
         self.name = name
         if not callable(fields):
-            fields = _lambdaise(fields)
+            fields = lambdaize(fields)
         def owned_fields():
             return tuple(
                 field.with_owner_type(self)
@@ -251,10 +252,7 @@ class ObjectType(object):
 class Fields(object):
     def __init__(self, type_name, fields):
         self._type_name = type_name
-        if not callable(fields):
-            fields = _lambdaise(fields)
-
-        self._fields = _memoize(fields)
+        self._fields = memoize(fields)
 
     def __iter__(self):
         return iter(self._fields())
@@ -265,22 +263,6 @@ class Fields(object):
             raise GraphError("{} has no field {}".format(self._type_name, field_name))
         else:
             return field
-
-
-def _memoize(func):
-    result = []
-
-    def get():
-        if len(result) == 0:
-            result.append(func())
-
-        return result[0]
-
-    return get
-
-
-def _lambdaise(value):
-    return lambda: value
 
 
 class ObjectQuery(object):
