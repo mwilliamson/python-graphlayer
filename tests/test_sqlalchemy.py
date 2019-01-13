@@ -357,8 +357,7 @@ class TestSqlQueryBy(object):
             ),
         }))
 
-
-    def test_when_passed_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
+    def test_when_passed_singleton_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
         query = gsql.select(self.Book(
             g.key("title", self.Book.fields.title()),
         )).by((self.BookRow.c_id, ), ((1, ), (3, )))
@@ -370,6 +369,26 @@ class TestSqlQueryBy(object):
                 title="Leave it to Psmith",
             ),
             (3, ): has_attrs(
+                title="Captain Corelli's Mandolin",
+            ),
+        }))
+
+    def test_when_passed_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
+        key_values = sqlalchemy.union(
+            sqlalchemy.orm.Query([sqlalchemy.literal(1), sqlalchemy.literal("Leave it to Psmith")]),
+            sqlalchemy.orm.Query([sqlalchemy.literal(3), sqlalchemy.literal("Captain Corelli's Mandolin")]),
+        )
+        query = gsql.select(self.Book(
+            g.key("title", self.Book.fields.title()),
+        )).by((self.BookRow.c_id, self.BookRow.c_title), key_values)
+
+        result = self.graph.resolve(query)
+
+        assert_that(result, is_mapping({
+            (1, "Leave it to Psmith"): has_attrs(
+                title="Leave it to Psmith",
+            ),
+            (3, "Captain Corelli's Mandolin"): has_attrs(
                 title="Captain Corelli's Mandolin",
             ),
         }))
