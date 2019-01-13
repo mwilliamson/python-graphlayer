@@ -857,5 +857,20 @@ def test_when_only_schema_is_read_then_graph_query_is_none():
     assert_that(object_query, equal_to(None))
 
 
+def test_query_is_validated():
+    Root = g.ObjectType("Root", fields=(
+        g.field("value", g.String),
+    ))
+
+    graphql_query = """
+        {
+            x
+        }
+    """
+
+    error = pytest.raises(GraphQLError, lambda: document_text_to_query(graphql_query, query_type=Root))
+    assert_that(str(error.value), equal_to(('Cannot query field "x" on type "Root".')))
+
+
 def _document_text_to_graph_query(*args, **kwargs):
     return document_text_to_query(*args, **kwargs).graph_query
