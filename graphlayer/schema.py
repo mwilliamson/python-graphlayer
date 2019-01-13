@@ -74,7 +74,7 @@ class InputObjectType(object):
             value = explicit_field_values.pop(field.name, field.default)
 
             if value is _undefined:
-                raise GraphError("missing value for {}".format(field.name))
+                raise GraphError("{} is missing required field {}".format(self.name, field.name))
             else:
                 return value
 

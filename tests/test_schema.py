@@ -52,7 +52,7 @@ def test_given_input_field_has_no_default_when_input_field_is_not_set_then_error
     )
 
     error = pytest.raises(GraphError, lambda: Input())
-    assert_that(str(error.value), equal_to("missing value for field0"))
+    assert_that(str(error.value), equal_to("Input is missing required field field0"))
 
 
 def test_when_passing_unknown_field_values_into_input_object_then_error_is_raised():
