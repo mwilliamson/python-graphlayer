@@ -71,3 +71,7 @@ def dependencies(**kwargs):
         return func
 
     return register_dependency
+
+
+class GraphError(Exception):
+    pass

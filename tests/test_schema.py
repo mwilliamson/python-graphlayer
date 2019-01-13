@@ -4,7 +4,7 @@ import textwrap
 from precisely import assert_that, equal_to, has_attrs
 import pytest
 
-from graphlayer import schema
+from graphlayer import GraphError, schema
 from graphlayer.representations import Object
 from .matchers import is_query
 
@@ -12,7 +12,7 @@ from .matchers import is_query
 def test_when_param_does_not_exist_on_params_then_error_is_raised():
     params = schema.Params("book", {})
 
-    error = pytest.raises(ValueError, lambda: params.author)
+    error = pytest.raises(GraphError, lambda: params.author)
 
     assert_that(str(error.value), equal_to("book has no param author"))
 
@@ -22,7 +22,7 @@ def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
         schema.field("title", schema.String),
     ))
 
-    error = pytest.raises(ValueError, lambda: book.fields.author)
+    error = pytest.raises(GraphError, lambda: book.fields.author)
 
     assert_that(str(error.value), equal_to("Book has no field author"))
 
@@ -51,7 +51,7 @@ def test_given_input_field_has_no_default_when_input_field_is_not_set_then_error
         ),
     )
 
-    error = pytest.raises(ValueError, lambda: Input())
+    error = pytest.raises(GraphError, lambda: Input())
     assert_that(str(error.value), equal_to("missing value for field0"))
 
 
@@ -63,7 +63,7 @@ def test_when_passing_unknown_field_values_into_input_object_then_error_is_raise
         ),
     )
 
-    error = pytest.raises(ValueError, lambda: Input(field0=0, field1=1))
+    error = pytest.raises(GraphError, lambda: Input(field0=0, field1=1))
     assert_that(str(error.value), equal_to("Input has no field field1"))
 
 
@@ -95,7 +95,7 @@ def test_given_field_arg_has_no_default_when_field_arg_is_not_set_then_error_is_
         ),
     )
 
-    error = pytest.raises(ValueError, lambda: Root.fields.one())
+    error = pytest.raises(GraphError, lambda: Root.fields.one())
     assert_that(str(error.value), equal_to("field one is missing required argument arg0"))
 
 
@@ -502,7 +502,7 @@ class TestQueryString(object):
 class TestField(object):
     def test_calling_field_with_unknown_types_raises_error(self):
         field = schema.field("x", type=schema.Int)
-        error = pytest.raises(ValueError, lambda: field(42))
+        error = pytest.raises(GraphError, lambda: field(42))
         assert_that(str(error.value), equal_to("unexpected argument: 42\nExpected arguments of type Argument or FieldQuery but had type int"))
 
 

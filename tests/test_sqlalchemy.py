@@ -155,7 +155,7 @@ class TestReturnShapeMatchesQueryShape(object):
         query = gsql.select(g.NullableType(self.Book)(
             g.key("title", self.Book.fields.title()),
         ))
-        error = pytest.raises(ValueError, lambda: self.resolve(query))
+        error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
         assert_that(str(error.value), equal_to("expected exactly zero or one values"))
 
@@ -163,7 +163,7 @@ class TestReturnShapeMatchesQueryShape(object):
         query = gsql.select(self.Book(
             g.key("title", self.Book.fields.title()),
         ))
-        error = pytest.raises(ValueError, lambda: self.resolve(query))
+        error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
         assert_that(str(error.value), equal_to("expected exactly one value"))
 
@@ -183,7 +183,7 @@ class TestReturnShapeMatchesQueryShape(object):
         query = gsql.select(self.Book(
             g.key("title", self.Book.fields.title()),
         ))
-        error = pytest.raises(ValueError, lambda: self.resolve(query))
+        error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
         assert_that(str(error.value), equal_to("expected exactly one value"))
 

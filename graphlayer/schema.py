@@ -1,6 +1,6 @@
 from functools import reduce
 
-from . import iterables
+from . import GraphError, iterables
 from .representations import Object
 
 
@@ -74,7 +74,7 @@ class InputObjectType(object):
             value = explicit_field_values.pop(field.name, field.default)
 
             if value is _undefined:
-                raise ValueError("missing value for {}".format(field.name))
+                raise GraphError("missing value for {}".format(field.name))
             else:
                 return value
 
@@ -85,7 +85,7 @@ class InputObjectType(object):
 
         if explicit_field_values:
             key = next(iter(explicit_field_values))
-            raise ValueError("{} has no field {}".format(self.name, key))
+            raise GraphError("{} has no field {}".format(self.name, key))
 
         return Object(field_values)
 
@@ -262,7 +262,7 @@ class Fields(object):
     def __getattr__(self, field_name):
         field = iterables.find(lambda field: field.name == field_name, self._fields(), default=None)
         if field is None:
-            raise ValueError("{} has no field {}".format(self._type_name, field_name))
+            raise GraphError("{} has no field {}".format(self._type_name, field_name))
         else:
             return field
 
@@ -401,7 +401,7 @@ class Field(object):
             value = explicit_args.get(param.name, param.default)
 
             if value is _undefined:
-                raise ValueError("field {} is missing required argument {}".format(self.name, param.name))
+                raise GraphError("field {} is missing required argument {}".format(self.name, param.name))
             else:
                 return value
 
@@ -428,7 +428,7 @@ def _partition_by_type(values, types):
         if potential_results:
             potential_results[0].append(value)
         else:
-            raise ValueError("unexpected argument: {!r}\nExpected arguments of type {} but had type {}".format(
+            raise GraphError("unexpected argument: {!r}\nExpected arguments of type {} but had type {}".format(
                 value,
                 " or ".join(sorted([type.__name__ for type in types])),
                 type(value).__name__,
@@ -448,7 +448,7 @@ class Params(object):
     def __getattr__(self, param_name):
         param = iterables.find(lambda param: param.name == param_name, self._params, default=None)
         if param is None:
-            raise ValueError("{} has no param {}".format(self._field_name, param_name))
+            raise GraphError("{} has no param {}".format(self._field_name, param_name))
         else:
             return param
 
