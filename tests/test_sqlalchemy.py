@@ -157,7 +157,7 @@ class TestReturnShapeMatchesQueryShape(object):
         ))
         error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
-        assert_that(str(error.value), equal_to("expected exactly zero or one values"))
+        assert_that(str(error.value), equal_to("expected exactly zero or one values but got 2"))
 
     def test_given_there_are_no_rows_then_requesting_object_raises_error(self):
         query = gsql.select(self.Book(
@@ -165,7 +165,7 @@ class TestReturnShapeMatchesQueryShape(object):
         ))
         error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
-        assert_that(str(error.value), equal_to("expected exactly one value"))
+        assert_that(str(error.value), equal_to("expected exactly one value but got 0"))
 
     def test_given_there_is_one_row_then_requesting_object_returns_object(self):
         self.add_books("Leave it to Psmith")
@@ -185,7 +185,7 @@ class TestReturnShapeMatchesQueryShape(object):
         ))
         error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
-        assert_that(str(error.value), equal_to("expected exactly one value"))
+        assert_that(str(error.value), equal_to("expected exactly one value but got 2"))
 
     def add_books(self, *titles):
         for title in titles:

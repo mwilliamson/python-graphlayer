@@ -155,7 +155,7 @@ def select(query):
                 if len(value) == 1:
                     return value[0]
                 else:
-                    raise g.GraphError("expected exactly one value")
+                    raise g.GraphError("expected exactly one value but got {}".format(len(value)))
 
             def read_results(iterable):
                 result = {}
@@ -191,7 +191,7 @@ def select(query):
                 elif len(value) == 1:
                     return value[0]
                 else:
-                    raise g.GraphError("expected exactly zero or one values")
+                    raise g.GraphError("expected exactly zero or one values but got {}".format(len(value)))
 
             def read_results(iterable):
                 result = collections.defaultdict(lambda: None)
