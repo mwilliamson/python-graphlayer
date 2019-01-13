@@ -230,6 +230,9 @@ class _SqlQuery(object):
         self.where_clauses = where_clauses
         self.index_expressions = index_expressions
 
+    def by(self, index_expression, index_values):
+        return self.index_by((index_expression, )).where(index_expression.in_(index_values))
+
     def index_by(self, index_expressions):
         return _SqlQuery(
             element_query=self.element_query,
