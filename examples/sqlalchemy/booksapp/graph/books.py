@@ -14,16 +14,13 @@ Book = g.ObjectType("Book", fields=lambda: (
 class BookQuery(object):
     @staticmethod
     def select(type_query):
-        return BookQuery(type_query=type_query)
+        return gsql.select(type_query)
 
-    def __init__(self, type_query):
-        self.type = BookQuery
-        self.type_query = type_query
-
-
-@g.resolver(BookQuery)
-def book_resolver(graph, query):
-    return graph.resolve(gsql.select(query.type_query))
+    @staticmethod
+    def select_by_author_ids(type_query, author_ids):
+        return gsql.select(type_query) \
+            .where(database.Book.author_id.in_(author_ids)) \
+            .index_by((database.Book.author_id, ))
 
 
 book_sql_resolver = gsql.sql_table_resolver(
@@ -42,6 +39,5 @@ book_sql_resolver = gsql.sql_table_resolver(
 
 
 resolvers = (
-    book_resolver,
     book_sql_resolver,
 )
