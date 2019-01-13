@@ -10,58 +10,108 @@ from graphlayer import sqlalchemy as gsql
 from graphlayer.resolvers import root_object_resolver
 
 
-def test_can_get_fields_backed_by_expressions():
-    Base = sqlalchemy.ext.declarative.declarative_base()
+class TestExpressionField(object):
+    def test_can_get_fields_backed_by_expressions(self):
+        Base = sqlalchemy.ext.declarative.declarative_base()
 
-    class BookRow(Base):
-        __tablename__ = "book"
+        class BookRow(Base):
+            __tablename__ = "book"
 
-        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+            c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
 
-    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+        engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
-    Base.metadata.create_all(engine)
+        Base.metadata.create_all(engine)
 
-    session = sqlalchemy.orm.Session(engine)
-    session.add(BookRow(c_title="Leave it to Psmith"))
-    session.add(BookRow(c_title="Pericles, Prince of Tyre"))
-    session.commit()
+        session = sqlalchemy.orm.Session(engine)
+        session.add(BookRow(c_title="Leave it to Psmith"))
+        session.add(BookRow(c_title="Pericles, Prince of Tyre"))
+        session.commit()
 
-    Book = g.ObjectType(
-        "Book",
-        fields=lambda: [
-            g.field("title", type=g.String),
-        ],
-    )
+        Book = g.ObjectType(
+            "Book",
+            fields=lambda: [
+                g.field("title", type=g.String),
+            ],
+        )
 
-    book_resolver = gsql.sql_table_resolver(
-        Book,
-        BookRow,
-        fields={
-            Book.fields.title: gsql.expression(BookRow.c_title),
-        },
-    )
+        book_resolver = gsql.sql_table_resolver(
+            Book,
+            BookRow,
+            fields={
+                Book.fields.title: gsql.expression(BookRow.c_title),
+            },
+        )
 
-    resolvers = [book_resolver]
+        resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-    ))
-    graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
-    result = graph.resolve(query)
+        query = gsql.select(g.ListType(Book)(
+            g.key("title", Book.fields.title()),
+        ))
+        graph_definition = g.define_graph(resolvers)
+        graph = graph_definition.create_graph({
+            sqlalchemy.orm.Session: session,
+        })
+        result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            title="Leave it to Psmith",
-        ),
-        has_attrs(
-            title="Pericles, Prince of Tyre",
-        ),
-    ))
+        assert_that(result, contains_exactly(
+            has_attrs(
+                title="Leave it to Psmith",
+            ),
+            has_attrs(
+                title="Pericles, Prince of Tyre",
+            ),
+        ))
+
+    def test_can_pass_arguments_to_expression(self):
+        Base = sqlalchemy.ext.declarative.declarative_base()
+
+        class BookRow(Base):
+            __tablename__ = "book"
+
+            c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+        engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+        Base.metadata.create_all(engine)
+
+        session = sqlalchemy.orm.Session(engine)
+        session.add(BookRow(c_title="Leave it to Psmith"))
+        session.commit()
+
+        Book = g.ObjectType(
+            "Book",
+            fields=lambda: [
+                g.field("title", type=g.String, params=[
+                    g.param("truncate", g.Int),
+                ]),
+            ],
+        )
+
+        book_resolver = gsql.sql_table_resolver(
+            Book,
+            BookRow,
+            fields={
+                Book.fields.title: lambda args: gsql.expression(sqlalchemy.func.substr(BookRow.c_title, 1, args.truncate)),
+            },
+        )
+
+        resolvers = [book_resolver]
+
+        query = gsql.select(g.ListType(Book)(
+            g.key("title", Book.fields.title(Book.fields.title.params.truncate(8))),
+        ))
+        graph_definition = g.define_graph(resolvers)
+        graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+        result = graph.resolve(query)
+
+        assert_that(result, contains_exactly(
+            has_attrs(
+                title="Leave it",
+            ),
+        ))
 
 
 class TestReturnShapeMatchesQueryShape(object):
@@ -194,56 +244,6 @@ class TestReturnShapeMatchesQueryShape(object):
 
     def resolve(self, query):
         return self.graph.resolve(query)
-
-
-def test_can_pass_arguments_to_expression():
-    Base = sqlalchemy.ext.declarative.declarative_base()
-
-    class BookRow(Base):
-        __tablename__ = "book"
-
-        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
-
-    engine = sqlalchemy.create_engine("sqlite:///:memory:")
-
-    Base.metadata.create_all(engine)
-
-    session = sqlalchemy.orm.Session(engine)
-    session.add(BookRow(c_title="Leave it to Psmith"))
-    session.commit()
-
-    Book = g.ObjectType(
-        "Book",
-        fields=lambda: [
-            g.field("title", type=g.String, params=[
-                g.param("truncate", g.Int),
-            ]),
-        ],
-    )
-
-    book_resolver = gsql.sql_table_resolver(
-        Book,
-        BookRow,
-        fields={
-            Book.fields.title: lambda args: gsql.expression(sqlalchemy.func.substr(BookRow.c_title, 1, args.truncate)),
-        },
-    )
-
-    resolvers = [book_resolver]
-
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title(Book.fields.title.params.truncate(8))),
-    ))
-    graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
-    result = graph.resolve(query)
-
-    assert_that(result, contains_exactly(
-        has_attrs(
-            title="Leave it",
-        ),
-    ))
 
 
 def test_can_pass_arguments_from_root():
