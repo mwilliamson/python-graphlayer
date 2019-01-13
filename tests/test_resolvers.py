@@ -24,3 +24,25 @@ def test_root_object_resolver_can_resolve_fields_with_dependencies():
         g.key("value", Root.fields.value()),
     )
     assert_that(graph.resolve(query), has_attrs(value=42))
+
+
+def test_root_object_resolver_passes_arguments_to_field_resolvers():
+    Root = g.ObjectType("Root", fields=(
+        g.field("value", type=g.Int, params=(
+            g.param("answer", type=g.Int),
+        )),
+    ))
+
+    resolve_root = g.root_object_resolver(Root)
+
+    @resolve_root.field(Root.fields.value)
+    def root_resolve_value(graph, query, args):
+        return args.answer
+
+    graph_definition = g.define_graph(resolvers=(resolve_root, ))
+    graph = graph_definition.create_graph({})
+
+    query = Root(
+        g.key("value", Root.fields.value(Root.fields.value.params.answer(42))),
+    )
+    assert_that(graph.resolve(query), has_attrs(value=42))

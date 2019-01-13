@@ -246,7 +246,7 @@ class TestReturnShapeMatchesQueryShape(object):
         return self.graph.resolve(query)
 
 
-def test_can_pass_arguments_from_root():
+def test_can_filter_results_using_where():
     Base = sqlalchemy.ext.declarative.declarative_base()
 
     class BookRow(Base):
@@ -265,27 +265,12 @@ def test_can_pass_arguments_from_root():
 
     session.commit()
 
-    Root = g.ObjectType(
-        "Root",
-        fields=lambda: [
-            g.field("books", type=g.ListType(Book), params=[
-                g.param("id", g.Int),
-            ]),
-        ],
-    )
-
     Book = g.ObjectType(
         "Book",
         fields=lambda: [
             g.field("title", type=g.String),
         ],
     )
-
-    resolve_root = root_object_resolver(Root)
-
-    @resolve_root.field(Root.fields.books)
-    def root_books_args(graph, query, args):
-        return graph.resolve(BookQuery.select(query).where(BookQuery.id(args.id)))
 
     book_resolver = gsql.sql_table_resolver(
         Book,
@@ -295,32 +280,19 @@ def test_can_pass_arguments_from_root():
         },
     )
 
-    class BookQuery(object):
-        select = gsql.select
+    resolvers = (book_resolver, )
 
-        @staticmethod
-        def id(id):
-            return BookRow.c_id == id
-
-    resolvers = [resolve_root, book_resolver]
-
-    query = Root(
-        g.key("books", Root.fields.books(
-            Root.fields.books.params.id(1),
-
-            g.key("title", Book.fields.title()),
-        )),
-    )
+    query = gsql.select(g.ListType(Book)(
+        g.key("title", Book.fields.title()),
+    )).where(BookRow.c_id == 1)
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, has_attrs(
-        books=contains_exactly(
-            has_attrs(
-                title="Leave it to Psmith",
-            ),
+    assert_that(result, contains_exactly(
+        has_attrs(
+            title="Leave it to Psmith",
         ),
     ))
 
