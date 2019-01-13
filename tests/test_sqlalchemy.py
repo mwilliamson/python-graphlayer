@@ -297,59 +297,82 @@ def test_can_filter_results_using_where():
     ))
 
 
-def test_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression():
-    Base = sqlalchemy.ext.declarative.declarative_base()
+class TestSqlQueryBy(object):
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        Base = sqlalchemy.ext.declarative.declarative_base()
 
-    class BookRow(Base):
-        __tablename__ = "book"
+        class BookRow(Base):
+            __tablename__ = "book"
 
-        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+            c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
 
-    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+        self.BookRow = BookRow
 
-    Base.metadata.create_all(engine)
+        engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
-    session = sqlalchemy.orm.Session(engine)
-    session.add(BookRow(c_id=1, c_title="Leave it to Psmith"))
-    session.add(BookRow(c_id=2, c_title="Pericles, Prince of Tyre"))
-    session.add(BookRow(c_id=3, c_title="Captain Corelli's Mandolin"))
+        Base.metadata.create_all(engine)
 
-    session.commit()
+        session = sqlalchemy.orm.Session(engine)
+        session.add(BookRow(c_id=1, c_title="Leave it to Psmith"))
+        session.add(BookRow(c_id=2, c_title="Pericles, Prince of Tyre"))
+        session.add(BookRow(c_id=3, c_title="Captain Corelli's Mandolin"))
 
-    Book = g.ObjectType(
-        "Book",
-        fields=lambda: [
-            g.field("title", type=g.String),
-        ],
-    )
+        session.commit()
 
-    book_resolver = gsql.sql_table_resolver(
-        Book,
-        BookRow,
-        fields={
-            Book.fields.title: gsql.expression(BookRow.c_title),
-        },
-    )
+        self.Book = Book = g.ObjectType(
+            "Book",
+            fields=lambda: [
+                g.field("title", type=g.String),
+            ],
+        )
 
-    resolvers = (book_resolver, )
+        book_resolver = gsql.sql_table_resolver(
+            Book,
+            BookRow,
+            fields={
+                Book.fields.title: gsql.expression(BookRow.c_title),
+            },
+        )
 
-    query = gsql.select(Book(
-        g.key("title", Book.fields.title()),
-    )).by(BookRow.c_id, (1, 3))
+        resolvers = (book_resolver, )
 
-    graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
-    result = graph.resolve(query)
+        graph_definition = g.define_graph(resolvers)
+        self.graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
 
-    assert_that(result, is_mapping({
-        (1, ): has_attrs(
-            title="Leave it to Psmith",
-        ),
-        (3, ): has_attrs(
-            title="Captain Corelli's Mandolin",
-        ),
-    }))
+    def test_when_passed_single_expression_then_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
+        query = gsql.select(self.Book(
+            g.key("title", self.Book.fields.title()),
+        )).by(self.BookRow.c_id, (1, 3))
+
+        result = self.graph.resolve(query)
+
+        assert_that(result, is_mapping({
+            1: has_attrs(
+                title="Leave it to Psmith",
+            ),
+            3: has_attrs(
+                title="Captain Corelli's Mandolin",
+            ),
+        }))
+
+
+    def test_when_passed_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
+        query = gsql.select(self.Book(
+            g.key("title", self.Book.fields.title()),
+        )).by((self.BookRow.c_id, ), ((1, ), (3, )))
+
+        result = self.graph.resolve(query)
+
+        assert_that(result, is_mapping({
+            (1, ): has_attrs(
+                title="Leave it to Psmith",
+            ),
+            (3, ): has_attrs(
+                title="Captain Corelli's Mandolin",
+            ),
+        }))
 
 
 def test_can_recursively_resolve_selected_fields():

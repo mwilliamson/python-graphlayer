@@ -28,23 +28,57 @@ class _ExpressionField(object):
         return _DecoratedReadField(self, func)
 
 
-def join(*, expressions, resolve):
-    return _JoinField(expressions=expressions, resolve=resolve)
+def join(*, key, resolve):
+    return _JoinField(key=_to_key(key), resolve=resolve)
 
 
-class _JoinField(object):
-    def __init__(self, expressions, resolve):
+def _to_key(key):
+    if isinstance(key, collections.Iterable):
+        return _MultipleExpressionKey(key)
+    else:
+        return _SingleExpressionKey(key)
+
+
+class _SingleExpressionKey(object):
+    def __init__(self, expression):
+        self._expression = expression
+
+    def expression(self):
+        return self._expression
+
+    def expressions(self):
+        return (self._expression, )
+
+    def read(self, row):
+        return row[0]
+
+
+class _MultipleExpressionKey(object):
+    def __init__(self, expressions):
         self._expressions = expressions
-        self._resolve = resolve
+
+    def expression(self):
+        return sqlalchemy.tuple_(*self._expressions)
 
     def expressions(self):
         return self._expressions
 
+    read = tuple
+
+
+class _JoinField(object):
+    def __init__(self, key, resolve):
+        self._key = key
+        self._resolve = resolve
+
+    def expressions(self):
+        return self._key.expressions()
+
     def create_reader(self, graph, field_query, base_query, session):
-        result = self._resolve(graph, field_query, base_query.add_columns(*self._expressions))
+        result = self._resolve(graph, field_query, base_query.add_columns(*self._key.expressions()))
 
         def read(row):
-            return result[tuple(row)]
+            return result[self._key.read(row)]
 
         return read
 
@@ -67,7 +101,7 @@ def _direct_sql_join(join_on):
         return graph.resolve(sql_query)
 
     return join(
-        expressions=join_on.keys(),
+        key=join_on.keys(),
         resolve=resolve,
     )
 
@@ -209,7 +243,7 @@ def select(query):
             element_query=element_query,
             read_result=read_result,
             read_results=read_results,
-            index_expressions=None,
+            index_key=None,
             where_clauses=(),
         )
 
@@ -222,24 +256,24 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, element_query, read_result, read_results, where_clauses, index_expressions):
+    def __init__(self, element_query, read_result, read_results, where_clauses, index_key):
         self.type = _sql_query_type(element_query.type)
         self.element_query = element_query
         self.read_result = read_result
         self.read_results = read_results
         self.where_clauses = where_clauses
-        self.index_expressions = index_expressions
+        self.index_key = index_key
 
-    def by(self, index_expression, index_values):
-        return self.index_by((index_expression, )).where(index_expression.in_(index_values))
+    def by(self, index_key, index_values):
+        return self.index_by(index_key).where(_to_key(index_key).expression().in_(index_values))
 
-    def index_by(self, index_expressions):
+    def index_by(self, index_key):
         return _SqlQuery(
             element_query=self.element_query,
             read_result=self.read_result,
             read_results=self.read_results,
             where_clauses=self.where_clauses,
-            index_expressions=index_expressions,
+            index_key=_to_key(index_key),
         )
 
     def where(self, where):
@@ -248,7 +282,7 @@ class _SqlQuery(object):
             read_result=self.read_result,
             read_results=self.read_results,
             where_clauses=self.where_clauses + (where, ),
-            index_expressions=self.index_expressions,
+            index_key=self.index_key,
         )
 
 
@@ -260,7 +294,7 @@ def sql_table_resolver(type, model, fields):
     def resolve_sql_query(graph, query, session):
         where = sqlalchemy.and_(*query.where_clauses)
 
-        if query.index_expressions is None:
+        if query.index_key is None:
             return query.read_result(resolve(
                 graph,
                 query=query.element_query,
@@ -274,8 +308,8 @@ def sql_table_resolver(type, model, fields):
                 graph,
                 query=query.element_query,
                 where=where,
-                extra_expressions=query.index_expressions,
-                process_row=lambda row, result: (tuple(row), result),
+                extra_expressions=query.index_key.expressions(),
+                process_row=lambda row, result: (query.index_key.read(row), result),
                 session=session,
             ))
 
