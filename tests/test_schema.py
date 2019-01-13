@@ -96,7 +96,7 @@ def test_given_field_arg_has_no_default_when_field_arg_is_not_set_then_error_is_
     )
 
     error = pytest.raises(ValueError, lambda: Root.fields.one())
-    assert_that(str(error.value), equal_to("missing value for arg0"))
+    assert_that(str(error.value), equal_to("field one is missing required argument arg0"))
 
 
 class TestAdd(object):

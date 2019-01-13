@@ -401,7 +401,7 @@ class Field(object):
             value = explicit_args.get(param.name, param.default)
 
             if value is _undefined:
-                raise ValueError("missing value for {}".format(param.name))
+                raise ValueError("field {} is missing required argument {}".format(self.name, param.name))
             else:
                 return value
 
