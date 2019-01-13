@@ -2,6 +2,7 @@ from copy import copy
 from functools import reduce
 import re
 
+from graphql import GraphQLError
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 from graphql.validation import validate as graphql_validate
 
@@ -43,7 +44,10 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
     elif operation.operation == "mutation" and mutation_type is not None:
         root_type = mutation_type
     else:
-        raise ValueError("unsupported operation: {}".format(operation.operation))
+        raise GraphQLError(
+            "unsupported operation: {}".format(operation.operation),
+            nodes=(operation, ),
+        )
 
     fragments = to_dict(
         (fragment.name.value, fragment)

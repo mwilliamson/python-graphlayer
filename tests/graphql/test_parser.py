@@ -3,6 +3,7 @@ import enum
 from precisely import assert_that, equal_to, has_attrs, is_sequence
 import pytest
 
+from graphql import GraphQLError
 import graphlayer as g
 from graphlayer import schema
 from graphlayer.graphql.parser import document_text_to_query
@@ -76,11 +77,12 @@ def test_given_no_mutation_type_is_defined_when_operation_is_mutation_then_error
     """
 
     error = pytest.raises(
-        ValueError,
+        GraphQLError,
         lambda: _document_text_to_graph_query(graphql_query, query_type=QueryRoot),
     )
 
     assert_that(str(error.value), equal_to("unsupported operation: mutation"))
+    assert_that(error.value.nodes, is_sequence(has_attrs(operation="mutation")))
 
 
 def test_fields_can_have_alias():
