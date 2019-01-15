@@ -199,7 +199,10 @@ class Parser(object):
             return enum_values[0]
 
         elif isinstance(value_type, schema.NullableType):
-            return self._convert_graphql_value(graphql_value, value_type=value_type.element_type)
+            if graphql_value is None:
+                return None
+            else:
+                return self._convert_graphql_value(graphql_value, value_type=value_type.element_type)
 
         elif value_type in (schema.Boolean, schema.Float, schema.Int, schema.String):
             return graphql_value

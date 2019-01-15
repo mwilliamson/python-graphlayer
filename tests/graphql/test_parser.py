@@ -656,6 +656,24 @@ def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_valu
         {"fieldZero": 1},
         g.Object({"field_zero": 1}),
     ),
+    (
+        g.NullableType(g.InputObjectType("User", fields=(
+            g.input_field("id", type=g.Int),
+            g.input_field("name", type=g.String),
+        ))),
+        "User",
+        {"id": 42, "name": "Bob"},
+        g.Object({"id": 42, "name": "Bob"}),
+    ),
+    (
+        g.NullableType(g.InputObjectType("User", fields=(
+            g.input_field("id", type=g.Int),
+            g.input_field("name", type=g.String),
+        ))),
+        "User",
+        None,
+        None,
+    ),
 ])
 def test_graphql_arg_values_from_variables_are_converted(graph_type, graphql_type, variable_value, arg_value):
     Root = g.ObjectType(
