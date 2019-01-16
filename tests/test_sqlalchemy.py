@@ -455,9 +455,12 @@ def test_can_recursively_resolve_selected_fields():
         BookRow,
         fields={
             Book.fields.title: gsql.expression(BookRow.c_title),
-            Book.fields.author: gsql.sql_join({
-                BookRow.c_author_id: AuthorRow.c_id,
-            }),
+            Book.fields.author: gsql.join(
+                key=BookRow.c_author_id,
+                resolve=lambda graph, field_query, author_ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(AuthorRow.c_id, author_ids),
+                ),
+            ),
         },
     )
 
@@ -542,9 +545,12 @@ def test_can_resolve_many_to_one_field():
         LeftRow,
         fields={
             Left.fields.value: gsql.expression(LeftRow.c_value),
-            Left.fields.right: gsql.sql_join({
-                LeftRow.c_id: RightRow.c_id,
-            }),
+            Left.fields.right: gsql.join(
+                key=LeftRow.c_id,
+                resolve=lambda graph, field_query, ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(RightRow.c_id, ids),
+                ),
+            ),
         },
     )
 
@@ -629,9 +635,12 @@ def test_can_resolve_many_to_one_or_zero_field():
         LeftRow,
         fields={
             Left.fields.value: gsql.expression(LeftRow.c_value),
-            Left.fields.right: gsql.sql_join({
-                LeftRow.c_id: RightRow.c_id,
-            }),
+            Left.fields.right: gsql.join(
+                key=LeftRow.c_id,
+                resolve=lambda graph, field_query, ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(RightRow.c_id, ids),
+                ),
+            ),
         },
     )
 
@@ -721,9 +730,12 @@ def test_can_resolve_one_to_many_field():
         LeftRow,
         fields={
             Left.fields.value: gsql.expression(LeftRow.c_value),
-            Left.fields.rights: gsql.sql_join({
-                LeftRow.c_id: RightRow.c_left_id,
-            }),
+            Left.fields.rights: gsql.join(
+                key=LeftRow.c_id,
+                resolve=lambda graph, field_query, ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(RightRow.c_left_id, ids),
+                ),
+            ),
         },
     )
 
@@ -829,10 +841,13 @@ def test_can_resolve_join_through_association_table():
         LeftRow,
         fields={
             Left.fields.value: gsql.expression(LeftRow.c_value),
-            Left.fields.rights: gsql.sql_join(
-                {LeftRow.c_id: AssociationRow.c_left_id},
-                AssociationRow,
-                {AssociationRow.c_right_id: RightRow.c_id},
+            Left.fields.rights: gsql.association_join(
+                association_table=AssociationRow,
+                association_join={LeftRow.c_id: AssociationRow.c_left_id},
+                association_key=AssociationRow.c_right_id,
+                resolve=lambda graph, field_query, right_ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(RightRow.c_id, right_ids),
+                ),
             ),
         },
     )
@@ -926,10 +941,12 @@ def test_can_join_tables_using_multi_column_key():
         LeftRow,
         fields={
             Left.fields.value: gsql.expression(LeftRow.c_value),
-            Left.fields.right: gsql.sql_join({
-                LeftRow.c_id_1: RightRow.c_id_1,
-                LeftRow.c_id_2: RightRow.c_id_2,
-            }),
+            Left.fields.right: gsql.join(
+                key=(LeftRow.c_id_1, LeftRow.c_id_2),
+                resolve=lambda graph, field_query, left_ids: graph.resolve(
+                    gsql.select(field_query.type_query).by((RightRow.c_id_1, RightRow.c_id_2), left_ids),
+                ),
+            ),
         },
     )
 

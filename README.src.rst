@@ -1899,7 +1899,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
 
      @resolve_root.field(Root.fields.book_count)
      @g.dependencies(session=sqlalchemy.orm.Session)
-    @@ -70,125 +71,30 @@
+    @@ -70,125 +71,35 @@
 
      @resolve_root.field(Root.fields.books)
      def root_resolve_books(graph, query, args):
@@ -2037,7 +2037,12 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     +    fields={
     +        Book.fields.title: gsql.expression(BookRecord.title),
     +        Book.fields.genre: gsql.expression(BookRecord.genre),
-    +        Book.fields.author: gsql.sql_join({BookRecord.author_id: AuthorRecord.id}),
+    +        Book.fields.author: gsql.join(
+    +            key=BookRecord.author_id,
+    +            resolve=lambda graph, field_query, author_ids: graph.resolve(
+    +                gsql.select(field_query.type_query).by(AuthorRecord.id, author_ids),
+    +            ),
+    +        ),
     +    },
     +)
 
@@ -2075,7 +2080,12 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
         fields={
             Book.fields.title: gsql.expression(BookRecord.title),
             Book.fields.genre: gsql.expression(BookRecord.genre),
-            Book.fields.author: gsql.sql_join({BookRecord.author_id: AuthorRecord.id}),
+            Book.fields.author: gsql.join(
+                key=BookRecord.author_id,
+                resolve=lambda graph, field_query, author_ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(AuthorRecord.id, author_ids),
+                ),
+            ),
         },
     )
 

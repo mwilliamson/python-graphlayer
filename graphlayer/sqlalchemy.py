@@ -42,10 +42,10 @@ def association_join(*, association_table, association_join, association_key, re
 
         association_query = base_association_query \
             .add_columns(*association_join.values()) \
-            .add_columns(*association_key)
+            .add_columns(*_to_key(association_key).expressions())
 
         associations = [
-            (row[:len(association_join)], row[len(association_join):])
+            (row[:len(association_join)], _to_key(association_key).read(row[len(association_join):]))
             for row in association_query.with_session(session).all()
         ]
 
@@ -112,37 +112,6 @@ class _JoinField(object):
             return result[self._key.read(row)]
 
         return read
-
-
-def sql_join(*args):
-    if len(args) == 3:
-        return _association_sql_join(*args)
-    else:
-        return _direct_sql_join(*args)
-
-
-def _direct_sql_join(join_on):
-    def resolve(graph, field_query, foreign_key_sql_query):
-        sql_query = select(field_query.type_query).by(join_on.values(), foreign_key_sql_query)
-        return graph.resolve(sql_query)
-
-    return join(
-        key=join_on.keys(),
-        resolve=resolve,
-    )
-
-
-def _association_sql_join(left_join, association, right_join):
-    def resolve(graph, field_query, foreign_key_sql_query):
-        sql_query = select(field_query.type_query).by(right_join.values(), foreign_key_sql_query)
-        return graph.resolve(sql_query)
-
-    return association_join(
-        association_table=association,
-        association_join=left_join,
-        association_key=right_join.keys(),
-        resolve=resolve,
-    )
 
 
 class _DecoratedReadField(object):
