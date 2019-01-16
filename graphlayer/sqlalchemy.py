@@ -165,70 +165,88 @@ class _DecoratedReadField(object):
         return read
 
 
+
+class _SingleResultReader(object):
+    def __init__(self, query):
+        self.element_query = query
+
+    def read_result(self, value):
+        if len(value) == 1:
+            return value[0]
+        else:
+            raise g.GraphError("expected exactly one value but got {}".format(len(value)))
+
+    def read_results(self, iterable):
+        result = {}
+
+        for key, value in iterable:
+            if key in result:
+                raise g.GraphError("expected exactly one value")
+            else:
+                result[key] = value
+
+        return result
+
+
+class _ManyResultsReader(object):
+    def __init__(self, query):
+        self.element_query = query.element_query
+
+    def read_result(self, value):
+        return value
+
+    def read_results(self, iterable):
+        result = collections.defaultdict(list)
+
+        for key, value in iterable:
+            result[key].append(value)
+
+        return result
+
+
+class _SingleOrNullResultReader(object):
+    def __init__(self, query):
+        self.element_query = query.element_query
+
+    def read_result(self, value):
+        if len(value) == 0:
+            return None
+        elif len(value) == 1:
+            return value[0]
+        else:
+            raise g.GraphError("expected exactly zero or one values but got {}".format(len(value)))
+
+    def read_results(self, iterable):
+        result = collections.defaultdict(lambda: None)
+
+        for key, value in iterable:
+            if key in result:
+                raise g.GraphError("expected exactly zero or one values")
+            else:
+                result[key] = value
+
+        return result
+
+
+def _result_reader(query):
+    if isinstance(query, schema.ObjectQuery):
+        return _SingleResultReader(query)
+    elif isinstance(query, schema.ListQuery) and isinstance(query.element_query, schema.ObjectQuery):
+        return _ManyResultsReader(query)
+    elif isinstance(query, schema.NullableQuery) and isinstance(query.element_query, schema.ObjectQuery):
+        return _SingleOrNullResultReader(query)
+
+
 def select(query):
     if isinstance(query, _SqlQuery):
         return query
     else:
-        if isinstance(query, schema.ObjectQuery):
-            element_query = query
-
-            def read_result(value):
-                if len(value) == 1:
-                    return value[0]
-                else:
-                    raise g.GraphError("expected exactly one value but got {}".format(len(value)))
-
-            def read_results(iterable):
-                result = {}
-
-                for key, value in iterable:
-                    if key in result:
-                        raise g.GraphError("expected exactly one value")
-                    else:
-                        result[key] = value
-
-                return result
-
-        elif isinstance(query, schema.ListQuery) and isinstance(query.element_query, schema.ObjectQuery):
-            element_query = query.element_query
-
-            def read_result(value):
-                return value
-
-            def read_results(iterable):
-                result = collections.defaultdict(list)
-
-                for key, value in iterable:
-                    result[key].append(value)
-
-                return result
-
-        elif isinstance(query, schema.NullableQuery) and isinstance(query.element_query, schema.ObjectQuery):
-            element_query = query.element_query
-
-            def read_result(value):
-                if len(value) == 0:
-                    return None
-                elif len(value) == 1:
-                    return value[0]
-                else:
-                    raise g.GraphError("expected exactly zero or one values but got {}".format(len(value)))
-
-            def read_results(iterable):
-                result = collections.defaultdict(lambda: None)
-
-                for key, value in iterable:
-                    if key in result:
-                        raise g.GraphError("expected exactly zero or one values")
-                    else:
-                        result[key] = value
-
-                return result
+        result_reader = _result_reader(query)
 
         return _SqlQuery(
-            element_query=element_query,
-            read_result=read_result,
-            read_results=read_results,
+            element_query=result_reader.element_query,
+            read_result=result_reader.read_result,
+            read_results=result_reader.read_results,
             index_key=None,
             where_clauses=(),
         )
