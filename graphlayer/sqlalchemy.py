@@ -4,6 +4,7 @@ import sqlalchemy.orm
 
 import graphlayer as g
 from . import iterables, schema
+from .core import Injector
 from .memo import memoize
 
 
@@ -18,7 +19,7 @@ class _ExpressionField(object):
     def expressions(self):
         return (self._expression, )
 
-    def create_reader(self, graph, field_query, base_query, session):
+    def create_reader(self, graph, field_query, base_query, injector):
         def read(row):
             return row[0]
 
@@ -74,8 +75,8 @@ class _JoinField(object):
     def expressions(self):
         return self._key.expressions()
 
-    def create_reader(self, graph, field_query, base_query, session):
-        result = self._resolve(graph, field_query, base_query.add_columns(*self._key.expressions()))
+    def create_reader(self, graph, field_query, base_query, injector):
+        result = injector.call_with_dependencies(self._resolve, graph, field_query, base_query.add_columns(*self._key.expressions()))
 
         def read(row):
             return result[self._key.read(row)]
@@ -107,52 +108,37 @@ def _direct_sql_join(join_on):
 
 
 def _association_sql_join(left_join, association, right_join):
-    return _AssociationSqlJoinField(
-        left_join=left_join,
-        association=association,
-        right_join=right_join,
-    )
-
-
-class _AssociationSqlJoinField(object):
-    def __init__(self, left_join, association, right_join):
-        self._left_join = left_join
-        self._association = association
-        self._right_join = right_join
-
-    def expressions(self):
-        return self._left_join.keys()
-
-    def create_reader(self, graph, field_query, base_query, session):
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def resolve(graph, field_query, foreign_key_sql_query, *, session):
         base_association_query = sqlalchemy.orm.Query([]) \
-            .select_from(self._association)
+            .select_from(association)
 
         association_query = base_association_query \
-            .add_columns(*self._left_join.values()) \
-            .add_columns(*self._right_join.keys())
+            .add_columns(*left_join.values()) \
+            .add_columns(*right_join.keys())
 
         associations = [
-            (row[:len(self._left_join)], row[len(self._left_join):])
+            (row[:len(left_join)], row[len(left_join):])
             for row in association_query.with_session(session).all()
         ]
 
-        foreign_key_expression = _to_sql_expression(self._right_join.values())
-        where = foreign_key_expression.in_(base_association_query.add_columns(*self._right_join.keys()))
+        foreign_key_expression = _to_sql_expression(right_join.values())
+        where = foreign_key_expression.in_(base_association_query.add_columns(*right_join.keys()))
 
         sql_query = select(field_query.type_query) \
             .where(where) \
-            .index_by(self._right_join.values())
+            .index_by(right_join.values())
         right_result = graph.resolve(sql_query)
-        result = sql_query.read_results(
+        return sql_query.read_results(
             (left_key, right_value)
             for left_key, right_key in associations
             for right_value in right_result[right_key]
         )
 
-        def read(row):
-            return result[tuple(row)]
-
-        return read
+    return join(
+        key=left_join.keys(),
+        resolve=resolve,
+    )
 
 
 def _to_sql_expression(expressions):
@@ -290,8 +276,8 @@ def sql_table_resolver(type, model, fields):
     fields = memoize(fields)
 
     @g.resolver(_sql_query_type(type))
-    @g.dependencies(session=sqlalchemy.orm.Session)
-    def resolve_sql_query(graph, query, session):
+    @g.dependencies(injector=Injector, session=sqlalchemy.orm.Session)
+    def resolve_sql_query(graph, query, *, injector, session):
         where = sqlalchemy.and_(*query.where_clauses)
 
         if query.index_key is None:
@@ -302,6 +288,7 @@ def sql_table_resolver(type, model, fields):
                 extra_expressions=(),
                 process_row=lambda row, result: result,
                 session=session,
+                injector=injector,
             ))
         else:
             return query.read_results(resolve(
@@ -311,9 +298,10 @@ def sql_table_resolver(type, model, fields):
                 extra_expressions=query.index_key.expressions(),
                 process_row=lambda row, result: (query.index_key.read(row), result),
                 session=session,
+                injector=injector,
             ))
 
-    def resolve(graph, query, where, extra_expressions, process_row, session):
+    def resolve(graph, query, where, extra_expressions, process_row, session, injector):
         def get_field(field_query):
             field = fields()[field_query.field]
             if callable(field):
@@ -339,7 +327,7 @@ def sql_table_resolver(type, model, fields):
         rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
 
         for field_query, row_slice in zip(query.field_queries, row_slices):
-            reader = get_field(field_query).create_reader(graph, field_query, base_query, session=session)
+            reader = get_field(field_query).create_reader(graph, field_query, base_query, injector=injector)
             readers.append((field_query.key, row_slice, reader))
 
         def read_row(row):
