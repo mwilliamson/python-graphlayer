@@ -1,6 +1,27 @@
 from . import core, iterables
 
 
+def create_object_builder(object_type):
+    field_resolvers = {}
+
+    def create_object(value):
+        return object_type.create_object(iterables.to_dict(
+            (field_query.key, field_resolvers[field_query.field](value))
+            for field_query in object_type.field_queries
+        ))
+
+    def field(field):
+        def add_field_resolver(resolve_field):
+            field_resolvers[field] = resolve_field
+            return resolve_field
+
+        return add_field_resolver
+
+    create_object.field = field
+
+    return create_object
+
+
 def constant_object_resolver(type, values):
     @core.resolver(type)
     def resolve(graph, query):
