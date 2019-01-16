@@ -10,7 +10,7 @@ def create_object_builder(object_query):
             for field_query in object_query.field_queries
         ))
 
-    def field(field):
+    def getter(field):
         def add_field_resolver(resolve_field):
             for field_query in object_query.field_queries:
                 if field_query.field == field or field_query.field.name == field:
@@ -19,7 +19,7 @@ def create_object_builder(object_query):
 
         return add_field_resolver
 
-    create_object.field = field
+    create_object.getter = getter
 
     return create_object
 

@@ -15,11 +15,11 @@ class TestObjectBuilder(object):
             g.key("e", User.fields. email_address()),
         ))
 
-        @object_builder.field(User.fields.name)
+        @object_builder.getter(User.fields.name)
         def resolve_name(user):
             return user["name"]
 
-        @object_builder.field(User.fields.email_address)
+        @object_builder.getter(User.fields.email_address)
         def resolve_email_address(user):
             return user["emailAddress"]
 
@@ -38,7 +38,7 @@ class TestObjectBuilder(object):
             g.key("n", User.fields.name()),
         ))
 
-        @object_builder.field("name")
+        @object_builder.getter("name")
         def resolve_name(user):
             return user["name"]
 
