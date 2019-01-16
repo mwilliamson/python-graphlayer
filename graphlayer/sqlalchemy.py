@@ -145,13 +145,6 @@ def _association_sql_join(left_join, association, right_join):
     )
 
 
-def _to_sql_expression(expressions):
-    if len(expressions) == 1:
-        return next(iter(expressions))
-    else:
-        return sqlalchemy.tuple_(*expressions)
-
-
 class _DecoratedReadField(object):
     def __init__(self, field, func):
         self._field = field
