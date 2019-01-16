@@ -33,6 +33,36 @@ def join(*, key, resolve):
     return _JoinField(key=_to_key(key), resolve=resolve)
 
 
+def association_join(*, association_table, association_join, association_key, resolve):
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def _resolve(graph, field_query, foreign_key_sql_query, *, session):
+        base_association_query = sqlalchemy.orm.Query([]) \
+            .select_from(association_table) \
+            .filter(_to_key(association_join.values()).expression().in_(foreign_key_sql_query))
+
+        association_query = base_association_query \
+            .add_columns(*association_join.values()) \
+            .add_columns(*association_key)
+
+        associations = [
+            (row[:len(association_join)], row[len(association_join):])
+            for row in association_query.with_session(session).all()
+        ]
+
+        right_result = resolve(graph, field_query, base_association_query.add_columns(*_to_key(association_key).expressions()))
+        return _result_reader(field_query.type_query).read_results(
+            (left_key, right_value)
+            for left_key, right_key in associations
+            for right_value in right_result[right_key]
+        )
+
+    return join(
+        key=association_join.keys(),
+        resolve=_resolve,
+    )
+
+
+
 def _to_key(key):
     if isinstance(key, collections.Iterable):
         return _MultipleExpressionKey(key)
@@ -108,35 +138,14 @@ def _direct_sql_join(join_on):
 
 
 def _association_sql_join(left_join, association, right_join):
-    @g.dependencies(session=sqlalchemy.orm.Session)
-    def resolve(graph, field_query, foreign_key_sql_query, *, session):
-        base_association_query = sqlalchemy.orm.Query([]) \
-            .select_from(association)
+    def resolve(graph, field_query, foreign_key_sql_query):
+        sql_query = select(field_query.type_query).by(right_join.values(), foreign_key_sql_query)
+        return graph.resolve(sql_query)
 
-        association_query = base_association_query \
-            .add_columns(*left_join.values()) \
-            .add_columns(*right_join.keys())
-
-        associations = [
-            (row[:len(left_join)], row[len(left_join):])
-            for row in association_query.with_session(session).all()
-        ]
-
-        foreign_key_expression = _to_sql_expression(right_join.values())
-        where = foreign_key_expression.in_(base_association_query.add_columns(*right_join.keys()))
-
-        sql_query = select(field_query.type_query) \
-            .where(where) \
-            .index_by(right_join.values())
-        right_result = graph.resolve(sql_query)
-        return sql_query.read_results(
-            (left_key, right_value)
-            for left_key, right_key in associations
-            for right_value in right_result[right_key]
-        )
-
-    return join(
-        key=left_join.keys(),
+    return association_join(
+        association_table=association,
+        association_join=left_join,
+        association_key=right_join.keys(),
         resolve=resolve,
     )
 
