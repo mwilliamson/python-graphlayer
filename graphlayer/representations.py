@@ -21,3 +21,6 @@ class Object(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+    def __repr__(self):
+        return "Object({!r})".format(self._values)
