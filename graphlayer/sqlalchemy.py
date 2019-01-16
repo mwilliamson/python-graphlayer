@@ -123,12 +123,7 @@ def sql_join(*args):
 
 def _direct_sql_join(join_on):
     def resolve(graph, field_query, foreign_key_sql_query):
-        foreign_key_expression = _to_sql_expression(join_on.values())
-        where = foreign_key_expression.in_(foreign_key_sql_query)
-
-        sql_query = select(field_query.type_query) \
-            .where(where) \
-            .index_by(join_on.values())
+        sql_query = select(field_query.type_query).by(join_on.values(), foreign_key_sql_query)
         return graph.resolve(sql_query)
 
     return join(
