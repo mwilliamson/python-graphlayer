@@ -10,12 +10,21 @@ def create_object_builder(object_query):
             for field_query in object_query.field_queries
         ))
 
-    def getter(field):
-        def add_field_resolver(resolve_field):
+    def field_resolver(field):
+        def add_field_resolver(build_field_resolver):
             for field_query in object_query.field_queries:
                 if field_query.field == field or field_query.field.name == field:
-                    field_resolvers[field_query.key] = resolve_field
-            return resolve_field
+                    field_resolvers[field_query.key] = build_field_resolver(field_query)
+
+            return build_field_resolver
+
+        return add_field_resolver
+
+    create_object.field = field_resolver
+
+    def getter(field):
+        def add_field_resolver(resolve_field):
+            return field_resolver(field)(lambda field_query: resolve_field)
 
         return add_field_resolver
 

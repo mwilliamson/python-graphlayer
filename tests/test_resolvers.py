@@ -6,6 +6,31 @@ import graphlayer as g
 class TestObjectBuilder(object):
     def test_object_builder_creates_object_using_field_resolvers(self):
         User = g.ObjectType("User", fields=(
+            g.field("name", type=g.String, params=(
+                g.param("truncate", type=g.Int, default=None),
+            )),
+        ))
+
+        object_builder = g.create_object_builder(User(
+            g.key("name", User.fields.name()),
+            g.key("initial", User.fields.name(User.fields.name.params.truncate(1))),
+        ))
+
+        @object_builder.field(User.fields.name)
+        def resolve_name(field_query):
+            if field_query.args.truncate is None:
+                return lambda user: user["name"]
+            else:
+                return lambda user: user["name"][:field_query.args.truncate]
+
+        result = object_builder({"name": "Bob"})
+        assert_that(result, has_attrs(
+            name="Bob",
+            initial="B",
+        ))
+
+    def test_object_builder_getters_access_value_directly(self):
+        User = g.ObjectType("User", fields=(
             g.field("name", type=g.String),
             g.field("email_address", type=g.String),
         ))
