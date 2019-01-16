@@ -29,6 +29,24 @@ class TestObjectBuilder(object):
             e="bob@example.com",
         ))
 
+    def test_field_resolvers_can_be_defined_using_field_name(self):
+        User = g.ObjectType("User", fields=(
+            g.field("name", type=g.String),
+        ))
+
+        object_builder = g.create_object_builder(User(
+            g.key("n", User.fields.name()),
+        ))
+
+        @object_builder.field("name")
+        def resolve_name(user):
+            return user["name"]
+
+        result = object_builder({"name": "Bob"})
+        assert_that(result, has_attrs(
+            n="Bob",
+        ))
+
 
 class TestRootResolver(object):
     def test_root_object_resolver_can_resolve_fields_with_dependencies(self):

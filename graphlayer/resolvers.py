@@ -1,18 +1,20 @@
 from . import core, iterables
 
 
-def create_object_builder(object_type):
+def create_object_builder(object_query):
     field_resolvers = {}
 
     def create_object(value):
-        return object_type.create_object(iterables.to_dict(
-            (field_query.key, field_resolvers[field_query.field](value))
-            for field_query in object_type.field_queries
+        return object_query.create_object(iterables.to_dict(
+            (field_query.key, field_resolvers[field_query.key](value))
+            for field_query in object_query.field_queries
         ))
 
     def field(field):
         def add_field_resolver(resolve_field):
-            field_resolvers[field] = resolve_field
+            for field_query in object_query.field_queries:
+                if field_query.field == field or field_query.field.name == field:
+                    field_resolvers[field_query.key] = resolve_field
             return resolve_field
 
         return add_field_resolver
