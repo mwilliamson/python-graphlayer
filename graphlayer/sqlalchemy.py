@@ -203,6 +203,14 @@ def _result_reader(query):
         return _SingleOrNullResultReader(query)
 
 
+def _read_result(query, result):
+    return _result_reader(query).read_result(result)
+
+
+def _read_results(query, results):
+    return _result_reader(query).read_results(results)
+
+
 def select(query):
     if isinstance(query, _SqlQuery):
         return query
@@ -211,8 +219,7 @@ def select(query):
 
         return _SqlQuery(
             element_query=result_reader.element_query,
-            read_result=result_reader.read_result,
-            read_results=result_reader.read_results,
+            type_query=query,
             index_key=None,
             where_clauses=(),
         )
@@ -226,11 +233,10 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, element_query, read_result, read_results, where_clauses, index_key):
+    def __init__(self, element_query, type_query, where_clauses, index_key):
         self.type = _sql_query_type(element_query.type)
         self.element_query = element_query
-        self.read_result = read_result
-        self.read_results = read_results
+        self.type_query = type_query
         self.where_clauses = where_clauses
         self.index_key = index_key
 
@@ -240,8 +246,7 @@ class _SqlQuery(object):
     def index_by(self, index_key):
         return _SqlQuery(
             element_query=self.element_query,
-            read_result=self.read_result,
-            read_results=self.read_results,
+            type_query=self.type_query,
             where_clauses=self.where_clauses,
             index_key=_to_key(index_key),
         )
@@ -249,8 +254,7 @@ class _SqlQuery(object):
     def where(self, where):
         return _SqlQuery(
             element_query=self.element_query,
-            read_result=self.read_result,
-            read_results=self.read_results,
+            type_query=self.type_query,
             where_clauses=self.where_clauses + (where, ),
             index_key=self.index_key,
         )
@@ -265,7 +269,7 @@ def sql_table_resolver(type, model, fields):
         where = sqlalchemy.and_(*query.where_clauses)
 
         if query.index_key is None:
-            return query.read_result(resolve(
+            return _read_result(query.type_query, resolve(
                 graph,
                 query=query.element_query,
                 where=where,
@@ -275,7 +279,7 @@ def sql_table_resolver(type, model, fields):
                 injector=injector,
             ))
         else:
-            return query.read_results(resolve(
+            return _read_results(query.type_query, resolve(
                 graph,
                 query=query.element_query,
                 where=where,
