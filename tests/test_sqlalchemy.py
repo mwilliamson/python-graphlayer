@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from precisely import assert_that, contains_exactly, equal_to, has_attrs, is_mapping
+from precisely import assert_that, contains_exactly, equal_to, has_attrs, is_mapping, is_sequence
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import pytest
@@ -294,6 +294,58 @@ def test_can_filter_results_using_where():
         has_attrs(
             title="Leave it to Psmith",
         ),
+    ))
+
+
+def test_can_order_results_using_order_by():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_id=1, c_title="Leave it to Psmith"))
+    session.add(BookRow(c_id=2, c_title="Pericles, Prince of Tyre"))
+    session.add(BookRow(c_id=3, c_title="Captain Corelli's Mandolin"))
+
+    session.commit()
+
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.String),
+        ],
+    )
+
+    book_resolver = gsql.sql_table_resolver(
+        Book,
+        BookRow,
+        fields={
+            Book.fields.title: gsql.expression(BookRow.c_title),
+        },
+    )
+
+    resolvers = (book_resolver, )
+
+    query = gsql.select(g.ListType(Book)(
+        g.key("title", Book.fields.title()),
+    )).order_by(BookRow.c_title)
+
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.resolve(query)
+
+    assert_that(result, is_sequence(
+        has_attrs(title="Captain Corelli's Mandolin"),
+        has_attrs(title="Leave it to Psmith"),
+        has_attrs(title="Pericles, Prince of Tyre"),
     ))
 
 

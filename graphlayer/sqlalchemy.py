@@ -224,6 +224,7 @@ def select(query):
             type_query=query,
             index_key=None,
             where_clauses=(),
+            order=None,
         )
 
 
@@ -235,12 +236,13 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, element_query, type_query, where_clauses, index_key):
+    def __init__(self, element_query, type_query, where_clauses, index_key, order):
         self.type = _sql_query_type(element_query.type)
         self.element_query = element_query
         self.type_query = type_query
         self.where_clauses = where_clauses
         self.index_key = index_key
+        self.order = order
 
     def by(self, index_key, index_values):
         return self.index_by(index_key).where(_to_key(index_key).expression().in_(index_values))
@@ -251,6 +253,16 @@ class _SqlQuery(object):
             type_query=self.type_query,
             where_clauses=self.where_clauses,
             index_key=_to_key(index_key),
+            order=self.order,
+        )
+
+    def order_by(self, order):
+        return _SqlQuery(
+            element_query=self.element_query,
+            type_query=self.type_query,
+            where_clauses=self.where_clauses,
+            index_key=self.index_key,
+            order=order,
         )
 
     def where(self, where):
@@ -259,6 +271,7 @@ class _SqlQuery(object):
             type_query=self.type_query,
             where_clauses=self.where_clauses + (where, ),
             index_key=self.index_key,
+            order=self.order,
         )
 
 
@@ -275,6 +288,7 @@ def sql_table_resolver(type, model, fields):
                 graph,
                 query=query.element_query,
                 where=where,
+                order=query.order,
                 extra_expressions=(),
                 process_row=lambda row, result: result,
                 session=session,
@@ -285,13 +299,14 @@ def sql_table_resolver(type, model, fields):
                 graph,
                 query=query.element_query,
                 where=where,
+                order=query.order,
                 extra_expressions=query.index_key.expressions(),
                 process_row=lambda row, result: (query.index_key.read(row), result),
                 session=session,
                 injector=injector,
             ))
 
-    def resolve(graph, query, where, extra_expressions, process_row, session, injector):
+    def resolve(graph, query, where, order, extra_expressions, process_row, session, injector):
         def get_field(field_query):
             field = fields()[field_query.field]
             if callable(field):
@@ -303,8 +318,8 @@ def sql_table_resolver(type, model, fields):
 
         base_query = sqlalchemy.orm.Query([]).select_from(model)
 
-        if where is not None:
-            base_query = base_query.filter(where)
+        if order is not None:
+            base_query = base_query.order_by(order)
 
         row_slices = []
         readers = []
@@ -314,7 +329,10 @@ def sql_table_resolver(type, model, fields):
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions)))
             query_expressions += expressions
 
-        rows = base_query.with_session(session).add_columns(*query_expressions).add_columns(*extra_expressions)
+        row_query = base_query.add_columns(*query_expressions).add_columns(*extra_expressions)
+        if row_query is not None:
+            row_query = row_query.filter(where)
+        rows = row_query.with_session(session)
 
         for field_query, row_slice in zip(query.field_queries, row_slices):
             reader = get_field(field_query).create_reader(graph, field_query, base_query, injector=injector)
