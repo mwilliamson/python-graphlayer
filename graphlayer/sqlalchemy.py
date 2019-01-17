@@ -36,20 +36,23 @@ def join(*, key, resolve):
 def association_join(*, association_table, association_join, association_key, resolve):
     @g.dependencies(session=sqlalchemy.orm.Session)
     def _resolve(graph, field_query, foreign_key_sql_query, *, session):
+        association_left_key = _to_key(association_join.values())
+        association_right_key = _to_key(association_key)
+
         base_association_query = sqlalchemy.orm.Query([]) \
             .select_from(association_table) \
-            .filter(_to_key(association_join.values()).expression().in_(foreign_key_sql_query))
+            .filter(association_left_key.expression().in_(foreign_key_sql_query))
 
         association_query = base_association_query \
             .add_columns(*association_join.values()) \
-            .add_columns(*_to_key(association_key).expressions())
+            .add_columns(*association_right_key.expressions())
 
         associations = [
-            (row[:len(association_join)], _to_key(association_key).read(row[len(association_join):]))
+            (row[:len(association_join)], association_right_key.read(row[len(association_join):]))
             for row in association_query.with_session(session).all()
         ]
 
-        right_result = resolve(graph, field_query, base_association_query.add_columns(*_to_key(association_key).expressions()))
+        right_result = resolve(graph, field_query, base_association_query.add_columns(*association_right_key.expressions()))
         return _result_reader(field_query.type_query).read_results(
             (left_key, right_value)
             for left_key, right_key in associations
@@ -60,7 +63,6 @@ def association_join(*, association_table, association_join, association_key, re
         key=association_join.keys(),
         resolve=_resolve,
     )
-
 
 
 def _to_key(key):
