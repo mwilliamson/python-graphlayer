@@ -130,6 +130,22 @@ class TestAdd(object):
 
         pytest.raises(TypeError, lambda: DirectionGraphType() + schema.ObjectType("Obj", fields=()))
 
+    def test_adding_enum_queries_of_different_type_raises_type_error(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        class Size(enum.Enum):
+            big = "big"
+            small = "small"
+
+        SizeGraphType = schema.EnumType(Size)
+
+        error = pytest.raises(TypeError, lambda: DirectionGraphType() + SizeGraphType())
+        assert_that(str(error.value), equal_to("cannot add queries for different enum types: Direction and Size"))
+
     def test_merged_object_query_has_fields_from_operand_queries(self):
         Song = schema.ObjectType("Song", fields=(
             schema.field("title", type=schema.String),

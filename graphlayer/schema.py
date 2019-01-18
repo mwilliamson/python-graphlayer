@@ -59,18 +59,29 @@ class EnumType(object):
         return self.enum.__name__
 
     def __call__(self):
-        return EnumQuery()
+        return EnumQuery(self)
+
+    def __str__(self):
+        return self.name
 
 
 class EnumQuery(object):
+    def __init__(self, type):
+        self.type = type
+
     def for_type(self, target_type):
         return self
 
     def __add__(self, other):
-        if isinstance(other, EnumQuery):
-            return self
-        else:
+        if not isinstance(other, EnumQuery):
             return NotImplemented
+        elif self.type != other.type:
+            raise TypeError("cannot add queries for different enum types: {} and {}".format(
+                self.type,
+                other.type,
+            ))
+        else:
+            return self
 
     def to_json_value(self, value):
         return value.value
