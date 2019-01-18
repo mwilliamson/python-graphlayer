@@ -482,6 +482,19 @@ class TestQueryString(object):
             ScalarQuery(type=Int)
         """)))
 
+    def test_enum_query_string_includes_type(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        query = DirectionGraphType()
+
+        assert_that(str(query), equal_to(dedent("""
+            EnumQuery(type=Direction)
+        """)))
+
     def test_list_query_string_includes_element_query(self):
         query = schema.ListType(schema.Int)()
         assert_that(str(query), equal_to(dedent("""

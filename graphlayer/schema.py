@@ -86,6 +86,9 @@ class EnumQuery(object):
     def to_json_value(self, value):
         return value.value
 
+    def __str__(self):
+        return "EnumQuery(type={})".format(self.type)
+
 
 class InputObjectType(object):
     def __init__(self, name, fields):
