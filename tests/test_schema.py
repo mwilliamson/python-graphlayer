@@ -192,11 +192,31 @@ class TestAdd(object):
             schema.key("length", Song.fields.length()),
         )))
 
-    def test_adding_list_query_to_non_list_query_raises_type_error(self):
+    def test_adding__query_to_non_list_query_raises_type_error(self):
         pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.Boolean())
 
     def test_adding_list_query_to_list_query_of_different_element_type_raises_type_error(self):
         pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.ListType(schema.Int)())
+
+    def test_nullable_query_merges_element_queries(self):
+        Song = schema.ObjectType("Song", fields=(
+            schema.field("title", type=schema.String),
+            schema.field("length", type=schema.Int),
+        ))
+        query = (
+            schema.NullableType(Song)(schema.key("title", Song.fields.title())) +
+            schema.NullableType(Song)(schema.key("length", Song.fields.length()))
+        )
+        assert_that(query, is_query(schema.NullableType(Song)(
+            schema.key("title", Song.fields.title()),
+            schema.key("length", Song.fields.length()),
+        )))
+
+    def test_adding_nullable_query_to_non_null_query_raises_type_error(self):
+        pytest.raises(TypeError, lambda: schema.NullableType(schema.Boolean)() + schema.Boolean())
+
+    def test_adding_nullable_query_to_nullable_query_of_different_element_type_raises_type_error(self):
+        pytest.raises(TypeError, lambda: schema.NullableType(schema.Boolean)() + schema.NullableType(schema.Int)())
 
 class TestForType(object):
     def test_scalar_query_for_type_is_scalar_query(self):
