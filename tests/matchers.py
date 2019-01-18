@@ -1,11 +1,11 @@
-from precisely import equal_to, has_attrs, is_instance, is_mapping, is_sequence
+from precisely import has_attrs, is_instance, is_mapping, is_sequence
 
 from graphlayer import schema
 
 
 def is_query(query):
-    if query == schema.scalar_query:
-        return equal_to(schema.scalar_query)
+    if isinstance(query, schema.ScalarQuery):
+        return is_instance(schema.ScalarQuery)
 
     elif isinstance(query, schema.EnumQuery):
         return is_instance(schema.EnumQuery)

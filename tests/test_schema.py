@@ -107,6 +107,10 @@ class TestAdd(object):
     def test_adding_scalar_query_to_other_query_raises_type_error(self):
         pytest.raises(TypeError, lambda: schema.Boolean() + schema.ObjectType("Obj", fields=()))
 
+    def test_adding_scalar_queries_of_different_type_raises_type_error(self):
+        error = pytest.raises(TypeError, lambda: schema.Boolean() + schema.Int())
+        assert_that(str(error.value), equal_to("cannot add queries for different scalar types: Boolean and Int"))
+
     def test_enum_queries_merge_into_enum_query(self):
         class Direction(enum.Enum):
             up = "up"

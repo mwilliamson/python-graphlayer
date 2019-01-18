@@ -13,7 +13,7 @@ class ScalarType(object):
         self.name = name
 
     def __call__(self):
-        return scalar_query
+        return ScalarQuery(self)
 
     def __str__(self):
         return self.name
@@ -26,6 +26,9 @@ String = ScalarType("String")
 
 
 class ScalarQuery(object):
+    def __init__(self, type):
+        self.type = type
+
     def to_json_value(self, value):
         return value
 
@@ -33,16 +36,18 @@ class ScalarQuery(object):
         return self
 
     def __add__(self, other):
-        if isinstance(other, ScalarQuery):
-            return self
-        else:
+        if not isinstance(other, ScalarQuery):
             return NotImplemented
+        elif self.type != other.type:
+            raise TypeError("cannot add queries for different scalar types: {} and {}".format(
+                self.type,
+                other.type,
+            ))
+        else:
+            return self
 
     def __str__(self):
         return "scalar_query"
-
-
-scalar_query = ScalarQuery()
 
 
 class EnumType(object):
