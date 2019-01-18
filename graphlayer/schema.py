@@ -161,10 +161,15 @@ class ListQuery(object):
         return ListQuery(type=target_type, element_query=element_query)
 
     def __add__(self, other):
-        if isinstance(other, ListQuery) and self.type == other.type:
-            return ListQuery(type=self.type, element_query=self.element_query + other.element_query)
-        else:
+        if not isinstance(other, ListQuery):
             return NotImplemented
+        elif self.type.element_type != other.type.element_type:
+            raise TypeError("cannot add queries for lists with different element types: {} and {}".format(
+                self.type.element_type,
+                other.type.element_type,
+            ))
+        else:
+            return ListQuery(type=self.type, element_query=self.element_query + other.element_query)
 
     def to_json_value(self, value):
         return [
@@ -214,10 +219,15 @@ class NullableQuery(object):
         return NullableQuery(type=target_type, element_query=element_query)
 
     def __add__(self, other):
-        if isinstance(other, NullableQuery) and self.type == other.type:
-            return NullableQuery(type=self.type, element_query=self.element_query + other.element_query)
-        else:
+        if not isinstance(other, NullableQuery):
             return NotImplemented
+        elif self.type.element_type != other.type.element_type:
+            raise TypeError("cannot add queries for nullables with different element types: {} and {}".format(
+                self.type.element_type,
+                other.type.element_type,
+            ))
+        else:
+            return NullableQuery(type=self.type, element_query=self.element_query + other.element_query)
 
     def to_json_value(self, value):
         if value is None:

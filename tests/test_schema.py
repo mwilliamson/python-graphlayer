@@ -196,7 +196,8 @@ class TestAdd(object):
         pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.Boolean())
 
     def test_adding_list_query_to_list_query_of_different_element_type_raises_type_error(self):
-        pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.ListType(schema.Int)())
+        error = pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.ListType(schema.Int)())
+        assert_that(str(error.value), equal_to("cannot add queries for lists with different element types: Boolean and Int"))
 
     def test_nullable_query_merges_element_queries(self):
         Song = schema.ObjectType("Song", fields=(
@@ -216,7 +217,8 @@ class TestAdd(object):
         pytest.raises(TypeError, lambda: schema.NullableType(schema.Boolean)() + schema.Boolean())
 
     def test_adding_nullable_query_to_nullable_query_of_different_element_type_raises_type_error(self):
-        pytest.raises(TypeError, lambda: schema.NullableType(schema.Boolean)() + schema.NullableType(schema.Int)())
+        error = pytest.raises(TypeError, lambda: schema.NullableType(schema.Boolean)() + schema.NullableType(schema.Int)())
+        assert_that(str(error.value), equal_to("cannot add queries for nullables with different element types: Boolean and Int"))
 
 class TestForType(object):
     def test_scalar_query_for_type_is_scalar_query(self):
