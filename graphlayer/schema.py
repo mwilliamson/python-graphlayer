@@ -161,9 +161,7 @@ class ListQuery(object):
         return ListQuery(type=target_type, element_query=element_query)
 
     def __add__(self, other):
-        if isinstance(other, ListQuery):
-            # TODO: handle other types
-            assert self.type == other.type
+        if isinstance(other, ListQuery) and self.type == other.type:
             return ListQuery(type=self.type, element_query=self.element_query + other.element_query)
         else:
             return NotImplemented
@@ -272,11 +270,9 @@ class ObjectQuery(object):
         self.type = type
         self.field_queries = tuple(field_queries)
 
-    # TODO: test this directly
     # TODO: handling merging of other query types
     def __add__(self, other):
         if isinstance(other, ObjectQuery):
-            # TODO: better handling of other types
             assert self.type == other.type
 
             field_queries = list(map(

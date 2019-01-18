@@ -104,6 +104,9 @@ class TestAdd(object):
         query = schema.Boolean() + schema.Boolean()
         assert_that(query, is_query(schema.Boolean()))
 
+    def test_adding_scalar_query_to_other_query_raises_type_error(self):
+        pytest.raises(TypeError, lambda: schema.Boolean() + schema.ObjectType("Obj", fields=()))
+
     def test_merged_object_query_has_fields_from_operand_queries(self):
         Song = schema.ObjectType("Song", fields=(
             schema.field("title", type=schema.String),
@@ -172,6 +175,9 @@ class TestAdd(object):
             schema.key("title", Book.fields.title()),
         )))
 
+    def test_adding_object_query_to_other_query_raises_type_error(self):
+        pytest.raises(TypeError, lambda: schema.ObjectType("Obj", fields=()) + schema.Boolean())
+
     def test_list_query_merges_element_queries(self):
         Song = schema.ObjectType("Song", fields=(
             schema.field("title", type=schema.String),
@@ -186,6 +192,11 @@ class TestAdd(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_adding_list_query_to_non_list_query_raises_type_error(self):
+        pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.Boolean())
+
+    def test_adding_list_query_to_list_query_of_different_element_type_raises_type_error(self):
+        pytest.raises(TypeError, lambda: schema.ListType(schema.Boolean)() + schema.ListType(schema.Int)())
 
 class TestForType(object):
     def test_scalar_query_for_type_is_scalar_query(self):
