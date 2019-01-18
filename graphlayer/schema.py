@@ -226,6 +226,9 @@ class NullableType(object):
     def __hash__(self):
         return hash(self.element_type)
 
+    def __str__(self):
+        return "Nullable({})".format(self.element_type)
+
     def __repr__(self):
         return "NullableType(element_type={!r})".format(self.element_type)
 
@@ -256,6 +259,12 @@ class NullableQuery(object):
             return None
         else:
             return self.element_query.to_json_value(value)
+
+    def __str__(self):
+        return _format_call_tree("NullableQuery", (
+            ("type", self.type),
+            ("element_query", self.element_query),
+        ))
 
 
 class ObjectType(object):
