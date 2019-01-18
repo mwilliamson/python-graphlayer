@@ -176,7 +176,7 @@ Running this will print out:
             FieldQuery(
                 key="bookCount",
                 field=Root.fields.book_count,
-                type_query=scalar_query,
+                type_query=ScalarQuery(type=Int),
                 args=(),
             ),
         ),
@@ -677,7 +677,7 @@ Then our script should now produce the output:
                 FieldQuery(
                     key="title",
                     field=Book.fields.title,
-                    type_query=scalar_query,
+                    type_query=ScalarQuery(type=String),
                     args=(),
                 ),
             ),

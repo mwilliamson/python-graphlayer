@@ -476,12 +476,18 @@ class TestToJsonValue(object):
 
 
 class TestQueryString(object):
+    def test_scalar_query_string_includes_type(self):
+        query = schema.Int()
+        assert_that(str(query), equal_to(dedent("""
+            ScalarQuery(type=Int)
+        """)))
+
     def test_list_query_string_includes_element_query(self):
         query = schema.ListType(schema.Int)()
         assert_that(str(query), equal_to(dedent("""
             ListQuery(
                 type=List(Int),
-                element_query=scalar_query,
+                element_query=ScalarQuery(type=Int),
             )
         """)))
 
@@ -490,7 +496,7 @@ class TestQueryString(object):
         assert_that(str(query), equal_to(dedent("""
             NullableQuery(
                 type=Nullable(Int),
-                element_query=scalar_query,
+                element_query=ScalarQuery(type=Int),
             )
         """)))
 
@@ -512,13 +518,13 @@ class TestQueryString(object):
                     FieldQuery(
                         key="title",
                         field=Book.fields.title,
-                        type_query=scalar_query,
+                        type_query=ScalarQuery(type=String),
                         args=(),
                     ),
                     FieldQuery(
                         key="year",
                         field=Book.fields.publication_year,
-                        type_query=scalar_query,
+                        type_query=ScalarQuery(type=Int),
                         args=(),
                     ),
                 ),
@@ -536,7 +542,7 @@ class TestQueryString(object):
             FieldQuery(
                 key="title",
                 field=Book.fields.title,
-                type_query=scalar_query,
+                type_query=ScalarQuery(type=String),
                 args=(),
             )
         """)))
@@ -554,7 +560,7 @@ class TestQueryString(object):
             FieldQuery(
                 key="title",
                 field=Book.fields.title,
-                type_query=scalar_query,
+                type_query=ScalarQuery(type=String),
                 args=(),
             )
         """)))
@@ -572,7 +578,7 @@ class TestQueryString(object):
             FieldQuery(
                 key="title",
                 field=Book.fields.title,
-                type_query=scalar_query,
+                type_query=ScalarQuery(type=String),
                 args=(
                     Book.fields.title.params.truncate(42),
                 ),

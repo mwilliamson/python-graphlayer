@@ -47,7 +47,7 @@ class ScalarQuery(object):
             return self
 
     def __str__(self):
-        return "scalar_query"
+        return "ScalarQuery(type={})".format(self.type)
 
 
 class EnumType(object):
