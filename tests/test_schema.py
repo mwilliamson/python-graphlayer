@@ -107,6 +107,25 @@ class TestAdd(object):
     def test_adding_scalar_query_to_other_query_raises_type_error(self):
         pytest.raises(TypeError, lambda: schema.Boolean() + schema.ObjectType("Obj", fields=()))
 
+    def test_enum_queries_merge_into_enum_query(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        query = DirectionGraphType() + DirectionGraphType()
+        assert_that(query, is_query(DirectionGraphType()))
+
+    def test_adding_enum_query_to_other_query_raises_type_error(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        pytest.raises(TypeError, lambda: DirectionGraphType() + schema.ObjectType("Obj", fields=()))
+
     def test_merged_object_query_has_fields_from_operand_queries(self):
         Song = schema.ObjectType("Song", fields=(
             schema.field("title", type=schema.String),

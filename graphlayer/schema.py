@@ -61,6 +61,12 @@ class EnumQuery(object):
     def for_type(self, target_type):
         return self
 
+    def __add__(self, other):
+        if isinstance(other, EnumQuery):
+            return self
+        else:
+            return NotImplemented
+
     def to_json_value(self, value):
         return value.value
 
