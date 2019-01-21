@@ -285,7 +285,11 @@ class ObjectType(object):
             )
         self.fields = Fields(name, owned_fields)
         # TODO: validation of interfaces, especially default values of arguments
-        self.interfaces = interfaces
+        self._interfaces = memoize(interfaces)
+
+    @property
+    def interfaces(self):
+        return self._interfaces()
 
     def __call__(self, *field_queries):
         return ObjectQuery(self, field_queries=field_queries)

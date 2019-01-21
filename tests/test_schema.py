@@ -1,7 +1,7 @@
 import enum
 import textwrap
 
-from precisely import assert_that, equal_to, has_attrs
+from precisely import assert_that, contains_exactly, equal_to, has_attrs
 import pytest
 
 from graphlayer import GraphError, schema
@@ -604,6 +604,19 @@ class TestField(object):
         field = schema.field("x", type=schema.Int)
         error = pytest.raises(GraphError, lambda: field(42))
         assert_that(str(error.value), equal_to("unexpected argument: 42\nExpected arguments of type Argument or FieldQuery but had type int"))
+
+
+class TestObjectType(object):
+    def test_interface_can_be_set_as_iterable(self):
+        Interface = schema.InterfaceType("Interface", fields=())
+        Obj = schema.ObjectType("Obj", fields=(), interfaces=(Interface, ))
+        assert_that(Obj.interfaces, contains_exactly(Interface))
+
+    def test_interface_can_be_set_as_function_returning_iterable(self):
+        Interface = schema.InterfaceType("Interface", fields=())
+        Obj = schema.ObjectType("Obj", fields=(), interfaces=lambda: (Interface, ))
+        assert_that(Obj.interfaces, contains_exactly(Interface))
+
 
 
 def dedent(value):
