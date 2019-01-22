@@ -313,7 +313,8 @@ def sql_table_resolver(type, model, fields):
         def get_field(field_query):
             field = fields()[field_query.field]
             if callable(field):
-                return field(graph, field_query)
+                # TODO: test dependencies are injected
+                return injector.call_with_dependencies(field, graph, field_query)
             else:
                 return field
 
