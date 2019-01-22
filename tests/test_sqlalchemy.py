@@ -94,7 +94,9 @@ class TestExpressionField(object):
             Book,
             BookRow,
             fields={
-                Book.fields.title: lambda args: gsql.expression(sqlalchemy.func.substr(BookRow.c_title, 1, args.truncate)),
+                Book.fields.title: lambda field_query: gsql.expression(
+                    sqlalchemy.func.substr(BookRow.c_title, 1, field_query.args.truncate),
+                ),
             },
         )
 

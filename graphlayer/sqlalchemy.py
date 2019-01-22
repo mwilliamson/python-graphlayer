@@ -310,7 +310,7 @@ def sql_table_resolver(type, model, fields):
         def get_field(field_query):
             field = fields()[field_query.field]
             if callable(field):
-                return field(field_query.args)
+                return field(field_query)
             else:
                 return field
 
