@@ -19,7 +19,7 @@ class _ExpressionField(object):
     def expressions(self):
         return (self._expression, )
 
-    def create_reader(self, base_query, injector):
+    def create_reader(self, base_query, field_query, injector):
         def read(row):
             return row[0]
 
@@ -87,7 +87,7 @@ class _JoinField(object):
     def expressions(self):
         return self._key.expressions()
 
-    def create_reader(self, base_query, injector):
+    def create_reader(self, base_query, field_query, injector):
         key_sql_query = base_query.add_columns(*self._key.expressions())
 
         if self._association is None:
@@ -112,11 +112,8 @@ class _JoinField(object):
             ]
 
             right_result = injector.call_with_dependencies(self._resolve, base_association_query.add_columns(*self._association.right_key.expressions()))
-            result = iterables.to_default_multidict(
-                (left_key, right_value)
-                for left_key, right_key in associations
-                for right_value in right_result[right_key]
-            )
+
+            result = _result_reader(field_query.type_query).join_associations(associations, right_result)
 
         def read(row):
             return result[self._key.read(row)]
@@ -163,6 +160,12 @@ class _SingleResultReader(object):
 
         return result
 
+    def join_associations(self, associations, right_result):
+        return self.read_results(
+            (left_key, right_result[right_key])
+            for left_key, right_key in associations
+        )
+
 
 class _ManyResultsReader(object):
     def __init__(self, query):
@@ -173,6 +176,13 @@ class _ManyResultsReader(object):
 
     def read_results(self, iterable):
         return iterables.to_default_multidict(iterable)
+
+    def join_associations(self, associations, right_result):
+        return self.read_results(
+            (left_key, right_value)
+            for left_key, right_key in associations
+            for right_value in right_result[right_key]
+        )
 
 
 class _SingleOrNullResultReader(object):
@@ -197,6 +207,12 @@ class _SingleOrNullResultReader(object):
                 result[key] = value
 
         return result
+
+    def join_associations(self, associations, right_result):
+        return self.read_results(
+            (left_key, right_result[right_key])
+            for left_key, right_key in associations
+        )
 
 
 def _result_reader(query):
@@ -339,7 +355,7 @@ def sql_table_resolver(type, model, fields):
         rows = row_query.with_session(session)
 
         for field_query, row_slice in zip(query.field_queries, row_slices):
-            reader = get_field(field_query).create_reader(base_query, injector=injector)
+            reader = get_field(field_query).create_reader(base_query, field_query=field_query, injector=injector)
             readers.append((field_query.key, row_slice, reader))
 
         def read_row(row):
