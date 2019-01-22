@@ -29,40 +29,19 @@ class _ExpressionField(object):
         return _DecoratedReadField(self, func)
 
 
-def join(*, key, resolve):
-    return _JoinField(key=_to_key(key), resolve=resolve)
+def join(*, key, resolve, association=None):
+    return _JoinField(key=_to_key(key), resolve=resolve, association=association)
 
 
-def association_join(*, association_table, association_join, association_key, resolve):
-    @g.dependencies(session=sqlalchemy.orm.Session)
-    def _resolve(foreign_key_sql_query, *, session):
-        association_left_key = _to_key(association_join.values())
-        association_right_key = _to_key(association_key)
+class _Association(object):
+    def __init__(self, table, left_key, right_key):
+        self.table = table
+        self.left_key = left_key
+        self.right_key = right_key
 
-        base_association_query = sqlalchemy.orm.Query([]) \
-            .select_from(association_table) \
-            .filter(association_left_key.expression().in_(foreign_key_sql_query))
 
-        association_query = base_association_query \
-            .add_columns(*association_join.values()) \
-            .add_columns(*association_right_key.expressions())
-
-        associations = [
-            (row[:len(association_join)], association_right_key.read(row[len(association_join):]))
-            for row in association_query.with_session(session).all()
-        ]
-
-        right_result = resolve(base_association_query.add_columns(*association_right_key.expressions()))
-        return iterables.to_default_multidict(
-            (left_key, right_value)
-            for left_key, right_key in associations
-            for right_value in right_result[right_key]
-        )
-
-    return join(
-        key=association_join.keys(),
-        resolve=_resolve,
-    )
+def association(table, *, left_key, right_key):
+    return _Association(table=table, left_key=_to_key(left_key), right_key=_to_key(right_key))
 
 
 def _to_key(key):
@@ -100,15 +79,44 @@ class _MultipleExpressionKey(object):
 
 
 class _JoinField(object):
-    def __init__(self, key, resolve):
+    def __init__(self, key, resolve, association):
         self._key = key
         self._resolve = resolve
+        self._association = association
 
     def expressions(self):
         return self._key.expressions()
 
     def create_reader(self, base_query, injector):
-        result = injector.call_with_dependencies(self._resolve, base_query.add_columns(*self._key.expressions()))
+        key_sql_query = base_query.add_columns(*self._key.expressions())
+
+        if self._association is None:
+            result = injector.call_with_dependencies(self._resolve, key_sql_query)
+        else:
+            session = injector.get(sqlalchemy.orm.Session)
+
+            base_association_query = sqlalchemy.orm.Query([]) \
+                .select_from(self._association.table) \
+                .filter(self._association.left_key.expression().in_(key_sql_query))
+
+            association_query = base_association_query \
+                .add_columns(*self._association.left_key.expressions()) \
+                .add_columns(*self._association.right_key.expressions())
+
+            associations = [
+                (
+                    self._association.left_key.read(row[:len(self._association.left_key.expressions())]),
+                    self._association.right_key.read(row[len(self._association.left_key.expressions()):]),
+                )
+                for row in association_query.with_session(session).all()
+            ]
+
+            right_result = injector.call_with_dependencies(self._resolve, base_association_query.add_columns(*self._association.right_key.expressions()))
+            result = iterables.to_default_multidict(
+                (left_key, right_value)
+                for left_key, right_key in associations
+                for right_value in right_result[right_key]
+            )
 
         def read(row):
             return result[self._key.read(row)]

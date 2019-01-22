@@ -895,10 +895,13 @@ def test_can_resolve_join_through_association_table():
         LeftRow,
         fields={
             Left.fields.value: gsql.expression(LeftRow.c_value),
-            Left.fields.rights: lambda graph, field_query: gsql.association_join(
-                association_table=AssociationRow,
-                association_join={LeftRow.c_id: AssociationRow.c_left_id},
-                association_key=AssociationRow.c_right_id,
+            Left.fields.rights: lambda graph, field_query: gsql.join(
+                key=LeftRow.c_id,
+                association=gsql.association(
+                    AssociationRow,
+                    left_key=AssociationRow.c_left_id,
+                    right_key=AssociationRow.c_right_id,
+                ),
                 resolve=lambda right_ids: graph.resolve(
                     gsql.select(field_query.type_query).by(RightRow.c_id, right_ids),
                 ),

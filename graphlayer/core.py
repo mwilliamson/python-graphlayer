@@ -37,10 +37,13 @@ class Injector(object):
         self._dependencies = dependencies.copy()
         self._dependencies[Injector] = self
 
+    def get(self, key):
+        return self._dependencies[key]
+
     def call_with_dependencies(self, func, *args, **kwargs):
         dependencies = getattr(func, "dependencies", dict())
         dependency_kwargs = iterables.to_dict(
-            (arg_name, self._dependencies[dependency_key])
+            (arg_name, self.get(dependency_key))
             for arg_name, dependency_key in dependencies.items()
         )
         return func(*args, **kwargs, **dependency_kwargs)
