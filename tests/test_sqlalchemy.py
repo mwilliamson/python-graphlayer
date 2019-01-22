@@ -1171,6 +1171,137 @@ def test_can_resolve_many_to_one_or_zero_join_through_association_table():
     ))
 
 
+def test_association_table_can_be_filtered_explicitly():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class LeftRow(Base):
+        __tablename__ = "left"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_value = sqlalchemy.Column(sqlalchemy.Unicode)
+
+    class AssociationRow(Base):
+        __tablename__ = "association"
+
+        c_left_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_right_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+
+    class RightRow(Base):
+        __tablename__ = "right"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_value = sqlalchemy.Column(sqlalchemy.Unicode)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+
+    session.add(LeftRow(c_id=1, c_value="left 1"))
+    session.add(RightRow(c_id=101, c_value="right 1a"))
+    session.add(RightRow(c_id=102, c_value="right 1b"))
+    session.add(AssociationRow(c_left_id=1, c_right_id=101))
+    session.add(AssociationRow(c_left_id=1, c_right_id=102))
+
+    session.add(LeftRow(c_id=2, c_value="left 2"))
+
+    session.add(LeftRow(c_id=3, c_value="left 3"))
+    session.add(RightRow(c_id=103, c_value="right 3"))
+    session.add(AssociationRow(c_left_id=3, c_right_id=103))
+
+    session.commit()
+
+    Left = g.ObjectType(
+        "Left",
+        fields=lambda: [
+            g.field("value", type=g.String),
+            g.field("rights", type=g.ListType(Right)),
+        ],
+    )
+    Right = g.ObjectType(
+        "Right",
+        fields=lambda: [
+            g.field("value", type=g.String),
+        ],
+    )
+
+    left_resolver = gsql.sql_table_resolver(
+        Left,
+        LeftRow,
+        fields=lambda: {
+            Left.fields.value: gsql.expression(LeftRow.c_value),
+            Left.fields.rights: left_field_rights,
+        },
+    )
+
+    def left_field_rights(graph, field_query):
+        def association(left_ids):
+            associations_table = sqlalchemy.orm.Query([
+                AssociationRow.c_left_id,
+                AssociationRow.c_right_id,
+            ]) \
+                .select_from(AssociationRow) \
+                .filter(AssociationRow.c_left_id.in_(left_ids)) \
+                .subquery()
+
+            return gsql.association(
+                associations_table,
+                left_key=associations_table.c.c_left_id,
+                right_key=associations_table.c.c_right_id,
+                filtered_by_left_key=True,
+            )
+
+        return gsql.join(
+            key=LeftRow.c_id,
+            association=association,
+            resolve=lambda right_ids: graph.resolve(
+                gsql.select(field_query.type_query).by(RightRow.c_id, right_ids),
+            ),
+        )
+
+    right_resolver = gsql.sql_table_resolver(
+        Right,
+        RightRow,
+        fields={
+            Right.fields.value: gsql.expression(RightRow.c_value),
+        },
+    )
+
+    resolvers = [left_resolver, right_resolver]
+
+    query = gsql.select(g.ListType(Left)(
+        g.key("value", Left.fields.value()),
+        g.key("rights", Left.fields.rights(
+            g.key("value", Right.fields.value()),
+        )),
+    ))
+
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(
+            value="left 1",
+            rights=contains_exactly(
+                has_attrs(value="right 1a"),
+                has_attrs(value="right 1b"),
+            ),
+        ),
+        has_attrs(
+            value="left 2",
+            rights=contains_exactly(),
+        ),
+        has_attrs(
+            value="left 3",
+            rights=contains_exactly(
+                has_attrs(value="right 3"),
+            ),
+        ),
+    ))
+
+
 def test_can_join_tables_using_multi_column_key():
     Base = sqlalchemy.ext.declarative.declarative_base()
 

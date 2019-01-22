@@ -34,14 +34,20 @@ def join(*, key, resolve, association=None):
 
 
 class _Association(object):
-    def __init__(self, table, left_key, right_key):
+    def __init__(self, table, left_key, right_key, filtered_by_left_key):
         self.table = table
         self.left_key = left_key
         self.right_key = right_key
+        self.filtered_by_left_key = filtered_by_left_key
 
 
-def association(table, *, left_key, right_key):
-    return _Association(table=table, left_key=_to_key(left_key), right_key=_to_key(right_key))
+def association(table, *, left_key, right_key, filtered_by_left_key=False):
+    return _Association(
+        table=table,
+        left_key=_to_key(left_key),
+        right_key=_to_key(right_key),
+        filtered_by_left_key=filtered_by_left_key,
+    )
 
 
 def _to_key(key):
@@ -93,25 +99,32 @@ class _JoinField(object):
         if self._association is None:
             result = injector.call_with_dependencies(self._resolve, key_sql_query)
         else:
+            if callable(self._association):
+                association = injector.call_with_dependencies(self._association, key_sql_query)
+            else:
+                association = self._association
+
             session = injector.get(sqlalchemy.orm.Session)
 
             base_association_query = sqlalchemy.orm.Query([]) \
-                .select_from(self._association.table) \
-                .filter(self._association.left_key.expression().in_(key_sql_query))
+                .select_from(association.table)
+
+            if not association.filtered_by_left_key:
+                base_association_query = base_association_query.filter(association.left_key.expression().in_(key_sql_query))
 
             association_query = base_association_query \
-                .add_columns(*self._association.left_key.expressions()) \
-                .add_columns(*self._association.right_key.expressions())
+                .add_columns(*association.left_key.expressions()) \
+                .add_columns(*association.right_key.expressions())
 
             associations = [
                 (
-                    self._association.left_key.read(row[:len(self._association.left_key.expressions())]),
-                    self._association.right_key.read(row[len(self._association.left_key.expressions()):]),
+                    association.left_key.read(row[:len(association.left_key.expressions())]),
+                    association.right_key.read(row[len(association.left_key.expressions()):]),
                 )
                 for row in association_query.with_session(session).all()
             ]
 
-            right_result = injector.call_with_dependencies(self._resolve, base_association_query.add_columns(*self._association.right_key.expressions()))
+            right_result = injector.call_with_dependencies(self._resolve, base_association_query.add_columns(*association.right_key.expressions()))
 
             result = _result_reader(field_query.type_query).join_associations(associations, right_result)
 
