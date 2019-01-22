@@ -256,7 +256,7 @@ class _SqlQuery(object):
             order=self.order,
         )
 
-    def order_by(self, order):
+    def order_by(self, *order):
         return _SqlQuery(
             element_query=self.element_query,
             type_query=self.type_query,
@@ -319,7 +319,7 @@ def sql_table_resolver(type, model, fields):
         base_query = sqlalchemy.orm.Query([]).select_from(model)
 
         if order is not None:
-            base_query = base_query.order_by(order)
+            base_query = base_query.order_by(*order)
 
         row_slices = []
         readers = []
