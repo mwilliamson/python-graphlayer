@@ -28,6 +28,15 @@ def partition(predicate, iterable):
     return true_values, false_values
 
 
+def to_default_multidict(iterable):
+    result = collections.defaultdict(list)
+
+    for key, value in iterable:
+        result[key].append(value)
+
+    return result
+
+
 def to_dict(iterable):
     result = {}
 

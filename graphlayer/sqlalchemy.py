@@ -19,7 +19,7 @@ class _ExpressionField(object):
     def expressions(self):
         return (self._expression, )
 
-    def create_reader(self, graph, field_query, base_query, injector):
+    def create_reader(self, base_query, injector):
         def read(row):
             return row[0]
 
@@ -35,7 +35,7 @@ def join(*, key, resolve):
 
 def association_join(*, association_table, association_join, association_key, resolve):
     @g.dependencies(session=sqlalchemy.orm.Session)
-    def _resolve(graph, field_query, foreign_key_sql_query, *, session):
+    def _resolve(foreign_key_sql_query, *, session):
         association_left_key = _to_key(association_join.values())
         association_right_key = _to_key(association_key)
 
@@ -52,8 +52,8 @@ def association_join(*, association_table, association_join, association_key, re
             for row in association_query.with_session(session).all()
         ]
 
-        right_result = resolve(graph, field_query, base_association_query.add_columns(*association_right_key.expressions()))
-        return _result_reader(field_query.type_query).read_results(
+        right_result = resolve(base_association_query.add_columns(*association_right_key.expressions()))
+        return iterables.to_default_multidict(
             (left_key, right_value)
             for left_key, right_key in associations
             for right_value in right_result[right_key]
@@ -107,8 +107,8 @@ class _JoinField(object):
     def expressions(self):
         return self._key.expressions()
 
-    def create_reader(self, graph, field_query, base_query, injector):
-        result = injector.call_with_dependencies(self._resolve, graph, field_query, base_query.add_columns(*self._key.expressions()))
+    def create_reader(self, base_query, injector):
+        result = injector.call_with_dependencies(self._resolve, base_query.add_columns(*self._key.expressions()))
 
         def read(row):
             return result[self._key.read(row)]
@@ -164,12 +164,7 @@ class _ManyResultsReader(object):
         return value
 
     def read_results(self, iterable):
-        result = collections.defaultdict(list)
-
-        for key, value in iterable:
-            result[key].append(value)
-
-        return result
+        return iterables.to_default_multidict(iterable)
 
 
 class _SingleOrNullResultReader(object):
@@ -310,7 +305,7 @@ def sql_table_resolver(type, model, fields):
         def get_field(field_query):
             field = fields()[field_query.field]
             if callable(field):
-                return field(field_query)
+                return field(graph, field_query)
             else:
                 return field
 
@@ -335,7 +330,7 @@ def sql_table_resolver(type, model, fields):
         rows = row_query.with_session(session)
 
         for field_query, row_slice in zip(query.field_queries, row_slices):
-            reader = get_field(field_query).create_reader(graph, field_query, base_query, injector=injector)
+            reader = get_field(field_query).create_reader(base_query, injector=injector)
             readers.append((field_query.key, row_slice, reader))
 
         def read_row(row):
