@@ -61,7 +61,10 @@ def test_interface_type_is_converted_to_non_null_graphql_interface_type():
 
 
 def test_list_type_is_converted_to_non_null_list_type():
-    assert_that(to_graphql_type(g.ListType(g.Boolean)), is_graphql_list(is_graphql_non_null(is_graphql_boolean)))
+    assert_that(
+        to_graphql_type(g.ListType(g.Boolean)),
+        is_graphql_non_null(is_graphql_list(is_graphql_non_null(is_graphql_boolean))),
+    )
 
 
 def test_nullable_type_is_converted_to_graphql_type_without_non_null():

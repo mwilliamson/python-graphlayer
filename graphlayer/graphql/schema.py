@@ -53,7 +53,7 @@ def create_graphql_schema(query_type, mutation_type, types=None):
             ))
 
         elif isinstance(graph_type, schema.ListType):
-            return graphql.GraphQLList(to_graphql_type(graph_type.element_type))
+            return graphql.GraphQLNonNull(graphql.GraphQLList(to_graphql_type(graph_type.element_type)))
 
         elif isinstance(graph_type, schema.NullableType):
             return to_graphql_type(graph_type.element_type).of_type
