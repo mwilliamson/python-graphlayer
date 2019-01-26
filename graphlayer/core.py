@@ -28,8 +28,11 @@ class Graph(object):
     def resolve(self, *args, type=None):
         if type is None:
             type = args[0].type
-        resolver = self._resolvers[type]
-        return self._injector.call_with_dependencies(resolver, self, *args)
+        resolver = self._resolvers.get(type)
+        if resolver is None:
+            raise GraphError("could not find resolver for query of type: {}".format(type))
+        else:
+            return self._injector.call_with_dependencies(resolver, self, *args)
 
 
 class Injector(object):

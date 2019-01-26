@@ -1,4 +1,5 @@
 from precisely import assert_that, equal_to
+import pytest
 
 import graphlayer.core as g
 
@@ -40,3 +41,13 @@ def test_when_resolve_is_called_then_resolver_is_passed_the_graph():
     result = g.create_graph(resolvers).resolve(Query("root"))
 
     assert_that(result, equal_to(42))
+
+
+def test_when_resolve_cannot_be_found_then_error_is_raised():
+    class Query(object):
+        type = "one"
+
+    graph = g.create_graph(())
+    error = pytest.raises(g.GraphError, lambda: graph.resolve(Query))
+
+    assert_that(str(error.value), equal_to("could not find resolver for query of type: one"))
