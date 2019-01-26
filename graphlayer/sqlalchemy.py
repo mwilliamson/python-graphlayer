@@ -318,7 +318,12 @@ def sql_table_resolver(type, model, fields):
     @g.resolver(_sql_query_type(type))
     @g.dependencies(injector=Injector, session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, *, injector, session):
-        where = sqlalchemy.and_(*query.where_clauses)
+        where_clauses = tuple(
+            _dethunk(where_clause, injector=injector)
+            for where_clause in query.where_clauses
+        )
+
+        where = sqlalchemy.and_(*where_clauses)
 
         if query.index_key is None:
             return _read_result(query.type_query, resolve(
@@ -391,3 +396,24 @@ def sql_table_resolver(type, model, fields):
         ]
 
     return resolve_sql_query
+
+
+def thunk(func, *args, **kwargs):
+    return _Thunk(func, args, kwargs)
+
+
+class _Thunk(object):
+    def __init__(self, func, args, kwargs):
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+
+    def call(self, *, injector):
+        return injector.call_with_dependencies(self._func, *self._args, **self._kwargs)
+
+
+def _dethunk(value, *, injector):
+    if isinstance(value, _Thunk):
+        return value.call(injector=injector)
+    else:
+        return value
