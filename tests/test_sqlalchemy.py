@@ -1443,3 +1443,17 @@ def test_can_map_values_from_sql_expression():
         has_attrs(initial="L"),
         has_attrs(initial="P"),
     ))
+
+
+def test_sql_query_type_str():
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.String),
+        ],
+    )
+    query = gsql.select(Book(
+        g.key("title", Book.fields.title()),
+    ))
+
+    assert_that(str(query.type), equal_to("(graphlayer.sqlalchemy.select, ObjectType(name='Book'))"))

@@ -260,7 +260,12 @@ def select(query):
         )
 
 
-_sql_query_type_key = object()
+class _SqlQueryTypeKey(object):
+    def __repr__(self):
+        return __name__ + "." + select.__name__
+
+
+_sql_query_type_key = _SqlQueryTypeKey()
 
 
 def _sql_query_type(t):
