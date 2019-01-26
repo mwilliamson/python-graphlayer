@@ -319,7 +319,7 @@ def sql_table_resolver(type, model, fields):
     @g.dependencies(injector=Injector, session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, *, injector, session):
         where_clauses = tuple(
-            _dethunk(where_clause, injector=injector)
+            _resolve(where_clause, graph=graph)
             for where_clause in query.where_clauses
         )
 
@@ -398,22 +398,17 @@ def sql_table_resolver(type, model, fields):
     return resolve_sql_query
 
 
-def thunk(func, *args, **kwargs):
-    return _Thunk(func, args, kwargs)
+def unresolved(query):
+    return _Unresolved(query)
 
 
-class _Thunk(object):
-    def __init__(self, func, args, kwargs):
-        self._func = func
-        self._args = args
-        self._kwargs = kwargs
-
-    def call(self, *, injector):
-        return injector.call_with_dependencies(self._func, *self._args, **self._kwargs)
+class _Unresolved(object):
+    def __init__(self, query):
+        self.query = query
 
 
-def _dethunk(value, *, injector):
-    if isinstance(value, _Thunk):
-        return value.call(injector=injector)
+def _resolve(value, *, graph):
+    if isinstance(value, _Unresolved):
+        return graph.resolve(value.query)
     else:
         return value

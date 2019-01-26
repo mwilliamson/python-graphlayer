@@ -333,21 +333,22 @@ def test_can_filter_results_using_thunked_where_with_dependencies():
         },
     )
 
-    resolvers = (book_resolver, )
+    class ConditionQuery(object):
+        def __init__(self):
+            self.type = ConditionQuery
 
-    @g.dependencies(book_id="id")
-    def condition(column, book_id):
-        return column == book_id
+    @g.resolver(ConditionQuery)
+    def resolve_condition(graph, query):
+        return BookRow.c_id == 1
+
+    resolvers = (book_resolver, resolve_condition)
 
     query = gsql.select(g.ListType(Book)(
         g.key("title", Book.fields.title()),
-    )).where(gsql.thunk(condition, BookRow.c_id))
+    )).where(gsql.unresolved(ConditionQuery()))
 
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        "id": 1,
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
     assert_that(result, contains_exactly(
