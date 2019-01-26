@@ -15,6 +15,7 @@ class GraphDefinition(object):
             (resolver.type, resolver)
             for resolver in _flatten(resolvers)
         )
+        self._resolvers[_DeferredQuery] = _resolve_deferred
 
     def create_graph(self, dependencies):
         return Graph(self._resolvers, dependencies)
@@ -81,3 +82,25 @@ def dependencies(**kwargs):
 
 class GraphError(Exception):
     pass
+
+
+def query_builder(func):
+    def create_query(*args, **kwargs):
+        return _DeferredQuery(func, args, kwargs)
+
+    return create_query
+
+
+class _DeferredQuery(object):
+    def __init__(self, func, args, kwargs):
+        self.type = _DeferredQuery
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+
+    def resolve(self, *, graph):
+        return self._func(graph, *self._args, **self._kwargs)
+
+
+def _resolve_deferred(graph, query):
+    return query.resolve(graph=graph)

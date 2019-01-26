@@ -1,4 +1,4 @@
-from precisely import assert_that, contains_exactly, has_attrs
+from precisely import assert_that, contains_exactly, equal_to, has_attrs
 
 import graphlayer as g
 from graphlayer import iterables
@@ -212,3 +212,35 @@ def test_can_recursively_resolve_selected_fields():
             ),
         ),
     ))
+
+
+def test_can_create_deferred_queries_using_query_builder():
+    class OneQuery(object):
+        def __init__(self):
+            self.type = OneQuery
+
+    @g.resolver(OneQuery)
+    def resolve_one(graph, query):
+        return 1
+
+    class AddQuery(object):
+        def __init__(self, left, right):
+            self.type = AddQuery
+            self.left = left
+            self.right = right
+
+    @g.resolver(AddQuery)
+    def resolve_add(graph, query):
+        return query.left + query.right
+
+    resolvers = (resolve_one, )
+
+    @g.query_builder
+    def select(graph, right):
+        return graph.resolve(OneQuery()) + right
+
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({})
+    result = graph.resolve(select(2))
+
+    assert_that(result, equal_to(3))

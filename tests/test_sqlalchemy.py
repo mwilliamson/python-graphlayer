@@ -299,65 +299,6 @@ def test_can_filter_results_using_where():
     ))
 
 
-def test_can_filter_results_using_thunked_where_with_dependencies():
-    Base = sqlalchemy.ext.declarative.declarative_base()
-
-    class BookRow(Base):
-        __tablename__ = "book"
-
-        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
-
-    engine = sqlalchemy.create_engine("sqlite:///:memory:")
-
-    Base.metadata.create_all(engine)
-
-    session = sqlalchemy.orm.Session(engine)
-    session.add(BookRow(c_id=1, c_title="Leave it to Psmith"))
-    session.add(BookRow(c_id=2, c_title="Pericles, Prince of Tyre"))
-
-    session.commit()
-
-    Book = g.ObjectType(
-        "Book",
-        fields=lambda: [
-            g.field("title", type=g.String),
-        ],
-    )
-
-    book_resolver = gsql.sql_table_resolver(
-        Book,
-        BookRow,
-        fields={
-            Book.fields.title: gsql.expression(BookRow.c_title),
-        },
-    )
-
-    class ConditionQuery(object):
-        def __init__(self):
-            self.type = ConditionQuery
-
-    @g.resolver(ConditionQuery)
-    def resolve_condition(graph, query):
-        return BookRow.c_id == 1
-
-    resolvers = (book_resolver, resolve_condition)
-
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-    )).where(gsql.unresolved(ConditionQuery()))
-
-    graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
-    result = graph.resolve(query)
-
-    assert_that(result, contains_exactly(
-        has_attrs(
-            title="Leave it to Psmith",
-        ),
-    ))
-
-
 def test_can_order_results_using_order_by():
     Base = sqlalchemy.ext.declarative.declarative_base()
 

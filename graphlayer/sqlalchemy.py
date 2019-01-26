@@ -318,12 +318,7 @@ def sql_table_resolver(type, model, fields):
     @g.resolver(_sql_query_type(type))
     @g.dependencies(injector=Injector, session=sqlalchemy.orm.Session)
     def resolve_sql_query(graph, query, *, injector, session):
-        where_clauses = tuple(
-            _resolve(where_clause, graph=graph)
-            for where_clause in query.where_clauses
-        )
-
-        where = sqlalchemy.and_(*where_clauses)
+        where = sqlalchemy.and_(*query.where_clauses)
 
         if query.index_key is None:
             return _read_result(query.type_query, resolve(
@@ -396,19 +391,3 @@ def sql_table_resolver(type, model, fields):
         ]
 
     return resolve_sql_query
-
-
-def unresolved(query):
-    return _Unresolved(query)
-
-
-class _Unresolved(object):
-    def __init__(self, query):
-        self.query = query
-
-
-def _resolve(value, *, graph):
-    if isinstance(value, _Unresolved):
-        return graph.resolve(value.query)
-    else:
-        return value
