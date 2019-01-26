@@ -94,6 +94,46 @@ class InputObjectType(object):
     def __init__(self, name, fields):
         self.name = name
         self.fields = Fields(name, fields)
+        self._instance_type = memoize(self._create_instance_type)
+
+    def isinstance(self, value):
+        return isinstance(value, self._instance_type())
+
+    def _create_instance_type(self):
+        name = self.name
+
+        def __init__(self, values):
+            self._values = values
+            for key in values:
+                setattr(self, key, values[key])
+
+        def __eq__(self, other):
+            if isinstance(other, instance_type):
+                return self._values == other._values
+            else:
+                return NotImplemented
+
+        def __ne__(self, other):
+            return not (self == other)
+
+        def __repr__(self):
+            return "{}({})".format(name, ", ".join(
+                "{}={!r}".format(key, value)
+                for key, value in self._values.items()
+            ))
+
+        instance_type = type(
+            self.name,
+            (object, ),
+            dict(
+                __init__=__init__,
+                __repr__=__repr__,
+                __eq__=__eq__,
+                __ne__=__ne__,
+            ),
+        )
+
+        return instance_type
 
     def __call__(self, **explicit_field_values):
         def get_field_value(field):
@@ -113,7 +153,7 @@ class InputObjectType(object):
             key = next(iter(explicit_field_values))
             raise GraphError("{} has no field {}".format(self.name, key))
 
-        return Object(field_values)
+        return self._instance_type()(field_values)
 
     def __repr__(self):
         return "InputObjectType(name={!r})".format(self.name)

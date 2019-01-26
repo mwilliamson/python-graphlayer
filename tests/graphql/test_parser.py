@@ -591,17 +591,20 @@ class Season(enum.Enum):
             g.input_field("name", type=g.String),
         )),
         '{id: 42, name: "Bob"}',
-        g.Object({"id": 42, "name": "Bob"}),
+        lambda input_type: input_type(id=42, name="Bob"),
     ),
     (
         g.InputObjectType("Casing", fields=(
             g.input_field("field_zero", type=g.Int),
         )),
         '{fieldZero: 1}',
-        g.Object({"field_zero": 1}),
+        lambda input_type: input_type(field_zero=1),
     ),
 ])
 def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_value):
+    if callable(arg_value):
+        arg_value = arg_value(arg_type)
+
     Root = g.ObjectType(
         "Root",
         fields=(
@@ -646,7 +649,7 @@ def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_valu
         )),
         "User!",
         {"id": 42, "name": "Bob"},
-        g.Object({"id": 42, "name": "Bob"}),
+        lambda input_type: input_type(id=42, name="Bob"),
     ),
     (
         g.InputObjectType("Casing", fields=(
@@ -654,7 +657,7 @@ def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_valu
         )),
         "Casing!",
         {"fieldZero": 1},
-        g.Object({"field_zero": 1}),
+        lambda input_type: input_type(field_zero=1),
     ),
     (
         g.NullableType(g.InputObjectType("User", fields=(
@@ -663,7 +666,7 @@ def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_valu
         ))),
         "User",
         {"id": 42, "name": "Bob"},
-        g.Object({"id": 42, "name": "Bob"}),
+        lambda input_type: input_type.element_type(id=42, name="Bob"),
     ),
     (
         g.NullableType(g.InputObjectType("User", fields=(
@@ -676,6 +679,9 @@ def test_literal_graphql_arg_values_are_converted(arg_type, arg_string, arg_valu
     ),
 ])
 def test_graphql_arg_values_from_variables_are_converted(graph_type, graphql_type, variable_value, arg_value):
+    if callable(arg_value):
+        arg_value = arg_value(graph_type)
+
     Root = g.ObjectType(
         "Root",
         fields=(
