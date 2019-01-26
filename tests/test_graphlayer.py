@@ -233,11 +233,11 @@ def test_can_create_deferred_queries_using_query_builder():
     def resolve_add(graph, query):
         return query.left + query.right
 
-    resolvers = (resolve_one, )
+    resolvers = (resolve_one, resolve_add)
 
     @g.query_builder
     def select(graph, right):
-        return graph.resolve(OneQuery()) + right
+        return AddQuery(graph.resolve(OneQuery()), right)
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({})

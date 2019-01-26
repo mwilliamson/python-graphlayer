@@ -103,4 +103,4 @@ class _DeferredQuery(object):
 
 
 def _resolve_deferred(graph, query):
-    return query.resolve(graph=graph)
+    return graph.resolve(query.resolve(graph=graph))
