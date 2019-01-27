@@ -1,7 +1,7 @@
 import enum
 import textwrap
 
-from precisely import assert_that, contains_exactly, equal_to, has_attrs
+from precisely import assert_that, contains_exactly, equal_to, has_attrs, includes
 import pytest
 
 from graphlayer import GraphError, schema
@@ -617,6 +617,85 @@ class TestObjectType(object):
         Obj = schema.ObjectType("Obj", fields=(), interfaces=lambda: (Interface, ))
         assert_that(Obj.interfaces, contains_exactly(Interface))
 
+
+class TestCollectTypes(object):
+    def test_boolean_has_no_child_types(self):
+        assert_that(schema.collect_types((schema.Boolean, )), contains_exactly(schema.Boolean))
+
+    def test_float_has_no_child_types(self):
+        assert_that(schema.collect_types((schema.Float, )), contains_exactly(schema.Float))
+
+    def test_int_has_no_child_types(self):
+        assert_that(schema.collect_types((schema.Int, )), contains_exactly(schema.Int))
+
+    def test_string_has_no_child_types(self):
+        assert_that(schema.collect_types((schema.String, )), contains_exactly(schema.String))
+
+    def test_enum_has_no_child_types(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        assert_that(schema.collect_types((DirectionGraphType, )), contains_exactly(DirectionGraphType))
+
+    def test_interface_type_has_field_types_in_child_types(self):
+        User = schema.InterfaceType("User", fields=lambda: (
+            schema.field("name", type=schema.String),
+        ))
+        collected_types = schema.collect_types((User, ))
+        assert_that(collected_types, includes(schema.String))
+
+    def test_input_object_type_has_field_types_in_child_types(self):
+        UserInput = schema.InputObjectType("UserInput", fields=lambda: (
+            schema.field("name", type=schema.String),
+        ))
+        collected_types = schema.collect_types((UserInput, ))
+        assert_that(collected_types, includes(schema.String))
+
+    def test_interface_type_has_field_param_types_in_child_types(self):
+        User = schema.InterfaceType("User", fields=lambda: (
+            schema.field("name", type=schema.String, params=(
+                schema.param("long", type=schema.Boolean),
+            )),
+        ))
+        collected_types = schema.collect_types((User, ))
+        assert_that(collected_types, includes(schema.Boolean))
+
+    def test_list_type_has_element_type_as_child_type(self):
+        collected_types = schema.collect_types((schema.ListType(schema.String), ))
+        assert_that(collected_types, contains_exactly(schema.ListType(schema.String), schema.String))
+
+    def test_nullable_type_has_element_type_as_child_type(self):
+        collected_types = schema.collect_types((schema.NullableType(schema.String), ))
+        assert_that(collected_types, contains_exactly(schema.NullableType(schema.String), schema.String))
+
+    def test_object_type_has_field_types_in_child_types(self):
+        User = schema.ObjectType("User", fields=lambda: (
+            schema.field("name", type=schema.String),
+        ))
+        collected_types = schema.collect_types((User, ))
+        assert_that(collected_types, includes(schema.String))
+
+    def test_object_type_has_field_param_types_in_child_types(self):
+        User = schema.ObjectType("User", fields=lambda: (
+            schema.field("name", type=schema.String, params=(
+                schema.param("long", type=schema.Boolean),
+            )),
+        ))
+        collected_types = schema.collect_types((User, ))
+        assert_that(collected_types, includes(schema.Boolean))
+
+    def test_object_type_has_interface_types_in_child_types(self):
+        Person = schema.InterfaceType("Person", fields=lambda: (
+            schema.field("name", type=schema.String),
+        ))
+        User = schema.ObjectType("User", fields=lambda: (
+            schema.field("name", type=schema.String),
+        ), interfaces=(Person, ))
+        collected_types = schema.collect_types((User, ))
+        assert_that(collected_types, includes(Person))
 
 
 def dedent(value):

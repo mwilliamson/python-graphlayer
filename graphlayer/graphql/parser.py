@@ -87,6 +87,7 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
         all_types_by_name = to_dict(
             (graph_type.name, graph_type)
             for graph_type in all_types
+            if hasattr(graph_type, "name")
         )
         parser = Parser(fragments=fragments, types=all_types_by_name, variables=variables)
         graph_query = parser.read_selection_set(

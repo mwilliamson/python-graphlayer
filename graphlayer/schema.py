@@ -18,6 +18,9 @@ class ScalarType(object):
     def __str__(self):
         return self.name
 
+    def child_types(self):
+        return ()
+
 
 Boolean = ScalarType("Boolean")
 Float = ScalarType("Float")
@@ -63,6 +66,9 @@ class EnumType(object):
 
     def __str__(self):
         return self.name
+
+    def child_types(self):
+        return ()
 
 
 class EnumQuery(object):
@@ -155,6 +161,12 @@ class InputObjectType(object):
     def __repr__(self):
         return "InputObjectType(name={!r})".format(self.name)
 
+    def child_types(self):
+        return tuple(
+            field.type
+            for field in self.fields
+        )
+
 
 def input_field(name, type, default=_undefined):
     return InputField(name, type, default)
@@ -185,6 +197,9 @@ class InterfaceType(object):
     def __repr__(self):
         return "InterfaceType(name={!r})".format(self.name)
 
+    def child_types(self):
+        return _fields_child_types(self.fields)
+
 
 class ListType(object):
     def __init__(self, element_type):
@@ -210,6 +225,9 @@ class ListType(object):
 
     def __str__(self):
         return "List({})".format(self.element_type)
+
+    def child_types(self):
+        return (self.element_type, )
 
 
 class ListQuery(object):
@@ -271,6 +289,9 @@ class NullableType(object):
 
     def __repr__(self):
         return "NullableType(element_type={!r})".format(self.element_type)
+
+    def child_types(self):
+        return (self.element_type, )
 
 
 class NullableQuery(object):
@@ -336,6 +357,17 @@ class ObjectType(object):
 
     def __str__(self):
         return self.name
+
+    def child_types(self):
+        return _fields_child_types(self.fields) + tuple(self.interfaces)
+
+
+def _fields_child_types(fields):
+    return tuple(
+        child_type
+        for field in fields
+        for child_type in field.child_types()
+    )
 
 
 class Fields(object):
@@ -484,6 +516,12 @@ class Field(object):
     def __repr__(self):
         return "Field(name={!r}, type={!r})".format(self.name, self.type)
 
+    def child_types(self):
+        return (self.type, ) + tuple(
+            param.type
+            for param in self.params
+        )
+
 
 def _partition_by_type(values, types):
     results = tuple([] for type in types)
@@ -601,12 +639,13 @@ class Argument(object):
 
 
 def collect_types(types):
-    # TODO: recurse
     all_types = set()
 
     def collect(graph_type):
         if graph_type is not None and graph_type not in all_types:
             all_types.add(graph_type)
+            for child in graph_type.child_types():
+                collect(child)
 
     for graph_type in types:
         collect(graph_type)
