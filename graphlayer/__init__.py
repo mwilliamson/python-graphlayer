@@ -1,4 +1,4 @@
-from .core import create_graph, dependencies, define_graph, GraphError, query_builder, resolver
+from .core import create_graph, dependencies, define_graph, GraphError, resolver
 from .representations import Object
 from .resolvers import constant_object_resolver, create_object_builder, root_object_resolver
 from .schema import (
@@ -24,7 +24,6 @@ __all__ = [
     "dependencies",
     "define_graph",
     "GraphError",
-    "query_builder",
     "resolver",
 
     "constant_object_resolver",
