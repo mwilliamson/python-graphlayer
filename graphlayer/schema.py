@@ -600,6 +600,20 @@ class Argument(object):
         self.value = value
 
 
+def collect_types(types):
+    # TODO: recurse
+    all_types = set()
+
+    def collect(graph_type):
+        if graph_type is not None and graph_type not in all_types:
+            all_types.add(graph_type)
+
+    for graph_type in types:
+        collect(graph_type)
+
+    return all_types
+
+
 def _format_call_tree(receiver, args):
     return "{}({}\n)".format(receiver, "".join(
         _indent("\n{}={},".format(key, value))

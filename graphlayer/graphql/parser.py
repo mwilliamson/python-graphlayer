@@ -83,7 +83,7 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
         )
 
     if non_schema_selections:
-        all_types = _collect_types((query_type, mutation_type) + tuple(types))
+        all_types = schema.collect_types((query_type, mutation_type) + tuple(types))
         all_types_by_name = to_dict(
             (graph_type.name, graph_type)
             for graph_type in all_types
@@ -100,20 +100,6 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
         graph_query,
         graphql_schema_document=schema_document,
     )
-
-
-def _collect_types(types):
-    # TODO: extract, recurse
-    all_types = set()
-
-    def collect(graph_type):
-        if graph_type is not None and graph_type not in all_types:
-            all_types.add(graph_type)
-
-    for graph_type in types:
-        collect(graph_type)
-
-    return all_types
 
 
 class Parser(object):
