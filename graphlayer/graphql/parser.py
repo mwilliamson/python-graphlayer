@@ -119,7 +119,7 @@ class Parser(object):
                     self._read_graphql_selection(
                         graphql_selection,
                         graph_type=graph_type,
-                    ).for_type(graph_type)
+                    )
                     for graphql_selection in selection_set.selections
                 )
             )
@@ -130,22 +130,27 @@ class Parser(object):
             return graph_type(field)
 
         elif isinstance(selection, graphql_ast.InlineFragment):
-            return self._read_graphql_fragment(selection)
+            return self._read_graphql_fragment(selection, graph_type=graph_type)
 
         elif isinstance(selection, graphql_ast.FragmentSpread):
-            return self._read_graphql_fragment(self._fragments[selection.name.value])
+            return self._read_graphql_fragment(self._fragments[selection.name.value], graph_type=graph_type)
 
         else:
             raise Exception("Unhandled selection type: {}".format(type(selection)))
 
-    def _read_graphql_fragment(self, fragment):
+    def _read_graphql_fragment(self, fragment, graph_type):
         type_condition_type_name = fragment.type_condition.name.value
-        graph_type = self._find_type(type_condition_type_name)
+        type_condition_type = self._find_type(type_condition_type_name)
 
-        return self.read_selection_set(
+        query = self.read_selection_set(
             fragment.selection_set,
-            graph_type=graph_type,
+            graph_type=type_condition_type,
         )
+
+        return self._coerce_object_query(query, graph_type=graph_type)
+
+    def _coerce_object_query(self, query, graph_type):
+        return graph_type(*query.field_queries)
 
     def _read_graphql_field(self, graphql_field, graph_type):
         key = _field_key(graphql_field)

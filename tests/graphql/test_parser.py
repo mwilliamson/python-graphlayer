@@ -511,6 +511,72 @@ def test_fragments_are_recursively_merged():
     ))
 
 
+def test_fragment_can_be_spread_into_list_type():
+    User = g.ObjectType("User", fields=lambda: (
+        g.field("name", type=g.String),
+    ))
+
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("user", type=g.ListType(User)),
+        ),
+    )
+
+    graphql_query = """
+        query {
+            user {
+                ... on User {
+                    name
+                }
+            }
+        }
+    """
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("user", Root.fields.user(
+                g.key("name", User.fields.name()),
+            )),
+        ),
+    ))
+
+
+def test_fragment_can_be_spread_into_nullable_type():
+    User = g.ObjectType("User", fields=lambda: (
+        g.field("name", type=g.String),
+    ))
+
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("user", type=g.NullableType(User)),
+        ),
+    )
+
+    graphql_query = """
+        query {
+            user {
+                ... on User {
+                    name
+                }
+            }
+        }
+    """
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("user", Root.fields.user(
+                g.key("name", User.fields.name()),
+            )),
+        ),
+    ))
+
+
 def test_graphql_field_args_are_read():
     Root = g.ObjectType(
         "Root",
