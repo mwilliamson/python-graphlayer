@@ -9,8 +9,9 @@ _undefined = object()
 
 
 class ScalarType(object):
-    def __init__(self, name):
+    def __init__(self, name, coerce):
         self.name = name
+        self._coerce = coerce
 
     def __call__(self):
         return ScalarQuery(self)
@@ -21,11 +22,49 @@ class ScalarType(object):
     def child_types(self):
         return ()
 
+    def coerce(self, value):
+        return self._coerce(value)
 
-Boolean = ScalarType("Boolean")
-Float = ScalarType("Float")
-Int = ScalarType("Int")
-String = ScalarType("String")
+
+def _coerce_boolean(value):
+    if isinstance(value, bool):
+        return value
+    else:
+        raise _coercion_error(value, Boolean)
+
+
+Boolean = ScalarType("Boolean", coerce=_coerce_boolean)
+
+
+def _coerce_float(value):
+    # TODO: handle large ints
+    if isinstance(value, (float, int)):
+        return float(value)
+    else:
+        raise _coercion_error(value, Float)
+
+
+Float = ScalarType("Float", coerce=_coerce_float)
+
+
+def _coerce_int(value):
+    if isinstance(value, int):
+        return value
+    else:
+        raise _coercion_error(value, Int)
+
+
+Int = ScalarType("Int", coerce=_coerce_int)
+
+
+def _coerce_string(value):
+    if isinstance(value, str):
+        return value
+    else:
+        raise _coercion_error(value, String)
+
+
+String = ScalarType("String", coerce=_coerce_string)
 
 
 class ScalarQuery(object):
@@ -69,6 +108,9 @@ class EnumType(object):
 
     def child_types(self):
         return ()
+
+    def coerce(self, value):
+        return value
 
 
 class EnumQuery(object):
@@ -167,6 +209,9 @@ class InputObjectType(object):
             for field in self.fields
         )
 
+    def coerce(self, value):
+        return value
+
 
 def input_field(name, type, default=_undefined):
     return InputField(name, type, default)
@@ -228,6 +273,9 @@ class ListType(object):
 
     def child_types(self):
         return (self.element_type, )
+
+    def coerce(self, value):
+        return value
 
 
 class ListQuery(object):
@@ -292,6 +340,9 @@ class NullableType(object):
 
     def child_types(self):
         return (self.element_type, )
+
+    def coerce(self, value):
+        return value
 
 
 class NullableQuery(object):
@@ -629,7 +680,7 @@ class Parameter(object):
         return self.default is not _undefined
 
     def __call__(self, value):
-        return Argument(parameter=self, value=value)
+        return Argument(parameter=self, value=self.type.coerce(value))
 
 
 class Argument(object):
@@ -673,3 +724,7 @@ def _format_tuple(elements):
 
 def _indent(value):
     return value.replace("\n", "\n    ")
+
+
+def _coercion_error(value, target_type):
+    raise GraphError("cannot coerce {!r} to {}".format(value, target_type))

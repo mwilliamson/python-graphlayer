@@ -99,6 +99,76 @@ def test_given_field_arg_has_no_default_when_field_arg_is_not_set_then_error_is_
     assert_that(str(error.value), equal_to("field one is missing required argument arg0"))
 
 
+def test_arguments_are_coerced():
+    Root = schema.ObjectType(
+        "Root",
+        fields=(
+            schema.field("one", type=schema.Int, params=[
+                schema.param("arg", type=schema.Int),
+            ]),
+        ),
+    )
+
+    error = pytest.raises(GraphError, lambda: Root.fields.one(Root.fields.one.params.arg(None)))
+    assert_that(str(error.value), equal_to("cannot coerce None to Int"))
+
+
+class TestCoerce(object):
+    def test_boolean_type_coerces_bools_to_bools(self):
+        self._assert_coercion(schema.Boolean, True, True)
+        self._assert_coercion(schema.Boolean, False, False)
+
+    def test_cannot_coerce_none_to_boolean(self):
+        self._assert_coercion_failure(schema.Boolean, None, "cannot coerce None to Boolean")
+
+    def test_cannot_coerce_true_string_to_boolean(self):
+        self._assert_coercion_failure(schema.Boolean, "True", "cannot coerce 'True' to Boolean")
+        self._assert_coercion_failure(schema.Boolean, "true", "cannot coerce 'true' to Boolean")
+
+    def test_float_type_coerces_floats_to_floats(self):
+        self._assert_coercion(schema.Float, 1.0, 1.0)
+        self._assert_coercion(schema.Float, 1.1, 1.1)
+
+    def test_float_type_coerces_ints_to_floats(self):
+        self._assert_coercion(schema.Float, 1, 1.0)
+
+    def test_cannot_coerce_none_to_float(self):
+        self._assert_coercion_failure(schema.Float, None, "cannot coerce None to Float")
+
+    def test_cannot_coerce_numeric_string_to_float(self):
+        self._assert_coercion_failure(schema.Float, "1.0", "cannot coerce '1.0' to Float")
+
+    def test_float_type_coerces_ints_to_ints(self):
+        self._assert_coercion(schema.Int, 1, 1)
+        self._assert_coercion(schema.Int, -42, -42)
+
+    def test_cannot_coerce_none_to_int(self):
+        self._assert_coercion_failure(schema.Int, None, "cannot coerce None to Int")
+
+    def test_cannot_coerce_numeric_string_to_int(self):
+        self._assert_coercion_failure(schema.Float, "1", "cannot coerce '1' to Float")
+
+    def test_string_type_coerces_strings_to_strings(self):
+        self._assert_coercion(schema.String, "1", "1")
+        self._assert_coercion(schema.String, "", "")
+        self._assert_coercion(schema.String, "The Ballad of Mr Steak", "The Ballad of Mr Steak")
+
+    def test_cannot_coerce_none_to_string(self):
+        self._assert_coercion_failure(schema.String, None, "cannot coerce None to String")
+
+    def test_cannot_coerce_int_to_string(self):
+        self._assert_coercion_failure(schema.String, 1, "cannot coerce 1 to String")
+
+    def _assert_coercion(self, graph_type, value, expected):
+        coerced = graph_type.coerce(value)
+        assert_that(coerced, equal_to(expected))
+        assert_that(type(coerced), equal_to(type(expected)))
+
+    def _assert_coercion_failure(self, graph_type, value, expected_error):
+        error = pytest.raises(GraphError, lambda: graph_type.coerce(value))
+        assert_that(str(error.value), equal_to(expected_error))
+
+
 class TestAdd(object):
     def test_scalar_queries_merge_into_scalar_query(self):
         query = schema.Boolean() + schema.Boolean()
