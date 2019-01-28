@@ -348,7 +348,10 @@ class NullableType(object):
         return (self.element_type, )
 
     def coerce(self, value):
-        return value
+        if value is None:
+            return None
+        else:
+            return self.element_type.coerce(value)
 
 
 class NullableQuery(object):

@@ -190,6 +190,12 @@ class TestCoerce(object):
 
         self._assert_coercion_failure(DirectionGraphType, "up", "cannot coerce 'up' to Direction")
 
+    def test_nullable_type_coerces_non_null_value_to_element_type(self):
+        self._assert_coercion(schema.NullableType(schema.Float), 1, 1.0)
+
+    def test_nullable_type_coerces_null_to_null(self):
+        self._assert_coercion(schema.NullableType(schema.Float), None, None)
+
     def _assert_coercion(self, graph_type, value, expected):
         coerced = graph_type.coerce(value)
         assert_that(coerced, equal_to(expected))
