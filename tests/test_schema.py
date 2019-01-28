@@ -132,6 +132,9 @@ class TestCoerce(object):
     def test_float_type_coerces_ints_to_floats(self):
         self._assert_coercion(schema.Float, 1, 1.0)
 
+    def test_cannot_coerce_large_int_to_float(self):
+        self._assert_coercion_failure(schema.Float, 11111111111111111111111111111111111, "cannot coerce 11111111111111111111111111111111111 to Float")
+
     def test_cannot_coerce_none_to_float(self):
         self._assert_coercion_failure(schema.Float, None, "cannot coerce None to Float")
 

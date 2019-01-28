@@ -37,11 +37,14 @@ Boolean = ScalarType("Boolean", coerce=_coerce_boolean)
 
 
 def _coerce_float(value):
-    # TODO: handle large ints
-    if isinstance(value, (float, int)):
-        return float(value)
-    else:
-        raise _coercion_error(value, Float)
+    if isinstance(value, float):
+        return value
+    elif isinstance(value, int):
+        coerced = float(value)
+        if coerced == value:
+            return coerced
+
+    raise _coercion_error(value, Float)
 
 
 Float = ScalarType("Float", coerce=_coerce_float)
