@@ -162,6 +162,34 @@ class TestCoerce(object):
     def test_cannot_coerce_int_to_string(self):
         self._assert_coercion_failure(schema.String, 1, "cannot coerce 1 to String")
 
+    def test_enum_type_coerces_enum_values_to_enum_values(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        self._assert_coercion(DirectionGraphType, Direction.up, Direction.up)
+        self._assert_coercion(DirectionGraphType, Direction.down, Direction.down)
+
+    def test_cannot_coerce_none_to_enum(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        self._assert_coercion_failure(DirectionGraphType, None, "cannot coerce None to Direction")
+
+    def test_cannot_coerce_string_to_enum(self):
+        class Direction(enum.Enum):
+            up = "up"
+            down = "down"
+
+        DirectionGraphType = schema.EnumType(Direction)
+
+        self._assert_coercion_failure(DirectionGraphType, "up", "cannot coerce 'up' to Direction")
+
     def _assert_coercion(self, graph_type, value, expected):
         coerced = graph_type.coerce(value)
         assert_that(coerced, equal_to(expected))

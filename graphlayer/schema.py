@@ -113,7 +113,10 @@ class EnumType(object):
         return ()
 
     def coerce(self, value):
-        return value
+        if isinstance(value, self.enum):
+            return value
+        else:
+            raise _coercion_error(value, self)
 
 
 class EnumQuery(object):
