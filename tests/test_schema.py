@@ -200,6 +200,31 @@ class TestCoerce(object):
     def test_nullable_type_coerces_null_to_null(self):
         self._assert_coercion(schema.NullableType(schema.Float), None, None)
 
+    def test_input_object_type_coerces_instances_to_same_value(self):
+        UserInput = schema.InputObjectType("UserInput", fields=lambda: (
+            schema.input_field("name", type=schema.String),
+        ))
+
+        self._assert_coercion(UserInput, UserInput(name="Bob"), UserInput(name="Bob"))
+
+    def test_cannot_coerce_instances_of_input_object_type_to_other_input_object_type(self):
+        PersonInput = schema.InputObjectType("PersonInput", fields=lambda: (
+            schema.input_field("name", type=schema.String),
+        ))
+
+        UserInput = schema.InputObjectType("UserInput", fields=lambda: (
+            schema.input_field("name", type=schema.String),
+        ))
+
+        self._assert_coercion_failure(UserInput, PersonInput(name="Bob"), "cannot coerce PersonInput(name='Bob') to UserInput")
+
+    def test_cannot_coerce_none_to_input_object_type(self):
+        UserInput = schema.InputObjectType("UserInput", fields=lambda: (
+            schema.input_field("name", type=schema.String),
+        ))
+
+        self._assert_coercion_failure(UserInput, None, "cannot coerce None to UserInput")
+
     def _assert_coercion(self, graph_type, value, expected):
         coerced = graph_type.coerce(value)
         assert_that(coerced, equal_to(expected))

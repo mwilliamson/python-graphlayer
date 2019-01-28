@@ -216,7 +216,10 @@ class InputObjectType(object):
         )
 
     def coerce(self, value):
-        return value
+        if isinstance(value, self.instance_type()):
+            return value
+        else:
+            raise _coercion_error(value, self.name)
 
 
 def input_field(name, type, default=_undefined):
