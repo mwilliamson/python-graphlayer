@@ -281,7 +281,10 @@ class ListType(object):
         return (self.element_type, )
 
     def coerce(self, value):
-        return value
+        return [
+            self.element_type.coerce(element)
+            for element in value
+        ]
 
 
 class ListQuery(object):
