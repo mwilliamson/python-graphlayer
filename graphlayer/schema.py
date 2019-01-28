@@ -445,11 +445,18 @@ class Fields(object):
         return iter(self._fields())
 
     def __getattr__(self, field_name):
-        field = iterables.find(lambda field: field.name == field_name, self._fields(), default=None)
+        field = self._find_field(field_name)
+
+        if field is None and field_name.endswith("_"):
+            field = self._find_field(field_name[:-1])
+
         if field is None:
             raise GraphError("{} has no field {}".format(self._type_name, field_name))
         else:
             return field
+
+    def _find_field(self, field_name):
+        return iterables.find(lambda field: field.name == field_name, self._fields(), default=None)
 
 
 class ObjectQuery(object):
@@ -619,11 +626,18 @@ class Params(object):
         return iter(self._params)
 
     def __getattr__(self, param_name):
-        param = iterables.find(lambda param: param.name == param_name, self._params, default=None)
+        param = self._find_param(param_name)
+
+        if param is None and param_name.endswith("_"):
+            param = self._find_param(param_name[:-1])
+
         if param is None:
             raise GraphError("{} has no param {}".format(self._field_name, param_name))
         else:
             return param
+
+    def _find_param(self, param_name):
+        return iterables.find(lambda param: param.name == param_name, self._params, default=None)
 
 
 class FieldQuery(object):

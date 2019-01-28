@@ -17,6 +17,20 @@ def test_when_param_does_not_exist_on_params_then_error_is_raised():
     assert_that(str(error.value), equal_to("book has no param author"))
 
 
+def test_params_are_accessible_with_trailing_underscore():
+    params = schema.Params("book", (
+        schema.param("class", type=schema.String),
+    ))
+    assert_that(params.class_, equal_to(getattr(params, "class")))
+
+
+def test_fields_are_accessible_with_trailing_underscore():
+    fields = schema.Fields("Book", (
+        schema.field("class", type=schema.String),
+    ))
+    assert_that(fields.class_, equal_to(getattr(fields, "class")))
+
+
 def test_when_field_does_not_exist_on_object_type_then_error_is_raised():
     book = schema.ObjectType("Book", fields=(
         schema.field("title", schema.String),
