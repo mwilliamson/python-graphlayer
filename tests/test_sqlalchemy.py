@@ -1353,6 +1353,130 @@ def test_association_table_can_be_filtered_explicitly():
     ))
 
 
+
+
+
+def test_association_can_have_explicit_order():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class LeftRow(Base):
+        __tablename__ = "left"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_value = sqlalchemy.Column(sqlalchemy.Unicode)
+
+    class AssociationRow(Base):
+        __tablename__ = "association"
+
+        c_left_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_right_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        index = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+
+    class RightRow(Base):
+        __tablename__ = "right"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_value = sqlalchemy.Column(sqlalchemy.Unicode)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+
+    session.add(LeftRow(c_id=1, c_value="left 1"))
+    session.add(RightRow(c_id=101, c_value="right 1a"))
+    session.add(RightRow(c_id=102, c_value="right 1c"))
+    session.add(RightRow(c_id=103, c_value="right 1b"))
+    session.add(AssociationRow(c_left_id=1, c_right_id=101, index=1))
+    session.add(AssociationRow(c_left_id=1, c_right_id=102, index=3))
+    session.add(AssociationRow(c_left_id=1, c_right_id=103, index=2))
+
+    session.add(LeftRow(c_id=2, c_value="left 2"))
+    session.add(RightRow(c_id=104, c_value="right 2c"))
+    session.add(RightRow(c_id=105, c_value="right 2a"))
+    session.add(RightRow(c_id=106, c_value="right 2b"))
+    session.add(AssociationRow(c_left_id=2, c_right_id=104, index=3))
+    session.add(AssociationRow(c_left_id=2, c_right_id=105, index=1))
+    session.add(AssociationRow(c_left_id=2, c_right_id=106, index=2))
+
+    session.commit()
+
+    Left = g.ObjectType(
+        "Left",
+        fields=lambda: [
+            g.field("value", type=g.String),
+            g.field("rights", type=g.ListType(Right)),
+        ],
+    )
+    Right = g.ObjectType(
+        "Right",
+        fields=lambda: [
+            g.field("value", type=g.String),
+        ],
+    )
+
+    left_resolver = gsql.sql_table_resolver(
+        Left,
+        LeftRow,
+        fields={
+            Left.fields.value: gsql.expression(LeftRow.c_value),
+            Left.fields.rights: lambda graph, field_query: gsql.join(
+                key=LeftRow.c_id,
+                association=gsql.association(
+                    AssociationRow,
+                    left_key=AssociationRow.c_left_id,
+                    right_key=AssociationRow.c_right_id,
+                    order_by=AssociationRow.index,
+                ),
+                resolve=lambda right_ids: graph.resolve(
+                    gsql.select(field_query.type_query).by(RightRow.c_id, right_ids),
+                ),
+            ),
+        },
+    )
+
+    right_resolver = gsql.sql_table_resolver(
+        Right,
+        RightRow,
+        fields={
+            Right.fields.value: gsql.expression(RightRow.c_value),
+        },
+    )
+
+    resolvers = [left_resolver, right_resolver]
+
+    query = gsql.select(g.ListType(Left)(
+        g.key("value", Left.fields.value()),
+        g.key("rights", Left.fields.rights(
+            g.key("value", Right.fields.value()),
+        )),
+    ))
+
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(
+            value="left 1",
+            rights=is_sequence(
+                has_attrs(value="right 1a"),
+                has_attrs(value="right 1b"),
+                has_attrs(value="right 1c"),
+            ),
+        ),
+        has_attrs(
+            value="left 2",
+            rights=is_sequence(
+                has_attrs(value="right 2a"),
+                has_attrs(value="right 2b"),
+                has_attrs(value="right 2c"),
+            ),
+        ),
+    ))
+
+
 def test_can_join_tables_using_multi_column_key():
     Base = sqlalchemy.ext.declarative.declarative_base()
 
