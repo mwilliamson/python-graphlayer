@@ -464,7 +464,8 @@ class ObjectQuery(object):
 
     def __init__(self, type, field_queries):
         self.type = type
-        self.field_queries = tuple(field_queries)
+        # TODO: test this directly (not just in GraphQL parser)
+        self.field_queries = _field_queries_for_type(tuple(field_queries), type)
 
     # TODO: handling merging of other query types
     def __add__(self, other):
@@ -489,9 +490,31 @@ class ObjectQuery(object):
     def for_type(self, target_type):
         if self.type == target_type:
             return self
-        elif isinstance(target_type, InterfaceType):
-            return ObjectQuery(type=target_type, field_queries=self.field_queries)
+        else:
+            field_queries = _field_queries_for_type(self.field_queries, target_type)
+            return ObjectQuery(type=target_type, field_queries=field_queries)
 
+    def to_json_value(self, value):
+        return iterables.to_dict(
+            (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
+            for field_query in self.field_queries
+        )
+
+    def __str__(self):
+        field_queries = _format_tuple(
+            str(field_query)
+            for field_query in self.field_queries
+        )
+        return _format_call_tree("ObjectQuery", (
+            ("type", self.type.name),
+            ("field_queries", field_queries),
+        ))
+
+
+def _field_queries_for_type(field_queries, target_type):
+    if isinstance(target_type, InterfaceType):
+        return field_queries
+    else:
         supertype_fields = frozenset(
             field
             for possible_type in target_type.interfaces
@@ -511,24 +534,7 @@ class ObjectQuery(object):
                 # TODO: include subtype fields
                 return None
 
-        field_queries = tuple(filter(None, map(field_query_for_type, self.field_queries)))
-        return ObjectQuery(type=target_type, field_queries=field_queries)
-
-    def to_json_value(self, value):
-        return iterables.to_dict(
-            (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
-            for field_query in self.field_queries
-        )
-
-    def __str__(self):
-        field_queries = _format_tuple(
-            str(field_query)
-            for field_query in self.field_queries
-        )
-        return _format_call_tree("ObjectQuery", (
-            ("type", self.type.name),
-            ("field_queries", field_queries),
-        ))
+        return tuple(filter(None, map(field_query_for_type, field_queries)))
 
 
 def _merge_field_queries(fields):

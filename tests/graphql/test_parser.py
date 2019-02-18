@@ -577,6 +577,50 @@ def test_fragment_can_be_spread_into_nullable_type():
     ))
 
 
+def test_fragment_fields_are_updated_to_fields_for_element_type():
+    Person = g.InterfaceType(
+        "Person",
+        fields=lambda: (
+            g.field("name", type=g.String),
+        ),
+    )
+
+    User = g.ObjectType(
+        "User",
+        fields=lambda: (
+            g.field("name", type=g.String),
+        ),
+        interfaces=lambda: (Person, ),
+    )
+
+    Root = g.ObjectType(
+        "Root",
+        fields=lambda: (
+            g.field("users", type=g.ListType(g.NullableType(User))),
+        ),
+    )
+
+    graphql_query = """
+        query {
+            users {
+                ... on Person {
+                    name
+                }
+            }
+        }
+    """
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("users", Root.fields.users(
+                g.key("name", User.fields.name()),
+            )),
+        ),
+    ))
+
+
 def test_graphql_field_args_are_read():
     Root = g.ObjectType(
         "Root",
