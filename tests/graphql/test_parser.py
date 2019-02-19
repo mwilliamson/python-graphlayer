@@ -7,6 +7,7 @@ from graphql import GraphQLError
 import graphlayer as g
 from graphlayer import schema
 from graphlayer.graphql.parser import document_text_to_query
+from graphlayer.graphql.schema import create_graphql_schema
 from ..matchers import is_query
 
 
@@ -1002,9 +1003,10 @@ def test_query_is_validated():
         }
     """
 
-    error = pytest.raises(GraphQLError, lambda: document_text_to_query(graphql_query, query_type=Root))
+    error = pytest.raises(GraphQLError, lambda: _document_text_to_graph_query(graphql_query, query_type=Root))
     assert_that(str(error.value), equal_to(('Cannot query field "x" on type "Root".')))
 
 
-def _document_text_to_graph_query(*args, **kwargs):
-    return document_text_to_query(*args, **kwargs).graph_query
+def _document_text_to_graph_query(document_text, *, query_type, mutation_type=None, types=None, variables=None):
+    schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
+    return document_text_to_query(document_text, graphql_schema=schema, variables=variables).graph_query

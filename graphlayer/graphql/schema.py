@@ -5,6 +5,14 @@ import graphql
 from .. import iterables, schema
 
 
+class Schema(object):
+    def __init__(self, query_type, mutation_type, types, graphql_schema):
+        self.query_type = query_type
+        self.mutation_type = mutation_type
+        self.types = types
+        self.graphql_schema = graphql_schema
+
+
 def create_graphql_schema(query_type, mutation_type, types=None):
     if types is None:
         types = ()
@@ -111,10 +119,15 @@ def create_graphql_schema(query_type, mutation_type, types=None):
     for extra_type in types:
         to_graphql_type(extra_type)
 
-    return graphql.GraphQLSchema(
-        query=graphql_query_type,
-        mutation=graphql_mutation_type,
-        types=graphql_types.values(),
+    return Schema(
+        query_type=query_type,
+        mutation_type=mutation_type,
+        types=types,
+        graphql_schema=graphql.GraphQLSchema(
+            query=graphql_query_type,
+            mutation=graphql_mutation_type,
+            types=graphql_types.values(),
+        ),
     )
 
 

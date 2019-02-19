@@ -8,7 +8,6 @@ from graphql.validation import validate as graphql_validate
 
 from .. import schema
 from ..iterables import find, partition, to_dict
-from .schema import create_graphql_schema
 
 
 # TODO: validation
@@ -20,17 +19,13 @@ class GraphQLQuery(object):
         self.graphql_schema_document = graphql_schema_document
 
 
-def document_text_to_query(document_text, query_type, mutation_type=None, types=None, variables=None):
-    if types is None:
-        types = ()
-
+def document_text_to_query(document_text, graphql_schema, variables=None):
     if variables is None:
         variables = {}
 
     document_ast = graphql_parser.parse(document_text)
 
-    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
-    graphql_validation_errors = graphql_validate(graphql_schema, document_ast)
+    graphql_validation_errors = graphql_validate(graphql_schema.graphql_schema, document_ast)
     if graphql_validation_errors:
         raise(graphql_validation_errors[0])
 
@@ -40,9 +35,9 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
     )
 
     if operation.operation == "query":
-        root_type = query_type
-    elif operation.operation == "mutation" and mutation_type is not None:
-        root_type = mutation_type
+        root_type = graphql_schema.query_type
+    elif operation.operation == "mutation" and graphql_schema.mutation_type is not None:
+        root_type = graphql_schema.mutation_type
     else:
         raise GraphQLError(
             "unsupported operation: {}".format(operation.operation),
@@ -83,7 +78,7 @@ def document_text_to_query(document_text, query_type, mutation_type=None, types=
         )
 
     if non_schema_selections:
-        all_types = schema.collect_types((query_type, mutation_type) + tuple(types))
+        all_types = schema.collect_types((graphql_schema.query_type, graphql_schema.mutation_type) + tuple(graphql_schema.types))
         all_types_by_name = to_dict(
             (graph_type.name, graph_type)
             for graph_type in all_types

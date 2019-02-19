@@ -9,10 +9,8 @@ def execute(document_text, *, graph, query_type, mutation_type=None, types=None,
 
     query = parser.document_text_to_query(
         document_text=document_text,
-        query_type=query_type,
-        mutation_type=mutation_type,
-        types=types,
         variables=variables,
+        graphql_schema=graphql_schema,
     )
 
     if query.graph_query is None:
@@ -24,7 +22,7 @@ def execute(document_text, *, graph, query_type, mutation_type=None, types=None,
     if query.graphql_schema_document is not None:
         schema_result = _execute_graphql_schema(
             graphql_schema_document=query.graphql_schema_document,
-            graphql_schema=graphql_schema,
+            graphql_schema=graphql_schema.graphql_schema,
         )
         json_result = json_result.copy()
         json_result.update(schema_result)

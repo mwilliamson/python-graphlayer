@@ -239,7 +239,7 @@ def to_graphql_type(graph_type):
     root_type = g.ObjectType("Root", fields=(
         g.field("value", type=graph_type),
     ))
-    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None)
+    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None).graphql_schema
     return graphql_schema.get_query_type().fields["value"].type
 
 
@@ -249,7 +249,7 @@ def to_graphql_input_type(graph_type):
             g.param("arg0", type=graph_type),
         )),
     ))
-    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None)
+    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None).graphql_schema
     return graphql_schema.get_query_type().fields["value"].args["arg0"].type
 
 
