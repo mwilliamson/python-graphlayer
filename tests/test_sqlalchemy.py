@@ -1222,6 +1222,116 @@ def test_can_resolve_many_to_one_or_zero_join_through_association_table():
     ))
 
 
+def test_when_distinct_is_true_then_only_unique_associations_are_selected():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class LeftRow(Base):
+        __tablename__ = "left"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_value = sqlalchemy.Column(sqlalchemy.Unicode)
+
+    class AssociationRow(Base):
+        __tablename__ = "association"
+
+        id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_left_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+        c_right_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+
+    class RightRow(Base):
+        __tablename__ = "right"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_value = sqlalchemy.Column(sqlalchemy.Unicode)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+
+    session.add(LeftRow(c_id=1, c_value="left 1"))
+    session.add(RightRow(c_id=101, c_value="right 1"))
+    session.add(AssociationRow(c_left_id=1, c_right_id=101))
+    session.add(AssociationRow(c_left_id=1, c_right_id=101))
+
+    session.commit()
+
+    Left = g.ObjectType(
+        "Left",
+        fields=lambda: [
+            g.field("value", type=g.String),
+            g.field("rights", type=g.ListType(Right)),
+            g.field("distinct_rights", type=g.ListType(Right)),
+        ],
+    )
+    Right = g.ObjectType(
+        "Right",
+        fields=lambda: [
+            g.field("value", type=g.String),
+        ],
+    )
+
+    left_resolver = gsql.sql_table_resolver(
+        Left,
+        LeftRow,
+        fields=lambda: {
+            Left.fields.value: gsql.expression(LeftRow.c_value),
+            Left.fields.rights: field_rights(distinct=False),
+            Left.fields.distinct_rights: field_rights(distinct=True),
+        },
+    )
+
+    def field_rights(*, distinct):
+        return lambda graph, field_query: gsql.join(
+            key=LeftRow.c_id,
+            association=gsql.association(
+                AssociationRow,
+                left_key=AssociationRow.c_left_id,
+                right_key=AssociationRow.c_right_id,
+                distinct=distinct,
+            ),
+            resolve=lambda right_ids: graph.resolve(
+                gsql.select(field_query.type_query).by(RightRow.c_id, right_ids),
+            ),
+        )
+
+    right_resolver = gsql.sql_table_resolver(
+        Right,
+        RightRow,
+        fields={
+            Right.fields.value: gsql.expression(RightRow.c_value),
+        },
+    )
+
+    resolvers = [left_resolver, right_resolver]
+
+    query = gsql.select(g.ListType(Left)(
+        g.key("rights", Left.fields.rights(
+            g.key("value", Right.fields.value()),
+        )),
+        g.key("distinct_rights", Left.fields.distinct_rights(
+            g.key("value", Right.fields.value()),
+        )),
+    ))
+
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(
+            rights=contains_exactly(
+                has_attrs(value="right 1"),
+                has_attrs(value="right 1"),
+            ),
+            distinct_rights=contains_exactly(
+                has_attrs(value="right 1"),
+            ),
+        ),
+    ))
+
+
 def test_association_table_can_be_filtered_explicitly():
     Base = sqlalchemy.ext.declarative.declarative_base()
 

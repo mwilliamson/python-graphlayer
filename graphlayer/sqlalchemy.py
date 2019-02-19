@@ -34,19 +34,21 @@ def join(*, key, resolve, association=None):
 
 
 class _Association(object):
-    def __init__(self, table, left_key, right_key, filtered_by_left_key, order_by):
+    def __init__(self, table, left_key, right_key, distinct, filtered_by_left_key, order_by):
         self.table = table
         self.left_key = left_key
         self.right_key = right_key
+        self.distinct = distinct
         self.filtered_by_left_key = filtered_by_left_key
         self.order_by = order_by
 
 
-def association(table, *, left_key, right_key, filtered_by_left_key=False, order_by=None):
+def association(table, *, left_key, right_key, distinct=False, filtered_by_left_key=False, order_by=None):
     return _Association(
         table=table,
         left_key=_to_key(left_key),
         right_key=_to_key(right_key),
+        distinct=distinct,
         filtered_by_left_key=filtered_by_left_key,
         order_by=order_by,
     )
@@ -120,6 +122,9 @@ class _JoinField(object):
 
             if association.order_by is not None:
                 association_query = association_query.order_by(association.order_by)
+
+            if association.distinct:
+                association_query = association_query.distinct()
 
             associations = [
                 (
