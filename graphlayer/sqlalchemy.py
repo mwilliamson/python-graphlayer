@@ -110,8 +110,11 @@ class _JoinField(object):
 
             session = injector.get(sqlalchemy.orm.Session)
 
-            base_association_query = sqlalchemy.orm.Query([]) \
-                .select_from(association.table)
+            if isinstance(association.table, sqlalchemy.orm.Query):
+                base_association_query = association.table
+            else:
+                base_association_query = sqlalchemy.orm.Query([]) \
+                    .select_from(association.table)
 
             if not association.filtered_by_left_key:
                 base_association_query = base_association_query.filter(association.left_key.expression().in_(key_sql_query))
