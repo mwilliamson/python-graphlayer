@@ -1,5 +1,7 @@
+from graphql import GraphQLError
 from graphql.execution import execute as graphql_execute, ExecutionResult
 
+from .. import GraphError
 from . import parser
 from .schema import create_graphql_schema
 
@@ -16,30 +18,37 @@ def executor(*, query_type, mutation_type=None, types=None):
     graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
 
     def execute(document_text, *, graph, variables=None):
-        query = parser.document_text_to_query(
-            document_text=document_text,
-            variables=variables,
-            graphql_schema=graphql_schema,
-        )
-
-        if query.graph_query is None:
-            json_result = {}
-        else:
-            result = graph.resolve(query.graph_query)
-            json_result = query.graph_query.to_json_value(result)
-
-        if query.graphql_schema_document is not None:
-            schema_result = _execute_graphql_schema(
-                graphql_schema_document=query.graphql_schema_document,
-                graphql_schema=graphql_schema.graphql_schema,
+        try:
+            query = parser.document_text_to_query(
+                document_text=document_text,
+                variables=variables,
+                graphql_schema=graphql_schema,
             )
-            json_result = json_result.copy()
-            json_result.update(schema_result)
 
-        return ExecutionResult(
-            data=json_result,
-            errors=None,
-        )
+            if query.graph_query is None:
+                json_result = {}
+            else:
+                result = graph.resolve(query.graph_query)
+                json_result = query.graph_query.to_json_value(result)
+
+            if query.graphql_schema_document is not None:
+                schema_result = _execute_graphql_schema(
+                    graphql_schema_document=query.graphql_schema_document,
+                    graphql_schema=graphql_schema.graphql_schema,
+                )
+                json_result = json_result.copy()
+                json_result.update(schema_result)
+
+            return ExecutionResult(
+                data=json_result,
+                errors=None,
+            )
+        except (GraphQLError, GraphError) as error:
+            return ExecutionResult(
+                data=None,
+                errors=[error],
+                invalid=True,
+            )
 
     return execute
 
