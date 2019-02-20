@@ -1,4 +1,4 @@
-from graphql.execution import execute as graphql_execute
+from graphql.execution import execute as graphql_execute, ExecutionResult
 
 from . import parser
 from .schema import create_graphql_schema
@@ -36,7 +36,10 @@ def executor(*, query_type, mutation_type=None, types=None):
             json_result = json_result.copy()
             json_result.update(schema_result)
 
-        return json_result
+        return ExecutionResult(
+            data=json_result,
+            errors=None,
+        )
 
     return execute
 

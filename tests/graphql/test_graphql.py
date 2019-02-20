@@ -1,4 +1,4 @@
-from precisely import assert_that, equal_to
+from precisely import assert_that, equal_to, has_attrs
 
 import graphlayer as g
 from graphlayer import graphql
@@ -26,7 +26,7 @@ def test_execute():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, equal_to({"value": "resolved"}))
+    assert_that(result, is_success(data=equal_to({"value": "resolved"})))
 
 
 def test_executor():
@@ -52,7 +52,7 @@ def test_executor():
     execute = graphql.executor(query_type=Root)
     result = execute(graph=graph, document_text=query)
 
-    assert_that(result, equal_to({"value": "resolved"}))
+    assert_that(result, is_success(data=equal_to({"value": "resolved"})))
 
 
 def test_can_query_schema():
@@ -73,13 +73,13 @@ def test_can_query_schema():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, equal_to({
+    assert_that(result, is_success(data=equal_to({
         "__schema": {
             "queryType": {
                 "name": "Root",
             },
         },
-    }))
+    })))
 
 
 def test_can_query_schema_with_other_data():
@@ -107,11 +107,19 @@ def test_can_query_schema_with_other_data():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, equal_to({
+    assert_that(result, is_success(data=equal_to({
         "value": "resolved",
         "__schema": {
             "queryType": {
                 "name": "Root",
             },
         },
-    }))
+    })))
+
+
+def is_success(*, data):
+    return has_attrs(
+        data=data,
+        errors=None,
+        invalid=False,
+    )

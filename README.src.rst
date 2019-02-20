@@ -329,7 +329,7 @@ so we should iterate through ``query.field_queries`` when generating the result.
             for field_query in query.field_queries
         ))
 
-If we wrap the call to ``execute`` in a ``print``:
+If we print the data from the execution result:
 
 .. diff-doc:: diff example
     :render: False
@@ -350,7 +350,7 @@ If we wrap the call to ``execute`` in a ``print``:
          graph=graph,
          query_type=Root,
     -)
-    +))
+    +).data)
 
 .. diff-doc:: render example
 
@@ -362,7 +362,7 @@ If we wrap the call to ``execute`` in a ``print``:
         """,
         graph=graph,
         query_type=Root,
-    ))
+    ).data)
 
 Then we should get the output:
 
