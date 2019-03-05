@@ -7,13 +7,6 @@ the overhead of asynchronous function calls is reduced.
 Queries can also be written directly to fetch batches directly to avoid the N+1 problem
 without intermediate layers such as DataLoader.
 
-Why GraphQL?
-------------
-
-TODO:
-* No overfetching/underfetching
-* Schema allows GraphiQL, checking of queries, type generation
-
 Why GraphLayer?
 ---------------
 
