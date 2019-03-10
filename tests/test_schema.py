@@ -5,7 +5,6 @@ from precisely import assert_that, contains_exactly, equal_to, has_attrs, includ
 import pytest
 
 from graphlayer import GraphError, schema
-from graphlayer.representations import Object
 from .matchers import is_query
 
 
@@ -529,100 +528,6 @@ class TestFieldQuery(object):
                 schema.key("title", Song.fields.title()),
             )),
         ))
-
-
-class TestToJsonValue(object):
-    def test_bool_is_unchanged(self):
-        query = schema.Boolean()
-        assert_that(query.to_json_value(True), equal_to(True))
-
-    def test_float_is_unchanged(self):
-        query = schema.Float()
-        assert_that(query.to_json_value(4.2), equal_to(4.2))
-
-    def test_int_is_unchanged(self):
-        query = schema.Int()
-        assert_that(query.to_json_value(42), equal_to(42))
-
-    def test_string_is_unchanged(self):
-        query = schema.String()
-        assert_that(query.to_json_value("42"), equal_to("42"))
-
-    def test_enums_are_converted_to_strings(self):
-        class Season(enum.Enum):
-            winter = "WINTER"
-            spring = "SPRING"
-            summer = "SUMMER"
-            autumn = "AUTUMN"
-
-        SeasonGraphType = schema.EnumType(Season)
-        query = SeasonGraphType()
-        assert_that(query.to_json_value(Season.winter), equal_to("WINTER"))
-
-    def test_objects_are_converted_to_dicts(self):
-        Book = schema.ObjectType("Book", fields=(
-            schema.field("title", schema.String),
-        ))
-        query = Book(schema.key("book_title", Book.fields.title()))
-        value = Object(dict(book_title="Orbiting the Giant Hairball"))
-        assert_that(query.to_json_value(value), equal_to({
-            "book_title": "Orbiting the Giant Hairball",
-        }))
-
-    def test_objects_convert_fields_to_json_values(self):
-        Author = schema.ObjectType("Author", fields=(
-            schema.field("name", schema.String),
-        ))
-        Book = schema.ObjectType("Book", fields=(
-            schema.field("author", Author),
-        ))
-        query = Book(
-            schema.key("author", Book.fields.author(
-                schema.key("name", Author.fields.name()),
-            )),
-        )
-        value = Object(dict(
-            author=Object(dict(
-                name="Gordon A. Mackenzie",
-            )),
-        ))
-        assert_that(query.to_json_value(value), equal_to({
-            "author": {
-                "name": "Gordon A. Mackenzie",
-            },
-        }))
-
-    def test_when_value_is_none_then_nullable_value_is_converted_to_none(self):
-        Book = schema.ObjectType("Book", fields=(
-            schema.field("title", schema.String),
-        ))
-        NullableBook = schema.NullableType(Book)
-        query = NullableBook(schema.key("book_title", Book.fields.title()))
-        assert_that(query.to_json_value(None), equal_to(None))
-
-    def test_when_value_is_not_none_then_nullable_value_is_converted_using_element_query(self):
-        Book = schema.ObjectType("Book", fields=(
-            schema.field("title", schema.String),
-        ))
-        NullableBook = schema.NullableType(Book)
-        query = NullableBook(schema.key("book_title", Book.fields.title()))
-        value = Object(dict(book_title="Orbiting the Giant Hairball"))
-        assert_that(query.to_json_value(value), equal_to({
-            "book_title": "Orbiting the Giant Hairball",
-        }))
-
-    def test_lists_convert_elements_to_json_values(self):
-        Book = schema.ObjectType("Book", fields=(
-            schema.field("title", schema.String),
-        ))
-        BookList = schema.ListType(Book)
-        query = BookList(schema.key("book_title", Book.fields.title()))
-        value = Object(dict(book_title="Orbiting the Giant Hairball"))
-        assert_that(query.to_json_value([value]), equal_to([
-            {
-                "book_title": "Orbiting the Giant Hairball",
-            },
-        ]))
 
 
 class TestQueryString(object):

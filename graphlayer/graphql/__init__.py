@@ -26,21 +26,20 @@ def executor(*, query_type, mutation_type=None, types=None):
             )
 
             if query.graph_query is None:
-                json_result = {}
+                result = {}
             else:
                 result = graph.resolve(query.graph_query)
-                json_result = query.graph_query.to_json_value(result)
 
             if query.graphql_schema_document is not None:
                 schema_result = _execute_graphql_schema(
                     graphql_schema_document=query.graphql_schema_document,
                     graphql_schema=graphql_schema.graphql_schema,
                 )
-                json_result = json_result.copy()
-                json_result.update(schema_result)
+                result = result.copy()
+                result.update(schema_result)
 
             return ExecutionResult(
-                data=json_result,
+                data=result,
                 errors=None,
             )
         except (GraphQLError, GraphError) as error:

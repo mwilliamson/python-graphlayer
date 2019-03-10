@@ -74,9 +74,6 @@ class ScalarQuery(object):
     def __init__(self, type):
         self.type = type
 
-    def to_json_value(self, value):
-        return value
-
     def for_type(self, target_type):
         return self
 
@@ -136,9 +133,6 @@ class EnumQuery(object):
             ))
         else:
             return self
-
-    def to_json_value(self, value):
-        return value.value
 
     def __str__(self):
         return "EnumQuery(type={})".format(self.type)
@@ -246,7 +240,10 @@ class InterfaceType(object):
         self.fields = Fields(name, fields)
 
     def __call__(self, *field_queries):
-        return ObjectQuery(self, field_queries=field_queries)
+        return ObjectQuery.create(self, field_queries=field_queries)
+
+    def query(self, *, field_queries, create_object):
+        return ObjectQuery.create(self, field_queries=field_queries, create_object=create_object)
 
     def __repr__(self):
         return "InterfaceType(name={!r})".format(self.name)
@@ -261,6 +258,9 @@ class ListType(object):
 
     def __call__(self, *args, **kwargs):
         return ListQuery(self, self.element_type(*args, **kwargs))
+
+    def query(self, *args, **kwargs):
+        return ListQuery(self, self.element_type.query(*args, **kwargs))
 
     def __eq__(self, other):
         if isinstance(other, ListType):
@@ -311,12 +311,6 @@ class ListQuery(object):
         else:
             return ListQuery(type=self.type, element_query=self.element_query + other.element_query)
 
-    def to_json_value(self, value):
-        return [
-            self.element_query.to_json_value(element)
-            for element in value
-        ]
-
     def __str__(self):
         return _format_call_tree("ListQuery", (
             ("type", self.type),
@@ -331,6 +325,9 @@ class NullableType(object):
 
     def __call__(self, *args, **kwargs):
         return NullableQuery(self, self.element_type(*args, **kwargs))
+
+    def query(self, *args, **kwargs):
+        return NullableQuery(self, self.element_type.query(*args, **kwargs))
 
     def __eq__(self, other):
         if isinstance(other, NullableType):
@@ -381,12 +378,6 @@ class NullableQuery(object):
         else:
             return NullableQuery(type=self.type, element_query=self.element_query + other.element_query)
 
-    def to_json_value(self, value):
-        if value is None:
-            return None
-        else:
-            return self.element_query.to_json_value(value)
-
     def __str__(self):
         return _format_call_tree("NullableQuery", (
             ("type", self.type),
@@ -416,7 +407,10 @@ class ObjectType(object):
         return self._interfaces()
 
     def __call__(self, *field_queries):
-        return ObjectQuery(self, field_queries=field_queries)
+        return ObjectQuery.create(self, field_queries=field_queries)
+
+    def query(self, *, field_queries, create_object):
+        return ObjectQuery.create(self, field_queries=field_queries, create_object=create_object)
 
     def __repr__(self):
         return "ObjectType(name={!r})".format(self.name)
@@ -460,12 +454,18 @@ class Fields(object):
 
 
 class ObjectQuery(object):
-    create_object = Object
+    @staticmethod
+    def create(type, *, field_queries, create_object=None):
+        if create_object is None:
+            create_object = Object
 
-    def __init__(self, type, field_queries):
+        return ObjectQuery(type, field_queries=field_queries, create_object=create_object)
+
+    def __init__(self, type, field_queries, *, create_object):
         self.type = type
         # TODO: test this directly (not just in GraphQL parser)
         self.field_queries = _field_queries_for_type(tuple(field_queries), type)
+        self.create_object = create_object
 
     # TODO: handling merging of other query types
     def __add__(self, other):
@@ -483,6 +483,7 @@ class ObjectQuery(object):
             return ObjectQuery(
                 type=self.type,
                 field_queries=field_queries,
+                create_object=self.create_object,
             )
         else:
             return NotImplemented
@@ -492,13 +493,11 @@ class ObjectQuery(object):
             return self
         else:
             field_queries = _field_queries_for_type(self.field_queries, target_type)
-            return ObjectQuery(type=target_type, field_queries=field_queries)
-
-    def to_json_value(self, value):
-        return iterables.to_dict(
-            (field_query.key, field_query.type_query.to_json_value(getattr(value, field_query.key)))
-            for field_query in self.field_queries
-        )
+            return ObjectQuery(
+                type=target_type,
+                field_queries=field_queries,
+                create_object=self.create_object,
+            )
 
     def __str__(self):
         field_queries = _format_tuple(
