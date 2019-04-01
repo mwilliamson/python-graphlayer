@@ -1007,6 +1007,29 @@ def test_query_is_validated():
     assert_that(str(error.value), equal_to(('Cannot query field "x" on type "Root".')))
 
 
+def test_when_field_has_camel_case_name_then_field_can_be_referenced_in_query():
+    Root = g.ObjectType(
+        "Root",
+        (
+            g.field("camelCase", type=g.Int),
+        ),
+    )
+
+    graphql_query = """
+        query {
+            camelCase
+        }
+    """
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("camelCase", Root.fields.camelCase()),
+        ),
+    ))
+
+
 def _document_text_to_graph_query(document_text, *, query_type, mutation_type=None, types=None, variables=None):
     schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
     return document_text_to_query(document_text, graphql_schema=schema, variables=variables).graph_query

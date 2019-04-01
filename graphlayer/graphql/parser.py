@@ -1,6 +1,5 @@
 from copy import copy
 from functools import reduce
-import re
 
 from graphql import GraphQLError
 from graphql.language import ast as graphql_ast, parser as graphql_parser
@@ -8,6 +7,7 @@ from graphql.validation import validate as graphql_validate
 
 from .. import schema
 from ..iterables import find, partition, to_dict
+from .naming import snake_case_to_camel_case
 
 
 # TODO: validation
@@ -149,11 +149,10 @@ class Parser(object):
 
     def _read_graphql_field(self, graphql_field, graph_type):
         key = _field_key(graphql_field)
-        field_name = _camel_case_to_snake_case(graphql_field.name.value)
-        field = self._get_field(graph_type, field_name)
+        field = self._get_field(graph_type, graphql_field.name.value)
 
         def get_arg_value(arg):
-            param = getattr(field.params, _camel_case_to_snake_case(arg.name.value))
+            param = self._lookup_camel_case_name(field.params, arg.name.value)
             value = self._read_value_node(arg.value, value_type=param.type)
             return param(value)
 
@@ -171,7 +170,7 @@ class Parser(object):
         while isinstance(graph_type, (schema.ListType, schema.NullableType)):
             graph_type = graph_type.element_type
 
-        return getattr(graph_type.fields, field_name)
+        return self._lookup_camel_case_name(graph_type.fields, field_name)
 
     def _read_value_node(self, value, value_type):
         graphql_value = self._read_graphql_value(value)
@@ -201,12 +200,12 @@ class Parser(object):
             ]
 
         elif isinstance(value_type, schema.InputObjectType):
-            def get_field_value(key, value):
-                field = getattr(value_type.fields, _camel_case_to_snake_case(key))
-                return self._convert_graphql_value(value, value_type=field.type)
+            def get_field(key, value):
+                field = self._lookup_camel_case_name(value_type.fields, key)
+                return field.name, self._convert_graphql_value(value, value_type=field.type)
 
             return value_type(**to_dict(
-                (_camel_case_to_snake_case(key), get_field_value(key, value))
+                get_field(key, value)
                 for key, value in graphql_value.items()
             ))
 
@@ -243,18 +242,19 @@ class Parser(object):
     def _find_type(self, name):
         return self._types[name]
 
+    def _lookup_camel_case_name(self, collection, camel_case_name):
+        lookup = to_dict(
+            (snake_case_to_camel_case(element.name), element)
+            for element in collection
+        )
+        return lookup[camel_case_name]
+
 
 def _field_key(selection):
     if selection.alias is None:
         return selection.name.value
     else:
         return selection.alias.value
-
-
-def _camel_case_to_snake_case(value):
-    # From: https://stackoverflow.com/revisions/1176023/2
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', value)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 def _copy_with(obj, **kwargs):

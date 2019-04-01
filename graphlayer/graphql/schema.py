@@ -1,8 +1,7 @@
-import re
-
 import graphql
 
 from .. import iterables, schema
+from .naming import snake_case_to_camel_case
 
 
 class Schema(object):
@@ -48,7 +47,7 @@ def create_graphql_schema(query_type, mutation_type, types=None):
             return graphql.GraphQLNonNull(graphql.GraphQLInputObjectType(
                 name=graph_type.name,
                 fields=lambda: iterables.to_dict(
-                    (_snake_case_to_camel_case(field.name), to_graphql_input_field(field))
+                    (snake_case_to_camel_case(field.name), to_graphql_input_field(field))
                     for field in graph_type.fields
                 ),
             ))
@@ -89,7 +88,7 @@ def create_graphql_schema(query_type, mutation_type, types=None):
 
     def to_graphql_fields(graph_fields):
         return lambda: iterables.to_dict(
-            (_snake_case_to_camel_case(field.name), to_graphql_field(field))
+            (snake_case_to_camel_case(field.name), to_graphql_field(field))
             for field in graph_fields
         )
 
@@ -97,7 +96,7 @@ def create_graphql_schema(query_type, mutation_type, types=None):
         return graphql.GraphQLField(
             type=to_graphql_type(graph_field.type),
             args=iterables.to_dict(
-                (_snake_case_to_camel_case(param.name), to_graphql_argument(param))
+                (snake_case_to_camel_case(param.name), to_graphql_argument(param))
                 for param in graph_field.params
             ),
         )
@@ -129,7 +128,3 @@ def create_graphql_schema(query_type, mutation_type, types=None):
             types=graphql_types.values(),
         ),
     )
-
-
-def _snake_case_to_camel_case(value):
-    return value[0].lower() + re.sub(r"_(.)", lambda match: match.group(1).upper(), value[1:]).rstrip("_")
