@@ -1846,6 +1846,88 @@ def test_can_map_values_from_sql_expression():
     ))
 
 
+class TestTags(object):
+    def test_tag_can_be_used_to_distinguish_queries_on_same_graph_type(self):
+        Base = sqlalchemy.ext.declarative.declarative_base()
+
+        class AuthorRow(Base):
+            __tablename__ = "author"
+
+            c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            c_name = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+        class ReaderRow(Base):
+            __tablename__ = "reader"
+
+            c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+            c_name = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+        engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+        Base.metadata.create_all(engine)
+
+        session = sqlalchemy.orm.Session(engine)
+        session.add(AuthorRow(c_name="PG Wodehouse"))
+        session.add(ReaderRow(c_name="Matilda"))
+        session.commit()
+
+        Person = g.ObjectType(
+            "Person",
+            fields=lambda: [
+                g.field("name", type=g.String),
+            ],
+        )
+
+        author_resolver = gsql.sql_table_resolver(
+            (Person, "author"),
+            AuthorRow,
+            fields={
+                Person.fields.name: gsql.expression(AuthorRow.c_name),
+            },
+        )
+
+        reader_resolver = gsql.sql_table_resolver(
+            (Person, "reader"),
+            ReaderRow,
+            fields={
+                Person.fields.name: gsql.expression(ReaderRow.c_name),
+            },
+        )
+
+        resolvers = [author_resolver, reader_resolver]
+
+        graph_definition = g.define_graph(resolvers)
+        graph = graph_definition.create_graph({
+            sqlalchemy.orm.Session: session,
+        })
+
+        authors = graph.resolve(
+            gsql.select(
+                g.ListType(Person)(
+                    g.key("name", Person.fields.name()),
+                ),
+                tag=(Person, "author"),
+            ),
+        )
+
+        assert_that(authors, contains_exactly(
+            has_attrs(name="PG Wodehouse"),
+        ))
+
+        readers = graph.resolve(
+            gsql.select(
+                g.ListType(Person)(
+                    g.key("name", Person.fields.name()),
+                ),
+                tag=(Person, "reader"),
+            ),
+        )
+
+        assert_that(readers, contains_exactly(
+            has_attrs(name="Matilda"),
+        ))
+
+
 def test_sql_query_type_str():
     Book = g.ObjectType(
         "Book",

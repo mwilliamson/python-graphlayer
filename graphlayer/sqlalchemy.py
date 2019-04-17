@@ -258,14 +258,21 @@ def _read_results(query, results):
     return _result_reader(query).read_results(results)
 
 
-def select(query):
+def select(query, tag=None):
     if isinstance(query, _SqlQuery):
         return query
     else:
         result_reader = _result_reader(query)
+        element_query = result_reader.element_query
+
+        if tag is None:
+            tag = element_query.type
+
+        type = _sql_query_type(tag)
 
         return _SqlQuery(
-            element_query=result_reader.element_query,
+            type=type,
+            element_query=element_query,
             type_query=query,
             index_key=None,
             where_clauses=(),
@@ -287,8 +294,8 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, element_query, type_query, where_clauses, index_key, order, limit):
-        self.type = _sql_query_type(element_query.type)
+    def __init__(self, type, element_query, type_query, where_clauses, index_key, order, limit):
+        self.type = type
         self.element_query = element_query
         self.type_query = type_query
         self.where_clauses = where_clauses
@@ -301,6 +308,7 @@ class _SqlQuery(object):
 
     def index_by(self, index_key):
         return _SqlQuery(
+            type=self.type,
             element_query=self.element_query,
             type_query=self.type_query,
             where_clauses=self.where_clauses,
@@ -311,6 +319,7 @@ class _SqlQuery(object):
 
     def limit(self, limit):
         return _SqlQuery(
+            type=self.type,
             element_query=self.element_query,
             type_query=self.type_query,
             where_clauses=self.where_clauses,
@@ -321,6 +330,7 @@ class _SqlQuery(object):
 
     def order_by(self, *order):
         return _SqlQuery(
+            type=self.type,
             element_query=self.element_query,
             type_query=self.type_query,
             where_clauses=self.where_clauses,
@@ -331,6 +341,7 @@ class _SqlQuery(object):
 
     def where(self, where):
         return _SqlQuery(
+            type=self.type,
             element_query=self.element_query,
             type_query=self.type_query,
             where_clauses=self.where_clauses + (where, ),
