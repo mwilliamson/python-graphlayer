@@ -2,19 +2,28 @@ from . import core, iterables, schema
 
 
 def create_object_builder(object_query):
-    field_resolvers = {}
+    def default_field_resolver(field):
+        def resolve(value):
+            raise core.GraphError("Resolver missing for field {}".format(field.name))
+
+        return resolve
+
+    field_resolvers = [
+        [field_query.key, default_field_resolver(field_query.field)]
+        for field_query in object_query.field_queries
+    ]
 
     def create_object(value):
         return object_query.create_object(iterables.to_dict(
-            (field_query.key, field_resolvers[field_query.key](value))
-            for field_query in object_query.field_queries
+            (key, resolve_field(value))
+            for key, resolve_field in field_resolvers
         ))
 
     def field_resolver(field):
         def add_field_resolver(build_field_resolver):
-            for field_query in object_query.field_queries:
+            for field_index, field_query in enumerate(object_query.field_queries):
                 if field_query.field == field or field_query.field.name == field:
-                    field_resolvers[field_query.key] = build_field_resolver(field_query)
+                    field_resolvers[field_index][1] = build_field_resolver(field_query)
 
             return build_field_resolver
 

@@ -1,4 +1,4 @@
-from precisely import assert_that, has_attrs
+from precisely import assert_that, equal_to, has_attrs
 import pytest
 
 import graphlayer as g
@@ -97,7 +97,8 @@ class TestObjectBuilder(object):
             g.key("type", schema.typename_field()),
         ))
 
-        pytest.raises(KeyError, lambda: object_builder({}))
+        error = pytest.raises(g.GraphError, lambda: object_builder({}))
+        assert_that(str(error.value), equal_to("Resolver missing for field type_name"))
 
 
 class TestRootResolver(object):
