@@ -1,6 +1,7 @@
 from precisely import assert_that, has_attrs
 
 import graphlayer as g
+from graphlayer import schema
 
 
 class TestObjectBuilder(object):
@@ -70,6 +71,20 @@ class TestObjectBuilder(object):
         result = object_builder({"name": "Bob"})
         assert_that(result, has_attrs(
             n="Bob",
+        ))
+
+    def test_when_type_is_object_then_typename_field_is_resolved(self):
+        User = g.ObjectType("User", fields=(
+            g.field("name", type=g.String),
+        ))
+
+        object_builder = g.create_object_builder(User(
+            g.key("type", schema.typename_field()),
+        ))
+
+        result = object_builder({})
+        assert_that(result, has_attrs(
+            type="User",
         ))
 
 
