@@ -1,4 +1,5 @@
 from precisely import assert_that, has_attrs
+import pytest
 
 import graphlayer as g
 from graphlayer import schema
@@ -86,6 +87,17 @@ class TestObjectBuilder(object):
         assert_that(result, has_attrs(
             type="User",
         ))
+
+    def test_when_type_is_interface_then_typename_field_is_unresolved(self):
+        User = g.InterfaceType("User", fields=(
+            g.field("name", type=g.String),
+        ))
+
+        object_builder = g.create_object_builder(User(
+            g.key("type", schema.typename_field()),
+        ))
+
+        pytest.raises(KeyError, lambda: object_builder({}))
 
 
 class TestRootResolver(object):
