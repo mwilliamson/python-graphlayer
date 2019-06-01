@@ -6,7 +6,7 @@ import sqlalchemy.orm
 import pytest
 
 import graphlayer as g
-from graphlayer import sqlalchemy as gsql
+from graphlayer import schema, sqlalchemy as gsql
 from graphlayer.resolvers import root_object_resolver
 
 
@@ -1926,6 +1926,105 @@ class TestTags(object):
         assert_that(readers, contains_exactly(
             has_attrs(name="Matilda"),
         ))
+
+
+def test_when_type_is_object_then_typename_field_is_resolved():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith"))
+    session.commit()
+
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.String),
+        ],
+    )
+
+    book_resolver = gsql.sql_table_resolver(
+        Book,
+        BookRow,
+        fields={
+            Book.fields.title: gsql.expression(BookRow.c_title),
+        },
+    )
+
+    resolvers = [book_resolver]
+
+    query = gsql.select(g.ListType(Book)(
+        g.key("title", Book.fields.title()),
+        g.key("type", schema.typename_field()),
+    ))
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({
+        sqlalchemy.orm.Session: session,
+    })
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(
+            title="Leave it to Psmith",
+            type="Book",
+        ),
+    ))
+
+
+def test_when_type_is_interface_then_typename_field_is_unresolved():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith"))
+    session.commit()
+
+    Book = g.InterfaceType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.String),
+        ],
+    )
+
+    book_resolver = gsql.sql_table_resolver(
+        Book,
+        BookRow,
+        fields={
+            Book.fields.title: gsql.expression(BookRow.c_title),
+        },
+    )
+
+    resolvers = [book_resolver]
+
+    query = gsql.select(g.ListType(Book)(
+        g.key("title", Book.fields.title()),
+        g.key("type", schema.typename_field()),
+    ))
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({
+        sqlalchemy.orm.Session: session,
+    })
+
+    error = pytest.raises(g.GraphError, lambda: graph.resolve(query))
+    assert_that(str(error.value), equal_to("Resolver missing for field type_name"))
 
 
 def test_sql_query_type_str():

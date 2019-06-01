@@ -8,6 +8,24 @@ from .core import Injector
 from .memo import memoize
 
 
+def constant(value):
+    return _ConstantField(expression)
+
+
+class _ConstantField(object):
+    def __init__(self, value):
+        self._value = value
+
+    def expressions(self):
+        return ()
+
+    def create_reader(self, base_query, field_query, injector):
+        def read(row):
+            return self._value
+
+        return read
+
+
 def expression(expression):
     return _ExpressionField(expression)
 
@@ -386,12 +404,17 @@ def sql_table_resolver(type, model, fields):
 
     def resolve(graph, query, where, limit, order, extra_expressions, process_row, session, injector):
         def get_field(field_query):
-            field = fields()[field_query.field]
-            if callable(field):
-                # TODO: test dependencies are injected
-                return injector.call_with_dependencies(field, graph, field_query)
+            if field_query.field == schema.typename_field and isinstance(query.type, schema.ObjectType):
+                return _ConstantField(query.type.name)
             else:
-                return field
+                field = fields().get(field_query.field)
+                if field is None:
+                    raise g.GraphError("Resolver missing for field {}".format(field_query.field.name))
+                elif callable(field):
+                    # TODO: test dependencies are injected
+                    return injector.call_with_dependencies(field, graph, field_query)
+                else:
+                    return field
 
         query_expressions = []
 
