@@ -122,7 +122,7 @@ class Parser(object):
     def _read_graphql_selection(self, selection, graph_type):
         if isinstance(selection, graphql_ast.Field):
             field_query = self._read_graphql_field(selection, graph_type=graph_type)
-            return graph_type.query(field_queries=(field_query, ), create_object=dict)
+            return graph_type.query(field_queries=(field_query, ), create_object=_create_object)
 
         elif isinstance(selection, graphql_ast.InlineFragment):
             return self._read_graphql_fragment(selection, graph_type=graph_type)
@@ -145,7 +145,7 @@ class Parser(object):
         return self._coerce_object_query(query, graph_type=graph_type)
 
     def _coerce_object_query(self, query, graph_type):
-        return graph_type.query(field_queries=query.field_queries, create_object=dict)
+        return graph_type.query(field_queries=query.field_queries, create_object=_create_object)
 
     def _read_graphql_field(self, graphql_field, graph_type):
         key = _field_key(graphql_field)
@@ -265,3 +265,7 @@ def _copy_with(obj, **kwargs):
     for key, value in kwargs.items():
         setattr(result, key, value)
     return result
+
+
+def _create_object(value):
+    return value
