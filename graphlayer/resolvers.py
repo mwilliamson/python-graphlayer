@@ -1,4 +1,4 @@
-from . import core, iterables
+from . import core, iterables, schema
 
 
 def create_object_builder(object_query):
@@ -30,6 +30,11 @@ def create_object_builder(object_query):
 
     create_object.getter = getter
 
+    if isinstance(object_query.type, schema.ObjectType):
+        @getter(schema.typename_field)
+        def resolve_typename(_):
+            return object_query.type.name
+
     return create_object
 
 
@@ -50,14 +55,15 @@ def root_object_resolver(type):
     @core.resolver(type)
     @core.dependencies(injector=core.Injector)
     def resolve_root(graph, query, *, injector):
-        def resolve_field(field_query):
-            field_resolver = field_handlers[field_query.field]
-            return injector.call_with_dependencies(field_resolver, graph, field_query.type_query, field_query.args)
+        build_object = create_object_builder(query)
 
-        return query.create_object(iterables.to_dict(
-            (field_query.key, resolve_field(field_query))
-            for field_query in query.field_queries
-        ))
+        for field, field_handler in field_handlers.items():
+            @build_object.field(field)
+            def resolve_field(field_query):
+                field_resolver = field_handlers[field_query.field]
+                return lambda _: injector.call_with_dependencies(field_resolver, graph, field_query.type_query, field_query.args)
+
+        return build_object(None)
 
     def field(field):
         def add_handler(handle):

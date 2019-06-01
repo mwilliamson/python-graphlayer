@@ -167,10 +167,13 @@ class Parser(object):
         return field.query(key=key, args=args, type_query=type_query)
 
     def _get_field(self, graph_type, field_name):
-        while isinstance(graph_type, (schema.ListType, schema.NullableType)):
-            graph_type = graph_type.element_type
+        if field_name == "__typename":
+            return schema.typename_field
+        else:
+            while isinstance(graph_type, (schema.ListType, schema.NullableType)):
+                graph_type = graph_type.element_type
 
-        return self._lookup_camel_case_name(graph_type.fields, field_name)
+            return self._lookup_camel_case_name(graph_type.fields, field_name)
 
     def _read_value_node(self, value, value_type):
         graphql_value = self._read_graphql_value(value)

@@ -511,6 +511,7 @@ class ObjectQuery(object):
 
 
 def _field_queries_for_type(field_queries, target_type):
+    # TODO: check that target_type is an interface of concrete type
     if isinstance(target_type, InterfaceType):
         return field_queries
     else:
@@ -521,7 +522,8 @@ def _field_queries_for_type(field_queries, target_type):
         )
 
         def field_query_for_type(field_query):
-            if field_query.field in target_type.fields:
+            # TODO: test typename_field outside of GraphQL
+            if field_query.field in target_type.fields or field_query.field == typename_field:
                 return field_query
             elif field_query.field in supertype_fields:
                 field = iterables.find(
@@ -762,3 +764,6 @@ def _indent(value):
 
 def _coercion_error(value, target_type):
     raise GraphError("cannot coerce {!r} to {}".format(value, target_type))
+
+
+typename_field = field("type_name", type=String)
