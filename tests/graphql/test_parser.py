@@ -1054,6 +1054,29 @@ class TestDirectives(object):
             ),
         ))
 
+    def test_when_skip_directive_is_true_then_field_is_excluded(self):
+        Root = g.ObjectType(
+            "Root",
+            (
+                g.field("one", type=g.Int),
+            ),
+        )
+
+        graphql_query = """
+            query {
+                includedField: one @skip(if: false)
+                excludedField: one @skip(if: true)
+            }
+        """
+
+        object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+        assert_that(object_query, is_query(
+            Root(
+                g.key("includedField", Root.fields.one()),
+            ),
+        ))
+
 
 def _document_text_to_graph_query(document_text, *, query_type, mutation_type=None, types=None, variables=None):
     schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)

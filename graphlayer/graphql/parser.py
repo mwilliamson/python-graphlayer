@@ -4,7 +4,7 @@ from functools import reduce
 from graphql import GraphQLError
 from graphql.execution.values import get_argument_values
 from graphql.language import ast as graphql_ast, parser as graphql_parser
-from graphql.type.directives import GraphQLIncludeDirective
+from graphql.type.directives import GraphQLIncludeDirective, GraphQLSkipDirective
 from graphql.validation import validate as graphql_validate
 
 from .. import schema
@@ -147,6 +147,12 @@ class Parser(object):
                 args = get_argument_values(GraphQLIncludeDirective.args, directive.arguments, self._variables)
                 if args.get("if") is False:
                     return False
+
+            elif name == "skip":
+                args = get_argument_values(GraphQLSkipDirective.args, directive.arguments, self._variables)
+                if args.get("if") is True:
+                    return False
+
             else:
                 raise Exception("Unknown directive: {}".format(name))
 
