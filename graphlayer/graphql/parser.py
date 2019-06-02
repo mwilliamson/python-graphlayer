@@ -154,7 +154,7 @@ class Parser(object):
                     return False
 
             else:
-                raise Exception("Unknown directive: {}".format(name))
+                raise GraphQLError("unknown directive: {}".format(name))
 
         return True
 

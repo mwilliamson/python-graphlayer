@@ -1077,6 +1077,22 @@ class TestDirectives(object):
             ),
         ))
 
+    def test_when_directive_is_unrecognised_then_error_is_raised(self):
+        Root = g.ObjectType(
+            "Root",
+            (
+                g.field("one", type=g.Int),
+            ),
+        )
+
+        graphql_query = """
+            query {
+                includedField: one @blah(if: false)
+            }
+        """
+
+        pytest.raises(GraphQLError, lambda: _document_text_to_graph_query(graphql_query, query_type=Root))
+
 
 def _document_text_to_graph_query(document_text, *, query_type, mutation_type=None, types=None, variables=None):
     schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
