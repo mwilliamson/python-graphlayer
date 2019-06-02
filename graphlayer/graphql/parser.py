@@ -140,7 +140,7 @@ class Parser(object):
         query = self.read_selection_set(
             fragment.selection_set,
             graph_type=type_condition_type,
-        )
+        ).for_type(schema.to_element_type(graph_type))
 
         return self._coerce_object_query(query, graph_type=graph_type)
 

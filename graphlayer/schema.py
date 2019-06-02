@@ -476,8 +476,8 @@ class ObjectQuery(object):
 
     def __init__(self, type, field_queries, *, create_object):
         self.type = type
-        # TODO: test this directly (not just in GraphQL parser)
-        self.field_queries = _field_queries_for_type(tuple(field_queries), type)
+        # TODO: check field queries are valid
+        self.field_queries = tuple(field_queries)
         self.create_object = create_object
 
     # TODO: handling merging of other query types
@@ -793,3 +793,10 @@ def _query_coercion_error(source_type, target_type):
 
 
 typename_field = field("type_name", type=String)
+
+
+def to_element_type(graph_type):
+    if isinstance(graph_type, (ListType, NullableType)):
+        return to_element_type(graph_type.element_type)
+    else:
+        return graph_type
