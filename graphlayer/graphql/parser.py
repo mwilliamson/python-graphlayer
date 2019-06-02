@@ -2,7 +2,9 @@ from copy import copy
 from functools import reduce
 
 from graphql import GraphQLError
+from graphql.execution.values import get_argument_values
 from graphql.language import ast as graphql_ast, parser as graphql_parser
+from graphql.type.directives import GraphQLIncludeDirective
 from graphql.validation import validate as graphql_validate
 
 from .. import schema
@@ -121,8 +123,13 @@ class Parser(object):
 
     def _read_graphql_selection(self, selection, graph_type):
         if isinstance(selection, graphql_ast.Field):
-            field_query = self._read_graphql_field(selection, graph_type=graph_type)
-            return graph_type.query(field_queries=(field_query, ), create_object=_create_object)
+            if self._should_include_field(selection):
+                field_query = self._read_graphql_field(selection, graph_type=graph_type)
+                field_queries = (field_query, )
+            else:
+                field_queries = ()
+
+            return graph_type.query(field_queries=field_queries, create_object=_create_object)
 
         elif isinstance(selection, graphql_ast.InlineFragment):
             return self._read_graphql_fragment(selection, graph_type=graph_type)
@@ -132,6 +139,18 @@ class Parser(object):
 
         else:
             raise Exception("Unhandled selection type: {}".format(type(selection)))
+
+    def _should_include_field(self, field):
+        for directive in field.directives:
+            name = directive.name.value
+            if name == "include":
+                args = get_argument_values(GraphQLIncludeDirective.args, directive.arguments, self._variables)
+                if args.get("if") is False:
+                    return False
+            else:
+                raise Exception("Unknown directive: {}".format(name))
+
+        return True
 
     def _read_graphql_fragment(self, fragment, graph_type):
         type_condition_type_name = fragment.type_condition.name.value
