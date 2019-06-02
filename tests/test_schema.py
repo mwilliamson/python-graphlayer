@@ -796,5 +796,17 @@ class TestCollectTypes(object):
         assert_that(collected_types, includes(Person))
 
 
+@pytest.mark.parametrize("graph_type, element_type", (
+    (schema.ListType(schema.Boolean), schema.Boolean),
+    (schema.NullableType(schema.Boolean), schema.Boolean),
+    (schema.Boolean, schema.Boolean),
+    (schema.ListType(schema.ListType(schema.Boolean)), schema.Boolean),
+    (schema.NullableType(schema.NullableType(schema.Boolean)), schema.Boolean),
+    (schema.ListType(schema.NullableType(schema.Boolean)), schema.Boolean),
+))
+def test_to_element_type(graph_type, element_type):
+    assert_that(schema.to_element_type(graph_type), equal_to(element_type))
+
+
 def dedent(value):
     return textwrap.dedent(value).strip()
