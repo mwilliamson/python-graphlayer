@@ -512,7 +512,9 @@ class ObjectQuery(object):
                 self.type in target_type.interfaces
             ) or
             (
-                isinstance(self.type, ObjectType)
+                isinstance(self.type, ObjectType) and
+                isinstance(target_type, InterfaceType) and
+                target_type in self.type.interfaces
             )
         ):
             field_queries = _field_queries_for_type(self.field_queries, target_type)

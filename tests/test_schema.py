@@ -534,6 +534,34 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_cannot_convert_query_for_object_to_unrelated_object(self):
+        Item = schema.ObjectType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.ObjectType("Song", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        query = Song(
+            schema.key("title", Song.fields.title()),
+        )
+
+        error = pytest.raises(TypeError, lambda: query.for_type(Item))
+        assert_that(str(error.value), equal_to("cannot coerce query for Song to query for Item"))
+
+    def test_cannot_convert_query_for_object_to_unrelated_interface(self):
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.ObjectType("Song", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        query = Song(
+            schema.key("title", Song.fields.title()),
+        )
+
+        error = pytest.raises(TypeError, lambda: query.for_type(Item))
+        assert_that(str(error.value), equal_to("cannot coerce query for Song to query for Item"))
+
     def test_list_type_for_type_calls_for_type_on_element_query(self):
         Item = schema.InterfaceType("Item", fields=(
         ))
