@@ -1054,6 +1054,33 @@ class TestDirectives(object):
             ),
         ))
 
+    def test_when_directives_can_use_variables(self):
+        Root = g.ObjectType(
+            "Root",
+            (
+                g.field("one", type=g.Int),
+            ),
+        )
+
+        graphql_query = """
+            query ($t: Boolean!, $f: Boolean!) {
+                includedField: one @include(if: $t)
+                excludedField: one @include(if: $f)
+            }
+        """
+
+        object_query = _document_text_to_graph_query(
+            graphql_query,
+            query_type=Root,
+            variables={"t": True, "f": False},
+        )
+
+        assert_that(object_query, is_query(
+            Root(
+                g.key("includedField", Root.fields.one()),
+            ),
+        ))
+
     def test_when_skip_directive_is_true_then_field_is_excluded(self):
         Root = g.ObjectType(
             "Root",
