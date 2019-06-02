@@ -478,7 +478,7 @@ class TestForType(object):
         error = pytest.raises(TypeError, lambda: query.for_type(Book))
         assert_that(str(error.value), equal_to("cannot coerce query for Item to query for Book"))
 
-    def test_object_type_for_type_retains_fields_for_subtypes(self):
+    def test_converting_query_for_interface_to_same_interface_keeps_fields_for_subtypes(self):
         Item = schema.InterfaceType("Item", fields=(
             schema.field("title", type=schema.String),
         ))
