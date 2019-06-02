@@ -800,3 +800,12 @@ def to_element_type(graph_type):
         return to_element_type(graph_type.element_type)
     else:
         return graph_type
+
+
+def replace_element_type(graph_type, element_type):
+    if isinstance(graph_type, ListType):
+        return ListType(replace_element_type(graph_type.element_type, element_type))
+    elif isinstance(graph_type, NullableType):
+        return NullableType(replace_element_type(graph_type.element_type, element_type))
+    else:
+        return element_type

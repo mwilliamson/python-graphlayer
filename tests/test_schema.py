@@ -808,5 +808,29 @@ def test_to_element_type(graph_type, element_type):
     assert_that(schema.to_element_type(graph_type), equal_to(element_type))
 
 
+@pytest.mark.parametrize("graph_type, element_type, expected", (
+    (schema.ListType(schema.Boolean), schema.String, schema.ListType(schema.String)),
+    (schema.NullableType(schema.Boolean), schema.String, schema.NullableType(schema.String)),
+    (schema.Boolean, schema.String, schema.String),
+    (
+        schema.ListType(schema.ListType(schema.Boolean)),
+        schema.String,
+        schema.ListType(schema.ListType(schema.String)),
+    ),
+    (
+        schema.NullableType(schema.NullableType(schema.Boolean)),
+        schema.String,
+        schema.NullableType(schema.NullableType(schema.String)),
+    ),
+    (
+        schema.ListType(schema.NullableType(schema.Boolean)),
+        schema.String,
+        schema.ListType(schema.NullableType(schema.String)),
+    ),
+))
+def test_replace_element_type(graph_type, element_type, expected):
+    assert_that(schema.replace_element_type(graph_type, element_type), equal_to(expected))
+
+
 def dedent(value):
     return textwrap.dedent(value).strip()
