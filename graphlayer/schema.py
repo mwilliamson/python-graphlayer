@@ -254,6 +254,9 @@ class InterfaceType(object):
     def __repr__(self):
         return "InterfaceType(name={!r})".format(self.name)
 
+    def __str__(self):
+        return self.name
+
     def child_types(self):
         return _fields_child_types(self.fields)
 
@@ -501,6 +504,12 @@ class ObjectQuery(object):
     def for_type(self, target_type):
         if self.type == target_type:
             return self
+        elif (
+            isinstance(self.type, InterfaceType) and
+            isinstance(target_type, ObjectType) and
+            not self.type in target_type.interfaces
+        ):
+            raise _query_coercion_error(self.type, target_type)
         else:
             field_queries = _field_queries_for_type(self.field_queries, target_type)
             return ObjectQuery(

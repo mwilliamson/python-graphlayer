@@ -441,7 +441,7 @@ class TestForType(object):
         error = pytest.raises(TypeError, lambda: SeasonGraphType().for_type(QuarterGraphType))
         assert_that(str(error.value), equal_to("cannot coerce query for Season to query for Quarter"))
 
-    def test_object_type_for_type_filters_fields_to_those_for_type(self):
+    def test_converting_query_for_interface_to_object_filters_fields_to_those_for_object(self):
         Item = schema.InterfaceType("Item", fields=(
             schema.field("title", type=schema.String),
         ))
@@ -463,6 +463,20 @@ class TestForType(object):
             schema.key("title", Song.fields.title()),
             schema.key("length", Song.fields.length()),
         )))
+
+    def test_cannot_convert_query_for_interface_to_unrelated_object(self):
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Book = schema.ObjectType("Book", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        query = Item(
+            schema.key("title", Item.fields.title()),
+        )
+
+        error = pytest.raises(TypeError, lambda: query.for_type(Book))
+        assert_that(str(error.value), equal_to("cannot coerce query for Item to query for Book"))
 
     def test_object_type_for_type_retains_fields_for_subtypes(self):
         Item = schema.InterfaceType("Item", fields=(
