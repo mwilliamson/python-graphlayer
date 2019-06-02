@@ -542,7 +542,6 @@ class ObjectQuery(object):
 
 
 def _field_queries_for_type(field_queries, target_type):
-    # TODO: check that target_type is an interface of concrete type
     if isinstance(target_type, InterfaceType):
         return field_queries
     else:
