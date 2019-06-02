@@ -505,7 +505,19 @@ class ObjectQuery(object):
         if self.type == target_type:
             return self
 
-        elif (
+        elif self._is_in_type_hierarchy(target_type):
+            field_queries = _field_queries_for_type(self.field_queries, target_type)
+            return ObjectQuery(
+                type=target_type,
+                field_queries=field_queries,
+                create_object=self.create_object,
+            )
+
+        else:
+            raise _query_coercion_error(self.type, target_type)
+
+    def _is_in_type_hierarchy(self, target_type):
+        return (
             (
                 isinstance(self.type, InterfaceType) and
                 isinstance(target_type, ObjectType) and
@@ -516,16 +528,7 @@ class ObjectQuery(object):
                 isinstance(target_type, InterfaceType) and
                 target_type in self.type.interfaces
             )
-        ):
-            field_queries = _field_queries_for_type(self.field_queries, target_type)
-            return ObjectQuery(
-                type=target_type,
-                field_queries=field_queries,
-                create_object=self.create_object,
-            )
-
-        else:
-            raise _query_coercion_error(self.type, target_type)
+        )
 
     def __str__(self):
         field_queries = _format_tuple(
