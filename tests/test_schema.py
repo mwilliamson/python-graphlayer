@@ -502,6 +502,20 @@ class TestForType(object):
             schema.key("length", Book.fields.length()),
         )))
 
+    def test_cannot_convert_query_for_interface_to_unrelated_interface(self):
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.InterfaceType("Song", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        query = Item(
+            schema.key("title", Item.fields.title()),
+        )
+
+        error = pytest.raises(TypeError, lambda: query.for_type(Song))
+        assert_that(str(error.value), equal_to("cannot coerce query for Item to query for Song"))
+
     def test_list_type_for_type_calls_for_type_on_element_query(self):
         Item = schema.InterfaceType("Item", fields=(
         ))
