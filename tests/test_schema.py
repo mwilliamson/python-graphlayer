@@ -506,6 +506,12 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_cannot_change_type_of_list_query_to_non_list_query(self):
+        query = schema.ListType(schema.Boolean)()
+
+        error = pytest.raises(TypeError, lambda: query.for_type(schema.NullableType(schema.Boolean)))
+        assert_that(str(error.value), equal_to("cannot coerce query for List(Boolean) to query for Nullable(Boolean)"))
+
     def test_nullable_type_for_type_calls_for_type_on_element_query(self):
         Item = schema.InterfaceType("Item", fields=(
         ))
