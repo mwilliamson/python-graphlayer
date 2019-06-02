@@ -127,7 +127,13 @@ class EnumQuery(object):
         self.type = type
 
     def for_type(self, target_type):
-        return self
+        if self.type == target_type:
+            return self
+        else:
+            raise TypeError("cannot coerce query for {} to query for {}".format(
+                self.type,
+                target_type,
+            ))
 
     def __add__(self, other):
         if not isinstance(other, EnumQuery):

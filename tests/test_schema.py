@@ -428,6 +428,19 @@ class TestForType(object):
         query = SeasonGraphType().for_type(SeasonGraphType)
         assert_that(query, is_query(SeasonGraphType()))
 
+    def test_cannot_change_type_of_enum_query(self):
+        class Season(enum.Enum):
+            winter = "WINTER"
+
+        class Quarter(enum.Enum):
+            q1 = "Q1"
+
+        SeasonGraphType = schema.EnumType(Season)
+        QuarterGraphType = schema.EnumType(Quarter)
+
+        error = pytest.raises(TypeError, lambda: SeasonGraphType().for_type(QuarterGraphType))
+        assert_that(str(error.value), equal_to("cannot coerce query for Season to query for Quarter"))
+
     def test_object_type_for_type_filters_fields_to_those_for_type(self):
         Item = schema.InterfaceType("Item", fields=(
             schema.field("title", type=schema.String),
