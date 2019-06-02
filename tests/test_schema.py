@@ -410,8 +410,12 @@ class TestAdd(object):
 
 class TestForType(object):
     def test_scalar_query_for_type_is_scalar_query(self):
-        query = schema.Boolean().for_type(schema.Boolean())
+        query = schema.Boolean().for_type(schema.Boolean)
         assert_that(query, is_query(schema.Boolean()))
+
+    def test_cannot_change_type_of_scalar_query(self):
+        error = pytest.raises(TypeError, lambda: schema.Boolean().for_type(schema.String))
+        assert_that(str(error.value), equal_to("cannot coerce query for Boolean to query for String"))
 
     def test_enum_query_for_type_is_enum_query(self):
         class Season(enum.Enum):
