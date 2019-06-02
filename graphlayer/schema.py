@@ -775,7 +775,7 @@ def _indent(value):
 
 
 def _coercion_error(value, target_type):
-    raise GraphError("cannot coerce {!r} to {}".format(value, target_type))
+    return GraphError("cannot coerce {!r} to {}".format(value, target_type))
 
 
 typename_field = field("type_name", type=String)
