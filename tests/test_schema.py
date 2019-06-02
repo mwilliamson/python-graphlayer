@@ -516,6 +516,24 @@ class TestForType(object):
         error = pytest.raises(TypeError, lambda: query.for_type(Song))
         assert_that(str(error.value), equal_to("cannot coerce query for Item to query for Song"))
 
+    def test_converting_query_for_object_to_interface_keeps_fields_for_object(self):
+        Item = schema.InterfaceType("Item", fields=(
+            schema.field("title", type=schema.String),
+        ))
+        Song = schema.ObjectType("Song", interfaces=(Item, ), fields=(
+            schema.field("length", type=schema.Int),
+            schema.field("title", type=schema.String),
+        ))
+        query = Song(
+            schema.key("title", Song.fields.title()),
+            schema.key("length", Song.fields.length()),
+        )
+
+        assert_that(query.for_type(Item), is_query(Item(
+            schema.key("title", Song.fields.title()),
+            schema.key("length", Song.fields.length()),
+        )))
+
     def test_list_type_for_type_calls_for_type_on_element_query(self):
         Item = schema.InterfaceType("Item", fields=(
         ))
