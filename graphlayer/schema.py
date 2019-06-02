@@ -78,10 +78,7 @@ class ScalarQuery(object):
         if self.type == target_type:
             return self
         else:
-            raise TypeError("cannot coerce query for {} to query for {}".format(
-                self.type,
-                target_type,
-            ))
+            raise _query_coercion_error(self.type, target_type)
 
     def __add__(self, other):
         if not isinstance(other, ScalarQuery):
@@ -130,10 +127,7 @@ class EnumQuery(object):
         if self.type == target_type:
             return self
         else:
-            raise TypeError("cannot coerce query for {} to query for {}".format(
-                self.type,
-                target_type,
-            ))
+            raise _query_coercion_error(self.type, target_type)
 
     def __add__(self, other):
         if not isinstance(other, EnumQuery):
@@ -776,6 +770,13 @@ def _indent(value):
 
 def _coercion_error(value, target_type):
     return GraphError("cannot coerce {!r} to {}".format(value, target_type))
+
+
+def _query_coercion_error(source_type, target_type):
+    return TypeError("cannot coerce query for {} to query for {}".format(
+        source_type,
+        target_type,
+    ))
 
 
 typename_field = field("type_name", type=String)
