@@ -530,6 +530,12 @@ class TestForType(object):
             schema.key("length", Song.fields.length()),
         )))
 
+    def test_cannot_change_type_of_nullable_query_to_non_nullable_query(self):
+        query = schema.NullableType(schema.Boolean)()
+
+        error = pytest.raises(TypeError, lambda: query.for_type(schema.Boolean))
+        assert_that(str(error.value), equal_to("cannot coerce query for Nullable(Boolean) to query for Boolean"))
+
 
 class TestFieldQuery(object):
     def test_creating_field_query_specialises_type_of_type_query(self):

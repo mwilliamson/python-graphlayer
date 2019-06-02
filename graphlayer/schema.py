@@ -371,9 +371,11 @@ class NullableQuery(object):
         self.element_query = element_query
 
     def for_type(self, target_type):
-        assert isinstance(target_type, NullableType)
-        element_query = self.element_query.for_type(target_type.element_type)
-        return NullableQuery(type=target_type, element_query=element_query)
+        if isinstance(target_type, NullableType):
+            element_query = self.element_query.for_type(target_type.element_type)
+            return NullableQuery(type=target_type, element_query=element_query)
+        else:
+            raise _query_coercion_error(self.type, target_type)
 
     def __add__(self, other):
         if not isinstance(other, NullableQuery):
