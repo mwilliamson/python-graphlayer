@@ -161,7 +161,7 @@ def test_when_query_is_invalid_then_result_is_invalid():
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
     assert_that(result, is_invalid(errors=contains_exactly(
-        has_str('Cannot query field "bad" on type "Root".'),
+        has_attrs(message="Cannot query field 'bad' on type 'Root'."),
     )))
 
 
@@ -193,14 +193,13 @@ def test_when_resolution_raises_graph_error_then_result_is_invalid():
 
 
 def is_invalid(*, errors):
-    return has_attrs(errors=errors, invalid=True)
+    return has_attrs(errors=errors, data=None)
 
 
 def is_success(*, data):
     return has_attrs(
         data=data,
         errors=None,
-        invalid=False,
     )
 
 

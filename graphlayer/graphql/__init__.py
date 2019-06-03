@@ -46,7 +46,6 @@ def executor(*, query_type, mutation_type=None, types=None):
             return ExecutionResult(
                 data=None,
                 errors=[error],
-                invalid=True,
             )
 
     return execute

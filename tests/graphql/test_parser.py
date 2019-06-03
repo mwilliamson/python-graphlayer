@@ -82,8 +82,8 @@ def test_given_no_mutation_type_is_defined_when_operation_is_mutation_then_error
         lambda: _document_text_to_graph_query(graphql_query, query_type=QueryRoot),
     )
 
-    assert_that(str(error.value), equal_to("unsupported operation: mutation"))
-    assert_that(error.value.nodes, is_sequence(has_attrs(operation="mutation")))
+    assert_that(error.value.message, equal_to("unsupported operation: mutation"))
+    assert_that(error.value.nodes, is_sequence(has_attrs(operation=has_attrs(value="mutation"))))
 
 
 def test_fields_can_have_alias():
@@ -1004,7 +1004,7 @@ def test_query_is_validated():
     """
 
     error = pytest.raises(GraphQLError, lambda: _document_text_to_graph_query(graphql_query, query_type=Root))
-    assert_that(str(error.value), equal_to(('Cannot query field "x" on type "Root".')))
+    assert_that(error.value.message, equal_to("Cannot query field 'x' on type 'Root'."))
 
 
 def test_when_field_has_camel_case_name_then_field_can_be_referenced_in_query():
