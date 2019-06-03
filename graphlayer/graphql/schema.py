@@ -81,10 +81,12 @@ def create_graphql_schema(query_type, mutation_type, types=None):
     def to_graphql_input_field(graph_field):
         graphql_type = to_graphql_type(graph_field.type)
 
-        if graph_field.has_default and isinstance(graphql_type, graphql.GraphQLNonNull):
-            graphql_type = graphql_type.of_type
+        if graph_field.has_default:
+            default_value_kwargs = dict(default_value=graph_field.default)
+        else:
+            default_value_kwargs = dict()
 
-        return graphql.GraphQLInputField(type_=graphql_type)
+        return graphql.GraphQLInputField(type_=graphql_type, **default_value_kwargs)
 
     def to_graphql_fields(graph_fields):
         return lambda: iterables.to_dict(
@@ -103,11 +105,11 @@ def create_graphql_schema(query_type, mutation_type, types=None):
 
     def to_graphql_argument(param):
         graphql_type = to_graphql_type(param.type)
-
-        if param.has_default and isinstance(graphql_type, graphql.GraphQLNonNull):
-            graphql_type = graphql_type.of_type
-
-        return graphql.GraphQLArgument(type_=graphql_type)
+        if param.has_default:
+            default_value_kwargs = dict(default_value=param.default)
+        else:
+            default_value_kwargs = dict()
+        return graphql.GraphQLArgument(type_=graphql_type, **default_value_kwargs)
 
     graphql_query_type = to_graphql_type(query_type).of_type
     if mutation_type is None:

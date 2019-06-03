@@ -173,7 +173,7 @@ def test_param_names_are_converted_from_snake_case_to_camel_case():
     ))
 
 
-def test_when_param_has_default_then_param_is_converted_to_nullable_graphql_arg():
+def test_when_param_has_default_then_param_is_converted_to_graphql_arg_with_default():
     graph_type = g.ObjectType("Obj", fields=(
         g.field("value", type=g.String, params=(
             g.param("arg", g.Int, default=42),
@@ -184,7 +184,10 @@ def test_when_param_has_default_then_param_is_converted_to_nullable_graphql_arg(
         is_graphql_object_type(
             fields=is_mapping({
                 "value": is_graphql_field(args=is_mapping({
-                    "arg": is_graphql_argument(type=is_graphql_int),
+                    "arg": is_graphql_argument(
+                        type=is_graphql_non_null(is_graphql_int),
+                        default_value=42,
+                    ),
                 })),
             }),
         ),
@@ -220,7 +223,7 @@ def test_input_object_type_field_names_are_converted_from_snake_case_to_camel_ca
     ))
 
 
-def test_when_input_field_has_default_then_input_field_type_is_nullable():
+def test_when_input_field_has_default_then_graphql_field_has_default():
     graph_type = g.InputObjectType("Obj", fields=(
         g.input_field("value", type=g.String, default=""),
     ))
@@ -229,7 +232,10 @@ def test_when_input_field_has_default_then_input_field_type_is_nullable():
         is_graphql_input_object_type(
             name="Obj",
             fields=is_mapping({
-                "value": is_graphql_input_field(type=is_graphql_string),
+                "value": is_graphql_input_field(
+                    default_value="",
+                    type=is_graphql_non_null(is_graphql_string),
+                ),
             }),
         ),
     ))
@@ -273,10 +279,10 @@ def is_graphql_enum_value(value):
     )
 
 
-def is_graphql_input_field(type):
+def is_graphql_input_field(type, default_value=anything):
     return all_of(
         is_instance(graphql.GraphQLInputField),
-        has_attrs(type=type),
+        has_attrs(default_value=default_value, type=type),
     )
 
 
@@ -355,12 +361,12 @@ def is_graphql_field(type=None, args=None):
     )
 
 
-def is_graphql_argument(type=None):
+def is_graphql_argument(type=None, default_value=anything):
     if type is None:
         type = anything
 
     return all_of(
         is_instance(graphql.GraphQLArgument),
-        has_attrs(type=type),
+        has_attrs(default_value=default_value, type=type),
     )
 
