@@ -36,12 +36,12 @@ def test_enum_is_converted_to_non_null_enum_type():
 
     assert_that(graphql_type, is_graphql_non_null(is_graphql_enum_type(
         name="Season",
-        values=contains_exactly(
-            is_graphql_enum_value(name="WINTER", value="WINTER"),
-            is_graphql_enum_value(name="SPRING", value="SPRING"),
-            is_graphql_enum_value(name="SUMMER", value="SUMMER"),
-            is_graphql_enum_value(name="AUTUMN", value="AUTUMN"),
-        ),
+        values=is_mapping({
+            "WINTER": is_graphql_enum_value(value="WINTER"),
+            "SPRING": is_graphql_enum_value(value="SPRING"),
+            "SUMMER": is_graphql_enum_value(value="SUMMER"),
+            "AUTUMN": is_graphql_enum_value(value="AUTUMN"),
+        }),
     )))
 
 
@@ -240,7 +240,7 @@ def to_graphql_type(graph_type):
         g.field("value", type=graph_type),
     ))
     graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None).graphql_schema
-    return graphql_schema.get_query_type().fields["value"].type
+    return graphql_schema.query_type.fields["value"].type
 
 
 def to_graphql_input_type(graph_type):
@@ -250,7 +250,7 @@ def to_graphql_input_type(graph_type):
         )),
     ))
     graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None).graphql_schema
-    return graphql_schema.get_query_type().fields["value"].args["arg0"].type
+    return graphql_schema.query_type.fields["value"].args["arg0"].type
 
 
 is_graphql_boolean = equal_to(graphql.GraphQLBoolean)
@@ -266,16 +266,16 @@ def is_graphql_enum_type(name, values):
     )
 
 
-def is_graphql_enum_value(name, value):
+def is_graphql_enum_value(value):
     return all_of(
         is_instance(graphql.GraphQLEnumValue),
-        has_attrs(name=name, value=value),
+        has_attrs(value=value),
     )
 
 
 def is_graphql_input_field(type):
     return all_of(
-        is_instance(graphql.GraphQLInputObjectField),
+        is_instance(graphql.GraphQLInputField),
         has_attrs(type=type),
     )
 

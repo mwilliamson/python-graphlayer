@@ -32,31 +32,31 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
         raise(graphql_validation_errors[0])
 
     operation_index, operation = find(
-        lambda definition: isinstance(definition[1], graphql_ast.OperationDefinition),
+        lambda definition: isinstance(definition[1], graphql_ast.OperationDefinitionNode),
         enumerate(document_ast.definitions),
     )
 
-    if operation.operation == "query":
+    if operation.operation == graphql_ast.OperationType.QUERY:
         root_type = graphql_schema.query_type
-    elif operation.operation == "mutation" and graphql_schema.mutation_type is not None:
+    elif operation.operation == graphql_ast.OperationType.MUTATION and graphql_schema.mutation_type is not None:
         root_type = graphql_schema.mutation_type
     else:
         raise GraphQLError(
-            "unsupported operation: {}".format(operation.operation),
-            nodes=(operation, ),
+            "unsupported operation: {}".format(operation.operation.value),
+            nodes=[operation],
         )
 
     fragments = to_dict(
         (fragment.name.value, fragment)
         for fragment in filter(
-            lambda definition: isinstance(definition, graphql_ast.FragmentDefinition),
+            lambda definition: isinstance(definition, graphql_ast.FragmentDefinitionNode),
             document_ast.definitions,
         )
     )
 
     # TODO: handle fragments with __schema
     schema_selections, non_schema_selections = partition(
-        lambda selection: isinstance(selection, graphql_ast.Field) and selection.name.value == "__schema",
+        lambda selection: isinstance(selection, graphql_ast.FieldNode) and selection.name.value == "__schema",
         operation.selection_set.selections,
     )
 
@@ -125,14 +125,14 @@ class Parser(object):
         if not self._should_include_selection(selection):
             return graph_type.query(field_queries=(), create_object=_create_object)
 
-        elif isinstance(selection, graphql_ast.Field):
+        elif isinstance(selection, graphql_ast.FieldNode):
             field_query = self._read_graphql_field(selection, graph_type=graph_type)
             return graph_type.query(field_queries=(field_query, ), create_object=_create_object)
 
-        elif isinstance(selection, graphql_ast.InlineFragment):
+        elif isinstance(selection, graphql_ast.InlineFragmentNode):
             return self._read_graphql_fragment(selection, graph_type=graph_type)
 
-        elif isinstance(selection, graphql_ast.FragmentSpread):
+        elif isinstance(selection, graphql_ast.FragmentSpreadNode):
             return self._read_graphql_fragment(self._fragments[selection.name.value], graph_type=graph_type)
 
         else:
@@ -142,12 +142,12 @@ class Parser(object):
         for directive in selection.directives:
             name = directive.name.value
             if name == "include":
-                args = get_argument_values(GraphQLIncludeDirective.args, directive.arguments, self._variables)
+                args = get_argument_values(GraphQLIncludeDirective, directive, self._variables)
                 if args.get("if") is False:
                     return False
 
             elif name == "skip":
-                args = get_argument_values(GraphQLSkipDirective.args, directive.arguments, self._variables)
+                args = get_argument_values(GraphQLSkipDirective, directive, self._variables)
                 if args.get("if") is True:
                     return False
 
@@ -239,27 +239,27 @@ class Parser(object):
             raise ValueError("unhandled type: {}".format(type(value_type)))
 
     def _read_graphql_value(self, value):
-        if isinstance(value, graphql_ast.BooleanValue):
+        if isinstance(value, graphql_ast.BooleanValueNode):
             return value.value
-        elif isinstance(value, graphql_ast.EnumValue):
+        elif isinstance(value, graphql_ast.EnumValueNode):
             return value.value
-        elif isinstance(value, graphql_ast.FloatValue):
+        elif isinstance(value, graphql_ast.FloatValueNode):
             return float(value.value)
-        elif isinstance(value, graphql_ast.IntValue):
+        elif isinstance(value, graphql_ast.IntValueNode):
             return int(value.value)
-        elif isinstance(value, graphql_ast.ListValue):
+        elif isinstance(value, graphql_ast.ListValueNode):
             return [
                 self._read_graphql_value(element)
                 for element in value.values
             ]
-        elif isinstance(value, graphql_ast.ObjectValue):
+        elif isinstance(value, graphql_ast.ObjectValueNode):
             return to_dict(
                 (field_input.name.value, self._read_graphql_value(field_input.value))
                 for field_input in value.fields
             )
-        elif isinstance(value, graphql_ast.StringValue):
+        elif isinstance(value, graphql_ast.StringValueNode):
             return value.value
-        elif isinstance(value, graphql_ast.Variable):
+        elif isinstance(value, graphql_ast.VariableNode):
             name = value.name.value
             return self._variables[name]
         else:
