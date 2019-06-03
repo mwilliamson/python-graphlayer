@@ -9,7 +9,7 @@ def read(fname):
 
 setup(
     name='graphlayer',
-    version='0.1.7',
+    version='0.1.8',
     description='',
     long_description=read("README.rst"),
     author='Michael Williamson',
