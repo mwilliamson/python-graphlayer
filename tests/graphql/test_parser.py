@@ -1031,7 +1031,7 @@ def test_when_field_has_camel_case_name_then_field_can_be_referenced_in_query():
 
 
 class TestDirectives(object):
-    def test_when_include_directive_is_true_then_field_is_included(self):
+    def test_when_include_directive_is_true_then_selection_is_included(self):
         Root = g.ObjectType(
             "Root",
             (
@@ -1054,7 +1054,88 @@ class TestDirectives(object):
             ),
         ))
 
-    def test_when_directives_can_use_variables(self):
+    def test_when_skip_directive_is_true_then_selection_is_excluded(self):
+        Root = g.ObjectType(
+            "Root",
+            (
+                g.field("one", type=g.Int),
+            ),
+        )
+
+        graphql_query = """
+            query {
+                includedField: one @skip(if: false)
+                excludedField: one @skip(if: true)
+            }
+        """
+
+        object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+        assert_that(object_query, is_query(
+            Root(
+                g.key("includedField", Root.fields.one()),
+            ),
+        ))
+
+    def test_directives_can_be_used_on_inline_fragments(self):
+        Root = g.ObjectType(
+            "Root",
+            (
+                g.field("one", type=g.Int),
+            ),
+        )
+
+        graphql_query = """
+            query {
+                ... on Root @include(if: true) {
+                    includedField: one
+                }
+                ... on Root @include(if: false) {
+                    excludedField: one
+                }
+            }
+        """
+
+        object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+        assert_that(object_query, is_query(
+            Root(
+                g.key("includedField", Root.fields.one()),
+            ),
+        ))
+
+    def test_directives_can_be_used_on_fragment_spreads(self):
+        Root = g.ObjectType(
+            "Root",
+            (
+                g.field("one", type=g.Int),
+            ),
+        )
+
+        graphql_query = """
+            query {
+                ... IncludedFragment @include(if: true)
+                ... ExcludedFragment @include(if: false)
+            }
+
+            fragment IncludedFragment on Root {
+                includedField: one
+            }
+
+            fragment ExcludedFragment on Root {
+                excludedField: one
+            }
+        """
+
+        object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
+
+        assert_that(object_query, is_query(
+            Root(
+                g.key("includedField", Root.fields.one()),
+            ),
+        ))
+
+    def test_directives_can_use_variables(self):
         Root = g.ObjectType(
             "Root",
             (
@@ -1074,29 +1155,6 @@ class TestDirectives(object):
             query_type=Root,
             variables={"t": True, "f": False},
         )
-
-        assert_that(object_query, is_query(
-            Root(
-                g.key("includedField", Root.fields.one()),
-            ),
-        ))
-
-    def test_when_skip_directive_is_true_then_field_is_excluded(self):
-        Root = g.ObjectType(
-            "Root",
-            (
-                g.field("one", type=g.Int),
-            ),
-        )
-
-        graphql_query = """
-            query {
-                includedField: one @skip(if: false)
-                excludedField: one @skip(if: true)
-            }
-        """
-
-        object_query = _document_text_to_graph_query(graphql_query, query_type=Root)
 
         assert_that(object_query, is_query(
             Root(

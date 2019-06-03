@@ -122,14 +122,12 @@ class Parser(object):
             )
 
     def _read_graphql_selection(self, selection, graph_type):
-        if isinstance(selection, graphql_ast.Field):
-            if self._should_include_field(selection):
-                field_query = self._read_graphql_field(selection, graph_type=graph_type)
-                field_queries = (field_query, )
-            else:
-                field_queries = ()
+        if not self._should_include_selection(selection):
+            return graph_type.query(field_queries=(), create_object=_create_object)
 
-            return graph_type.query(field_queries=field_queries, create_object=_create_object)
+        elif isinstance(selection, graphql_ast.Field):
+            field_query = self._read_graphql_field(selection, graph_type=graph_type)
+            return graph_type.query(field_queries=(field_query, ), create_object=_create_object)
 
         elif isinstance(selection, graphql_ast.InlineFragment):
             return self._read_graphql_fragment(selection, graph_type=graph_type)
@@ -140,8 +138,8 @@ class Parser(object):
         else:
             raise Exception("Unhandled selection type: {}".format(type(selection)))
 
-    def _should_include_field(self, field):
-        for directive in field.directives:
+    def _should_include_selection(self, selection):
+        for directive in selection.directives:
             name = directive.name.value
             if name == "include":
                 args = get_argument_values(GraphQLIncludeDirective.args, directive.arguments, self._variables)
