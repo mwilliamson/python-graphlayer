@@ -54,9 +54,13 @@ def executor(*, query_type, mutation_type=None, types=None):
 
 def _execute_graphql_schema(graphql_schema_document, graphql_schema, variables):
     # TODO: handle errors
-    return graphql_execute(
+    result = graphql_execute(
         graphql_schema,
         graphql_schema_document,
         # TODO: variables
         variable_values=variables,
-    ).data
+    )
+    if result.errors:
+        raise result.errors[0]
+    else:
+        return result.data
