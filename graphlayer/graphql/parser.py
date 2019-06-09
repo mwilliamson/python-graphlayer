@@ -95,7 +95,7 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
             for graph_type in all_types
             if hasattr(graph_type, "name")
         )
-        parser = Parser(fragments=fragments, types=all_types_by_name, variables=variables)
+        parser = Parser(fragments=fragments, types=all_types_by_name, variables=variable_values.coerced)
         graph_query = parser.read_selection_set(
             _copy_with(operation.selection_set, selections=non_schema_selections),
             graph_type=root_type,
