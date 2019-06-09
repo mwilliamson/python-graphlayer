@@ -16,9 +16,10 @@ from .naming import snake_case_to_camel_case
 
 
 class GraphQLQuery(object):
-    def __init__(self, graph_query, graphql_schema_document):
+    def __init__(self, graph_query, graphql_schema_document, variables):
         self.graph_query = graph_query
         self.graphql_schema_document = graphql_schema_document
+        self.variables = variables
 
 
 def document_text_to_query(document_text, graphql_schema, variables=None):
@@ -105,6 +106,7 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
     return GraphQLQuery(
         graph_query,
         graphql_schema_document=schema_document,
+        variables=variable_values.coerced,
     )
 
 

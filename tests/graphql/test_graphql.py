@@ -117,6 +117,37 @@ def test_can_query_schema_with_other_data():
     })))
 
 
+def test_variables_can_be_used_in_schema_query():
+    Root = g.ObjectType("Root", fields=(
+        g.field("value", g.String),
+    ))
+
+    graph_definition = g.define_graph(resolvers=())
+    graph = graph_definition.create_graph({})
+
+    query = """
+        query ($f: Boolean!, $t: Boolean!) {
+            included: __schema @include(if: $t) {
+                queryType { name }
+            }
+            excluded: __schema @include(if: $f) {
+                queryType { name }
+            }
+        }
+    """
+
+    variables = {"t": True, "f": False}
+    result = graphql.execute(graph=graph, document_text=query, query_type=Root, variables=variables)
+
+    assert_that(result, is_success(data=equal_to({
+        "included": {
+            "queryType": {
+                "name": "Root",
+            },
+        },
+    })))
+
+
 def test_typename():
     Root = g.ObjectType("Root", fields=(
         g.field("value", g.String),

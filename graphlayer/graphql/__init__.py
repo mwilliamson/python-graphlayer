@@ -34,6 +34,7 @@ def executor(*, query_type, mutation_type=None, types=None):
                 schema_result = _execute_graphql_schema(
                     graphql_schema_document=query.graphql_schema_document,
                     graphql_schema=graphql_schema.graphql_schema,
+                    variables=query.variables,
                 )
                 result = result.copy()
                 result.update(schema_result)
@@ -51,11 +52,11 @@ def executor(*, query_type, mutation_type=None, types=None):
     return execute
 
 
-def _execute_graphql_schema(graphql_schema_document, graphql_schema):
+def _execute_graphql_schema(graphql_schema_document, graphql_schema, variables):
     # TODO: handle errors
     return graphql_execute(
         graphql_schema,
         graphql_schema_document,
         # TODO: variables
-        variable_values={},
+        variable_values=variables,
     ).data
