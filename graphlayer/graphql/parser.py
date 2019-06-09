@@ -255,6 +255,8 @@ class Parser(object):
             return float(value.value)
         elif isinstance(value, graphql_ast.IntValueNode):
             return int(value.value)
+        elif isinstance(value, graphql_ast.NullValueNode):
+            return None
         elif isinstance(value, graphql_ast.ListValueNode):
             return [
                 self._read_graphql_value(element)

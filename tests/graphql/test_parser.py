@@ -693,7 +693,7 @@ class Season(enum.Enum):
     (g.String, '"value"', "value"),
     (g.EnumType(Season), 'WINTER', Season.winter),
     (g.NullableType(g.Int), "42", 42),
-    #~ (g.NullableType(g.Int), "null", None),
+    (g.NullableType(g.Int), "null", None),
     (g.ListType(g.Int), "[]", []),
     (g.ListType(g.Int), "[1, 2, 3]", [1, 2, 3]),
     (
