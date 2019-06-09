@@ -819,6 +819,29 @@ def test_graphql_arg_values_from_variables_are_converted(graph_type, graphql_typ
     ))
 
 
+def test_when_variable_is_missing_then_error_is_raised():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, params=[
+                g.param("arg", type=g.Int),
+            ]),
+        ),
+    )
+
+    graphql_query = """
+        query ($var: Int!) {
+            one(arg: $var)
+        }
+    """
+
+    error = pytest.raises(
+        GraphQLError,
+        lambda: _document_text_to_graph_query(graphql_query, query_type=Root, variables={}),
+    )
+    assert_that(error.value.message, equal_to("Variable '$var' of required type 'Int!' was not provided."))
+
+
 def test_when_arg_is_not_set_then_default_is_used():
     Root = g.ObjectType(
         "Root",

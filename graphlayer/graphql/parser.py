@@ -2,7 +2,7 @@ from copy import copy
 from functools import reduce
 
 from graphql import GraphQLError
-from graphql.execution.values import get_argument_values
+from graphql.execution.values import get_argument_values, get_variable_values
 from graphql.language import ast as graphql_ast, parser as graphql_parser
 from graphql.type.directives import GraphQLIncludeDirective, GraphQLSkipDirective
 from graphql.validation import validate as graphql_validate
@@ -45,6 +45,14 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
             "unsupported operation: {}".format(operation.operation.value),
             nodes=[operation],
         )
+
+    variable_definitions = [
+        variable_definition
+        for variable_definition in (operation.variable_definitions or [])
+    ]
+    variable_values = get_variable_values(graphql_schema.graphql_schema, variable_definitions, variables)
+    if variable_values.errors:
+        raise variable_values.errors[0]
 
     fragments = to_dict(
         (fragment.name.value, fragment)
