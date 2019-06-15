@@ -273,7 +273,7 @@ class Parser(object):
             return value.value
         elif isinstance(value, graphql_ast.VariableNode):
             name = value.name.value
-            return self._variables[name]
+            return self._variables.get(name)
         else:
             raise ValueError("unhandled value: {}".format(type(value)))
 

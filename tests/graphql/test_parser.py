@@ -819,7 +819,34 @@ def test_graphql_arg_values_from_variables_are_converted(graph_type, graphql_typ
     ))
 
 
-def test_when_variable_is_missing_then_error_is_raised():
+def test_when_null_variable_is_missing_then_variable_is_null():
+    Root = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("one", type=g.Int, params=[
+                g.param("arg", type=g.NullableType(g.Int)),
+            ]),
+        ),
+    )
+
+    graphql_query = """
+        query ($var: Int) {
+            one(arg: $var)
+        }
+    """
+
+    object_query = _document_text_to_graph_query(graphql_query, query_type=Root, variables={})
+
+    assert_that(object_query, is_query(
+        Root(
+            g.key("one", Root.fields.one(
+                Root.fields.one.params.arg(None),
+            )),
+        ),
+    ))
+
+
+def test_when_non_null_variable_is_missing_then_error_is_raised():
     Root = g.ObjectType(
         "Root",
         fields=(
