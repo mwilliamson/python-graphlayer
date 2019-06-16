@@ -449,9 +449,10 @@ def sql_table_resolver(type, model, fields):
         remainder_slice = slice(len(query_expressions), None)
 
         def read_row(row):
-            fields = {}
-            for key, row_slice, read in readers:
-                fields[key] = read(row[row_slice])
+            fields = {
+                key: read(row[row_slice])
+                for key, row_slice, read in readers
+            }
             obj = query.create_object(fields)
             return process_row(row[remainder_slice], obj)
 
