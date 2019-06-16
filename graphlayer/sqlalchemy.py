@@ -1,4 +1,5 @@
 import collections
+import textwrap
 
 import sqlalchemy.orm
 
@@ -436,7 +437,7 @@ def sql_table_resolver(type, model, fields):
 
         for field_query in query.field_queries:
             expressions = get_field(field_query).expressions()
-            row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions)))
+            row_slices.append("{}:{}".format(len(query_expressions), len(query_expressions) + len(expressions)))
             query_expressions += expressions
 
         row_query = base_query.add_columns(*query_expressions).add_columns(*extra_expressions)
@@ -446,14 +447,32 @@ def sql_table_resolver(type, model, fields):
             reader = get_field(field_query).create_reader(base_query, field_query=field_query, injector=injector)
             readers.append((field_query.key, row_slice, reader))
 
-        remainder_slice = slice(len(query_expressions), None)
+        read_row_locals = dict(
+            create_object=query.create_object,
+            process_row=process_row,
+        )
 
-        def read_row(row):
-            fields = {}
-            for key, row_slice, read in readers:
-                fields[key] = read(row[row_slice])
-            obj = query.create_object(fields)
-            return process_row(row[remainder_slice], obj)
+        for reader_index, (key, row_slice, reader) in enumerate(readers):
+            read_row_locals["read_{}".format(reader_index)] = reader
+
+        exec(
+            textwrap.dedent("""\
+                def read_row(row):
+                    fields = {{{fields}}}
+                    obj = create_object(fields)
+                    return process_row(row[{remainder_index}:], obj)
+            """).format(
+                fields="\n".join(
+                    "\"{}\": read_{}(row[{}]),".format(key, reader_index, row_slice)
+                    for reader_index, (key, row_slice, reader) in enumerate(readers)
+                ),
+                remainder_index=len(query_expressions),
+            ),
+            read_row_locals,
+            None,
+        )
+
+        read_row = read_row_locals["read_row"]
 
         return [
             read_row(row)
