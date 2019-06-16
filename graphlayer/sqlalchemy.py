@@ -159,8 +159,10 @@ class _JoinField(object):
 
             result = _result_reader(field_query.type_query).join_associations(associations, right_result)
 
+        read_key = self._key.read
+
         def read(row):
-            return result[self._key.read(row)]
+            return result[read_key(row)]
 
         return read
 
@@ -444,14 +446,14 @@ def sql_table_resolver(type, model, fields):
             reader = get_field(field_query).create_reader(base_query, field_query=field_query, injector=injector)
             readers.append((field_query.key, row_slice, reader))
 
+        remainder_slice = slice(len(query_expressions), None)
+
         def read_row(row):
-            return process_row(
-                row[len(query_expressions):],
-                query.create_object(iterables.to_dict(
-                    (key, read(row[row_slice]))
-                    for key, row_slice, read in readers
-                ))
-            )
+            fields = {}
+            for key, row_slice, read in readers:
+                fields[key] = read(row[row_slice])
+            obj = query.create_object(fields)
+            return process_row(row[remainder_slice], obj)
 
         return [
             read_row(row)
