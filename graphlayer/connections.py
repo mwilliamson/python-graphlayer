@@ -9,6 +9,7 @@ def forward_connection(*, connection_type_name, node_type, select_by_cursor, fet
         connection_type_name,
         fields=lambda: (
             g.field("edges", type=g.ListType(Edge)),
+            g.field("nodes", type=g.ListType(node_type)),
             g.field("page_info", type=PageInfo),
         ),
     )
@@ -69,6 +70,16 @@ def forward_connection(*, connection_type_name, node_type, select_by_cursor, fet
                 build_edge(edge_cursor)
                 for edge_cursor in edge_cursors
             ]
+
+        @build_connection.field(Connection.fields.nodes)
+        def field_nodes(field_query):
+            nodes = graph.resolve(
+                select_by_cursor(field_query.type_query.element_query, edge_cursors)
+            )
+
+            result = [nodes[edge_cursor] for edge_cursor in edge_cursors]
+
+            return lambda _: result
 
         @build_connection.field(Connection.fields.page_info)
         def field_page_info(field_query):

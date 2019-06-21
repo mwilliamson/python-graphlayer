@@ -302,3 +302,33 @@ def test_edge_cursor_can_be_used_as_after_argument_to_get_next_page():
             has_attrs(node=has_attrs(title="Catch-22")),
         ),
     ))
+
+
+def test_nodes_can_be_fetched_directly():
+    graph = create_graph({
+        42: "Leave it to Psmith",
+        43: "The Gentleman's Guide to Vice and Virtue",
+        44: "Catch-22",
+    })
+
+    result = graph.resolve(
+        Query(
+            g.key("books", Query.fields.books_connection(
+                Query.fields.books_connection.params.first(2),
+
+                g.key("nodes", BooksConnection.fields.nodes(
+                    g.key("title", Book.fields.title()),
+                )),
+                g.key("page_info", BooksConnection.fields.page_info(
+                    g.key("has_next_page", PageInfo.fields.has_next_page()),
+                )),
+            )),
+        )
+    )
+
+    assert_that(result.books, has_attrs(
+        nodes=contains_exactly(
+            has_attrs(title="Leave it to Psmith"),
+            has_attrs(title="The Gentleman's Guide to Vice and Virtue"),
+        ),
+    ))
