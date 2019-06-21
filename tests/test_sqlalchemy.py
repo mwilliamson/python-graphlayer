@@ -7,6 +7,7 @@ import pytest
 
 import graphlayer as g
 from graphlayer import schema, sqlalchemy as gsql
+import graphlayer.connections
 from graphlayer.resolvers import root_object_resolver
 
 
@@ -2025,6 +2026,95 @@ def test_when_type_is_interface_then_typename_field_is_unresolved():
 
     error = pytest.raises(g.GraphError, lambda: graph.resolve(query))
     assert_that(str(error.value), equal_to("Resolver missing for field type_name"))
+
+
+def test_connection_uses_primary_key_to_order_objects():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith"))
+    session.add(BookRow(c_title="The Gentleman's Guide to Vice and Virtue"))
+    session.add(BookRow(c_title="Catch-22"))
+    session.commit()
+
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("title", type=g.String),
+        ],
+    )
+
+    book_resolver = gsql.sql_table_resolver(
+        Book,
+        BookRow,
+        fields={
+            Book.fields.title: gsql.expression(BookRow.c_title),
+        },
+    )
+
+    books_connection = gsql.forward_connection(
+        connection_type_name="BooksConnection",
+        node_type=Book,
+        sql_entity=BookRow,
+        key=BookRow.c_id,
+        select_by_key=lambda query, keys: gsql.select(query).by(BookRow.c_id, keys),
+    )
+    BooksConnection = books_connection.Connection
+    PageInfo = graphlayer.connections.PageInfo
+
+    Query = g.ObjectType(
+        "Query",
+        fields=lambda: (
+            books_connection.field("books_connection"),
+        ),
+    )
+
+    resolve_query = g.root_object_resolver(Query)
+
+    @resolve_query.field(Query.fields.books_connection)
+    def resolve_query_field_books_connection(graph, query, args):
+        return graph.resolve(books_connection.select_field(query, args=args))
+
+    resolvers = (book_resolver, books_connection.resolvers, resolve_query)
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({
+        sqlalchemy.orm.Session: session,
+    })
+
+    result = graph.resolve(
+        Query(
+            g.key("books", Query.fields.books_connection(
+                Query.fields.books_connection.params.first(2),
+
+                g.key("nodes", BooksConnection.fields.nodes(
+                    g.key("title", Book.fields.title()),
+                )),
+                g.key("page_info", BooksConnection.fields.page_info(
+                    g.key("has_next_page", PageInfo.fields.has_next_page()),
+                )),
+            )),
+        )
+    )
+
+    assert_that(result, has_attrs(
+        books=has_attrs(
+            nodes=contains_exactly(
+                has_attrs(title="Leave it to Psmith"),
+                has_attrs(title="The Gentleman's Guide to Vice and Virtue"),
+            ),
+            page_info=has_attrs(has_next_page=True),
+        ),
+    ))
 
 
 def test_sql_query_type_str():

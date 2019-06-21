@@ -3,7 +3,7 @@ import collections
 import sqlalchemy.orm
 
 import graphlayer as g
-from . import iterables, schema
+from . import connections, iterables, schema
 from .core import Injector
 from .memo import memoize
 
@@ -462,3 +462,24 @@ def sql_table_resolver(type, model, fields):
         ]
 
     return resolve_sql_query
+
+
+def forward_connection(*, connection_type_name, node_type, sql_entity, key, select_by_key):
+    @g.dependencies(session=sqlalchemy.orm.Session)
+    def fetch_keys(*, after_cursor, limit, session):
+        query = session.query(key).order_by(key)
+
+        if after_cursor is not None:
+            query = query.filter(key > after_cursor)
+
+        query = query.limit(limit)
+
+        return [value for value, in query]
+
+    return connections.forward_connection(
+        connection_type_name=connection_type_name,
+        node_type=node_type,
+        select_by_cursor=select_by_key,
+        fetch_cursors=fetch_keys,
+        cursor_encoding=connections.int_cursor_encoding,
+    )
