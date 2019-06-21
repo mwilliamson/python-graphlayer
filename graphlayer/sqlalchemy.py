@@ -464,7 +464,7 @@ def sql_table_resolver(type, model, fields):
     return resolve_sql_query
 
 
-def forward_connection(*, connection_type_name, node_type, sql_entity, key, select_by_key):
+def forward_connection(*, connection_type_name, node_type, key, select_by_key):
     @g.dependencies(session=sqlalchemy.orm.Session)
     def fetch_keys(*, after_cursor, limit, session):
         query = session.query(key).order_by(key)

@@ -2065,7 +2065,6 @@ def test_connection_uses_primary_key_to_order_objects():
     books_connection = gsql.forward_connection(
         connection_type_name="BooksConnection",
         node_type=Book,
-        sql_entity=BookRow,
         key=BookRow.c_id,
         select_by_key=lambda query, keys: gsql.select(query).by(BookRow.c_id, keys),
     )
