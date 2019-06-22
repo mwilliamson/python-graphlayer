@@ -25,7 +25,10 @@ def forward_connection(*, connection_type_name, node_type, select_by_cursor, fet
     class ConnectionQuery(object):
         @staticmethod
         def select_field(query, *, args):
-            return ConnectionQuery(type_query=query, first=args.first, after=args.after)
+            if args.first < 0:
+                raise g.GraphError("first must be non-negative integer, was {}".format(args.first))
+            else:
+                return ConnectionQuery(type_query=query, first=args.first, after=args.after)
 
         def __init__(self, *, type_query, first, after):
             self.type = ConnectionQuery

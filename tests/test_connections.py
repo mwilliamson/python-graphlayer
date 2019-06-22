@@ -1,4 +1,5 @@
-from precisely import assert_that, contains_exactly, has_attrs
+from precisely import assert_that, contains_exactly, equal_to, has_attrs
+import pytest
 
 import graphlayer as g
 import graphlayer.connections
@@ -332,3 +333,20 @@ def test_nodes_can_be_fetched_directly():
             has_attrs(title="The Gentleman's Guide to Vice and Virtue"),
         ),
     ))
+
+
+def test_when_first_is_negative_then_error_is_raised():
+    graph = create_graph({})
+
+    query = Query(
+        g.key("books", Query.fields.books_connection(
+            Query.fields.books_connection.params.first(-1),
+            g.key("page_info", BooksConnection.fields.page_info(
+                g.key("has_next_page", PageInfo.fields.has_next_page()),
+            )),
+        )),
+    )
+
+    error = pytest.raises(g.GraphError, lambda: graph.resolve(query))
+
+    assert_that(str(error.value), equal_to("first must be non-negative integer, was -1"))
