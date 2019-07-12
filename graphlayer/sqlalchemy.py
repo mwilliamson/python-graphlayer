@@ -438,9 +438,6 @@ def sql_table_resolver(type, model, fields):
             row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions)))
             query_expressions += expressions
 
-        row_query = base_query.add_columns(*query_expressions).add_columns(*extra_expressions)
-        rows = row_query.with_session(session)
-
         readers = None
 
         def generate_readers():
@@ -451,8 +448,6 @@ def sql_table_resolver(type, model, fields):
                 readers.append((field_query.key, row_slice, reader))
 
             return readers
-
-        remainder_slice = slice(len(query_expressions), None)
 
         def read_row(row):
             nonlocal readers
@@ -471,6 +466,14 @@ def sql_table_resolver(type, model, fields):
             }
             obj = query.create_object(fields)
             return process_row(row[remainder_slice], obj)
+
+        remainder_slice = slice(len(query_expressions), None)
+
+        if len(query_expressions) == 0:
+            query_expressions.append(sqlalchemy.literal(None))
+
+        row_query = base_query.add_columns(*query_expressions).add_columns(*extra_expressions)
+        rows = row_query.with_session(session)
 
         return [
             read_row(row)
