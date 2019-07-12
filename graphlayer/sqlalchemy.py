@@ -432,7 +432,6 @@ def sql_table_resolver(type, model, fields):
             base_query = base_query.limit(limit)
 
         row_slices = []
-        readers = []
 
         for field_query in query.field_queries:
             expressions = get_field(field_query).expressions()
@@ -442,13 +441,30 @@ def sql_table_resolver(type, model, fields):
         row_query = base_query.add_columns(*query_expressions).add_columns(*extra_expressions)
         rows = row_query.with_session(session)
 
-        for field_query, row_slice in zip(query.field_queries, row_slices):
-            reader = get_field(field_query).create_reader(base_query, field_query=field_query, injector=injector)
-            readers.append((field_query.key, row_slice, reader))
+        readers = None
+
+        def generate_readers():
+            readers = []
+
+            for field_query, row_slice in zip(query.field_queries, row_slices):
+                reader = get_field(field_query).create_reader(base_query, field_query=field_query, injector=injector)
+                readers.append((field_query.key, row_slice, reader))
+
+            return readers
 
         remainder_slice = slice(len(query_expressions), None)
 
         def read_row(row):
+            nonlocal readers
+            nonlocal read_row
+
+            if readers is None:
+                readers = generate_readers()
+
+            read_row = read_row_with_readers
+            return read_row(row)
+
+        def read_row_with_readers(row):
             fields = {
                 key: read(row[row_slice])
                 for key, row_slice, read in readers
