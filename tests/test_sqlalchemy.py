@@ -117,6 +117,65 @@ class TestExpressionField(object):
         ))
 
 
+def test_can_get_constant_fields():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith"))
+    session.add(BookRow(c_title="Pericles, Prince of Tyre"))
+    session.commit()
+
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("sales", type=g.Int),
+            g.field("title", type=g.String),
+        ],
+    )
+
+    book_resolver = gsql.sql_table_resolver(
+        Book,
+        BookRow,
+        fields={
+            Book.fields.sales: gsql.constant(0),
+            Book.fields.title: gsql.expression(BookRow.c_title),
+        },
+    )
+
+    resolvers = [book_resolver]
+
+    query = gsql.select(g.ListType(Book)(
+        g.key("sales", Book.fields.sales()),
+        g.key("title", Book.fields.title()),
+    ))
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({
+        sqlalchemy.orm.Session: session,
+    })
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(
+            sales=0,
+            title="Leave it to Psmith",
+        ),
+        has_attrs(
+            sales=0,
+            title="Pericles, Prince of Tyre",
+        ),
+    ))
+
+
 class TestReturnShapeMatchesQueryShape(object):
     @pytest.fixture(autouse=True)
     def setup(self):

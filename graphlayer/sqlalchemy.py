@@ -9,7 +9,7 @@ from .memo import memoize
 
 
 def constant(value):
-    return _ConstantField(expression)
+    return _ConstantField(value)
 
 
 class _ConstantField(object):
