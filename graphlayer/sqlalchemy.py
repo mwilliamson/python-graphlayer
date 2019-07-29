@@ -328,7 +328,7 @@ class _SqlQuery(object):
     def by(self, index_key, index_values):
         return self.index_by(index_key).where(_to_key(index_key).expression().in_(index_values))
 
-    def group_by(self, group_by):
+    def group_by(self, *group_by):
         return _SqlQuery(
             type=self.type,
             element_query=self.element_query,
@@ -446,7 +446,7 @@ def sql_table_resolver(type, model, fields):
             base_query = base_query.filter(where)
 
         if group_by is not None:
-            base_query = base_query.group_by(group_by)
+            base_query = base_query.group_by(*group_by)
 
         if order is not None:
             base_query = base_query.order_by(*order)
