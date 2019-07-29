@@ -517,6 +517,57 @@ def test_can_order_results_using_order_by():
     ))
 
 
+def test_can_group_results_using_group_by():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_author = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_id=1, c_author="PG Wodehouse"))
+    session.add(BookRow(c_id=2, c_author="William Shakespeare"))
+    session.add(BookRow(c_id=3, c_author="PG Wodehouse"))
+
+    session.commit()
+
+    Author = g.ObjectType(
+        "Author",
+        fields=lambda: [
+            g.field("name", type=g.String),
+        ],
+    )
+
+    author_resolver = gsql.sql_table_resolver(
+        Author,
+        BookRow,
+        fields={
+            Author.fields.name: gsql.expression(BookRow.c_author),
+        },
+    )
+
+    resolvers = (author_resolver, )
+
+    query = gsql.select(g.ListType(Author)(
+        g.key("name", Author.fields.name()),
+    )).group_by(BookRow.c_author)
+
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(name="PG Wodehouse"),
+        has_attrs(name="William Shakespeare"),
+    ))
+
+
 class TestSqlQueryBy(object):
     @pytest.fixture(autouse=True)
     def setup(self):

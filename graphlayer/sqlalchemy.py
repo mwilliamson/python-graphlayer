@@ -298,6 +298,7 @@ def select(query, tag=None):
             where_clauses=(),
             order=None,
             limit=None,
+            group_by=None,
         )
 
 
@@ -314,7 +315,7 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, type, element_query, type_query, where_clauses, index_key, order, limit):
+    def __init__(self, type, element_query, type_query, where_clauses, index_key, order, limit, group_by):
         self.type = type
         self.element_query = element_query
         self.type_query = type_query
@@ -322,9 +323,22 @@ class _SqlQuery(object):
         self.index_key = index_key
         self.order = order
         self.limit_ = limit
+        self.group_by_ = group_by
 
     def by(self, index_key, index_values):
         return self.index_by(index_key).where(_to_key(index_key).expression().in_(index_values))
+
+    def group_by(self, group_by):
+        return _SqlQuery(
+            type=self.type,
+            element_query=self.element_query,
+            type_query=self.type_query,
+            where_clauses=self.where_clauses,
+            index_key=self.index_key,
+            order=self.order,
+            limit=self.limit_,
+            group_by=group_by,
+        )
 
     def index_by(self, index_key):
         return _SqlQuery(
@@ -335,6 +349,7 @@ class _SqlQuery(object):
             index_key=_to_key(index_key),
             order=self.order,
             limit=self.limit_,
+            group_by=self.group_by_,
         )
 
     def limit(self, limit):
@@ -346,6 +361,7 @@ class _SqlQuery(object):
             index_key=self.index_key,
             order=self.order,
             limit=limit,
+            group_by=self.group_by_,
         )
 
     def order_by(self, *order):
@@ -357,6 +373,7 @@ class _SqlQuery(object):
             index_key=self.index_key,
             order=order,
             limit=self.limit_,
+            group_by=self.group_by_,
         )
 
     def where(self, where):
@@ -368,6 +385,7 @@ class _SqlQuery(object):
             index_key=self.index_key,
             order=self.order,
             limit=self.limit_,
+            group_by=self.group_by_,
         )
 
 
@@ -386,6 +404,7 @@ def sql_table_resolver(type, model, fields):
                 where=where,
                 limit=query.limit_,
                 order=query.order,
+                group_by=query.group_by_,
                 extra_expressions=(),
                 process_row=lambda row, result: result,
                 session=session,
@@ -398,13 +417,14 @@ def sql_table_resolver(type, model, fields):
                 where=where,
                 limit=query.limit_,
                 order=query.order,
+                group_by=query.group_by_,
                 extra_expressions=query.index_key.expressions(),
                 process_row=lambda row, result: (query.index_key.read(row), result),
                 session=session,
                 injector=injector,
             ))
 
-    def resolve(graph, query, where, limit, order, extra_expressions, process_row, session, injector):
+    def resolve(graph, query, where, limit, order, group_by, extra_expressions, process_row, session, injector):
         def get_field(field_query):
             if field_query.field == schema.typename_field and isinstance(query.type, schema.ObjectType):
                 return _ConstantField(query.type.name)
@@ -424,6 +444,9 @@ def sql_table_resolver(type, model, fields):
 
         if where is not None:
             base_query = base_query.filter(where)
+
+        if group_by is not None:
+            base_query = base_query.group_by(group_by)
 
         if order is not None:
             base_query = base_query.order_by(*order)
