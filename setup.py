@@ -10,7 +10,7 @@ def read(fname):
 setup(
     name='graphlayer',
     version='0.2.6',
-    description='',
+    description='High-performance library for implementing GraphQL APIs',
     long_description=read("README.rst"),
     author='Michael Williamson',
     author_email='mike@zwobble.org',
