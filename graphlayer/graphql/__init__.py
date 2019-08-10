@@ -44,6 +44,9 @@ def executor(*, query_type, mutation_type=None, types=None):
                 errors=None,
             )
         except (GraphQLError, GraphError) as error:
+            if isinstance(error, GraphError):
+                error = GraphQLError(str(error))
+
             return ExecutionResult(
                 data=None,
                 errors=[error],

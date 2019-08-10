@@ -1,7 +1,8 @@
-from precisely import assert_that, contains_exactly, equal_to, has_attrs, has_feature
+from precisely import all_of, assert_that, contains_exactly, equal_to, has_attrs, has_feature, is_instance
 
 import graphlayer as g
 from graphlayer import graphql
+from graphql import GraphQLError
 
 
 def test_execute():
@@ -219,7 +220,10 @@ def test_when_resolution_raises_graph_error_then_result_is_invalid():
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
     assert_that(result, is_invalid(errors=contains_exactly(
-        has_str("BAD"),
+        all_of(
+            is_instance(GraphQLError),
+            has_str("BAD"),
+        ),
     )))
 
 
