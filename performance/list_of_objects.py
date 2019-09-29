@@ -33,7 +33,7 @@ def graphlayer_performance():
         return [
             query.element_query.create_object(dict(
                 (field_query.key, getattr(user, field_query.field.name))
-                for field_query in query.element_query.fields
+                for field_query in query.element_query.field_queries
             ))
             for user in users
         ]
@@ -56,15 +56,15 @@ def graphql_performance():
     Query = graphql.GraphQLObjectType("Query", fields={
         "users": graphql.GraphQLField(
             graphql.GraphQLNonNull(graphql.GraphQLList(graphql.GraphQLNonNull(User))),
-            resolver=lambda obj, info: users,
+            resolve=lambda obj, info: users,
         ),
     })
-    
+
     schema = graphql.GraphQLSchema(
         query=Query,
     )
-    
-    return lambda document_text: graphql.graphql(schema, document_text).data
+
+    return lambda document_text: graphql.graphql_sync(schema, document_text).data
 
 for name, run_query in (
     ("graphql-core", graphql_performance()),
