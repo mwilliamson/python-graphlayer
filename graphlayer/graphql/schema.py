@@ -125,6 +125,13 @@ def create_graphql_schema(query_type, mutation_type, types=None):
         graphql_schema=graphql.GraphQLSchema(
             query=graphql_query_type,
             mutation=graphql_mutation_type,
-            types=tuple(graphql_types.values()),
+            types=tuple(map(_to_base_type, graphql_types.values())),
         ),
     )
+
+
+def _to_base_type(graphql_type):
+    while isinstance(graphql_type, (graphql.GraphQLList, graphql.GraphQLNonNull)):
+        graphql_type = graphql_type.of_type
+
+    return graphql_type

@@ -18,7 +18,7 @@ setup(
     packages=['graphlayer', 'graphlayer.graphql'],
     keywords="graphql graph join ",
     extras_require={
-        "graphql": ["graphql-core-next==1.0.5"],
+        "graphql": ["graphql-core-next==1.1.1"],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
