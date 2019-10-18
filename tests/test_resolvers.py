@@ -78,6 +78,26 @@ class TestObjectBuilder(object):
             e="bob@example.com",
         ))
 
+    def test_constant_uses_value_to_resolve_field(self):
+        User = g.ObjectType("User", fields=(
+            g.field("name", type=g.String),
+            g.field("email_address", type=g.String),
+        ))
+
+        object_builder = g.create_object_builder(User(
+            g.key("n", User.fields.name()),
+            g.key("e", User.fields. email_address()),
+        ))
+
+        object_builder.constant(User.fields.name, "Bob")
+        object_builder.constant(User.fields.email_address, "bob@example.com")
+
+        result = object_builder(None)
+        assert_that(result, has_attrs(
+            n="Bob",
+            e="bob@example.com",
+        ))
+
     def test_field_resolvers_can_be_defined_using_field_name(self):
         User = g.ObjectType("User", fields=(
             g.field("name", type=g.String),
