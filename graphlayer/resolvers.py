@@ -39,6 +39,11 @@ def create_object_builder(object_query):
 
     create_object.getter = getter
 
+    def attr(field, attr_name):
+        getter(field)(lambda value: getattr(value, attr_name))
+
+    create_object.attr = attr
+
     if isinstance(object_query.type, schema.ObjectType):
         @getter(schema.typename_field)
         def resolve_typename(_):

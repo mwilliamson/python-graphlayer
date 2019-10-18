@@ -1,3 +1,5 @@
+import types
+
 from precisely import assert_that, equal_to, has_attrs
 import pytest
 
@@ -51,6 +53,26 @@ class TestObjectBuilder(object):
             return user["emailAddress"]
 
         result = object_builder({"name": "Bob", "emailAddress": "bob@example.com"})
+        assert_that(result, has_attrs(
+            n="Bob",
+            e="bob@example.com",
+        ))
+
+    def test_attr_uses_attr_name_to_resolve_field(self):
+        User = g.ObjectType("User", fields=(
+            g.field("name", type=g.String),
+            g.field("email_address", type=g.String),
+        ))
+
+        object_builder = g.create_object_builder(User(
+            g.key("n", User.fields.name()),
+            g.key("e", User.fields. email_address()),
+        ))
+
+        object_builder.attr(User.fields.name, "name")
+        object_builder.attr(User.fields.email_address, "email")
+
+        result = object_builder(types.SimpleNamespace(name="Bob", email="bob@example.com"))
         assert_that(result, has_attrs(
             n="Bob",
             e="bob@example.com",
