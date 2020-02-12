@@ -47,6 +47,25 @@ class _ExpressionField(object):
         return _DecoratedReadField(self, func)
 
 
+def composite(expressions, func):
+    return _CompositeExpressionField(expressions, func)
+
+
+class _CompositeExpressionField(object):
+    def __init__(self, expressions, func):
+        self._expressions = expressions
+        self._func = func
+
+    def expressions(self):
+        return self._expressions
+
+    def create_reader(self, base_query, field_query, injector):
+        def read(row):
+            return self._func(*row)
+
+        return read
+
+
 def join(*, key, resolve, association=None):
     return _JoinField(key=_to_key(key), resolve=resolve, association=association)
 

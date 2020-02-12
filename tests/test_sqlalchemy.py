@@ -231,6 +231,64 @@ def test_can_fulfil_requests_with_no_expressions():
     ))
 
 
+def test_can_get_field_backed_by_multiple_expressions():
+    Base = sqlalchemy.ext.declarative.declarative_base()
+
+    class BookRow(Base):
+        __tablename__ = "book"
+
+        c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+        c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
+        c_year = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    Base.metadata.create_all(engine)
+
+    session = sqlalchemy.orm.Session(engine)
+    session.add(BookRow(c_title="Leave it to Psmith", c_year=1923))
+    session.add(BookRow(c_title="Pericles, Prince of Tyre", c_year=1607))
+    session.commit()
+
+    Book = g.ObjectType(
+        "Book",
+        fields=lambda: [
+            g.field("description", type=g.String),
+        ],
+    )
+
+    book_resolver = gsql.sql_table_resolver(
+        Book,
+        BookRow,
+        fields={
+            Book.fields.description: gsql.composite(
+                (BookRow.c_title, BookRow.c_year),
+                lambda title, year: "{} ({})".format(title, year),
+            ),
+        },
+    )
+
+    resolvers = [book_resolver]
+
+    query = gsql.select(g.ListType(Book)(
+        g.key("description", Book.fields.description()),
+    ))
+    graph_definition = g.define_graph(resolvers)
+    graph = graph_definition.create_graph({
+        sqlalchemy.orm.Session: session,
+    })
+    result = graph.resolve(query)
+
+    assert_that(result, contains_exactly(
+        has_attrs(
+            description="Leave it to Psmith (1923)",
+        ),
+        has_attrs(
+            description="Pericles, Prince of Tyre (1607)",
+        ),
+    ))
+
+
 class TestReturnShapeMatchesQueryShape(object):
     @pytest.fixture(autouse=True)
     def setup(self):
