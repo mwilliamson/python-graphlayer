@@ -20,6 +20,7 @@ setup(
     extras_require={
         "graphql": ["graphql-core-next==1.1.1"],
     },
+    license="BSD-2-Clause",
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
