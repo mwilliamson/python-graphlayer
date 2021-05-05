@@ -840,7 +840,7 @@ To solve this, we'll wrap the object query in our own custom query class.
 
     +class BookQuery(object):
     +    def __init__(self, object_query):
-    +        self.type = (BookQuery, object_query.type)
+    +        self.type = BookQuery
     +        self.object_query = object_query
     +
      @g.resolver(g.ListType(Book))
@@ -851,7 +851,7 @@ To solve this, we'll wrap the object query in our own custom query class.
 
     class BookQuery(object):
         def __init__(self, object_query):
-            self.type = (BookQuery, object_query.type)
+            self.type = BookQuery
             self.object_query = object_query
 
 We can then create a ``BookQuery`` in the root resolver:
@@ -877,7 +877,7 @@ We can then create a ``BookQuery`` in the root resolver:
         return graph.resolve(BookQuery(field_query.type_query.element_query))
 
 And we'll have to update ``resolve_books`` accordingly.
-Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver((BookQuery, Book))``,
+Specifically, we need to replace ``g.resolver(g.ListType(Book))`` with ``g.resolver(BookQuery)``,
 and replace ``query.element_query`` with ``query.object_query``.
 
 .. diff-doc:: diff example
@@ -886,11 +886,11 @@ and replace ``query.element_query`` with ``query.object_query``.
     ---
     +++
     @@ -65,7 +65,7 @@
-             self.type = (BookQuery, object_query.type)
+             self.type = BookQuery
              self.object_query = object_query
 
     -@g.resolver(g.ListType(Book))
-    +@g.resolver((BookQuery, Book))
+    +@g.resolver(BookQuery)
      def resolve_books(graph, query):
          field_to_expression = {
              Book.fields.title: BookRecord.title,
@@ -918,7 +918,7 @@ and replace ``query.element_query`` with ``query.object_query``.
 
 .. diff-doc:: render example
 
-    @g.resolver((BookQuery, Book))
+    @g.resolver(BookQuery)
     def resolve_books(graph, query):
         field_to_expression = {
             Book.fields.title: BookRecord.title,
@@ -991,7 +991,7 @@ Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` meth
      class BookQuery(object):
     -    def __init__(self, object_query):
     +    def __init__(self, object_query, genre=None):
-             self.type = (BookQuery, object_query.type)
+             self.type = BookQuery
              self.object_query = object_query
     +        self.genre = genre
     +
@@ -1005,7 +1005,7 @@ Next, we'll update ``BookQuery`` to support filtering by adding a ``where`` meth
 
     class BookQuery(object):
         def __init__(self, object_query, genre=None):
-            self.type = (BookQuery, object_query.type)
+            self.type = BookQuery
             self.object_query = object_query
             self.genre = genre
 
@@ -1184,10 +1184,10 @@ which can be resolved by a new resolver.
 
     +class AuthorQuery(object):
     +    def __init__(self, object_query):
-    +        self.type = (AuthorQuery, object_query.type)
+    +        self.type = AuthorQuery
     +        self.object_query = object_query
     +
-    +@g.resolver((AuthorQuery, Author))
+    +@g.resolver(AuthorQuery)
     +def resolve_authors(graph, query):
     +    authors = session.query(AuthorRecord.name).all()
     +
@@ -1207,7 +1207,7 @@ which can be resolved by a new resolver.
     +
      class BookQuery(object):
          def __init__(self, object_query, genre=None):
-             self.type = (BookQuery, object_query.type)
+             self.type = BookQuery
     @@ -117,7 +140,7 @@
              for book in books
          ]
@@ -1222,10 +1222,10 @@ which can be resolved by a new resolver.
 
     class AuthorQuery(object):
         def __init__(self, object_query):
-            self.type = (AuthorQuery, object_query.type)
+            self.type = AuthorQuery
             self.object_query = object_query
 
-    @g.resolver((AuthorQuery, Author))
+    @g.resolver(AuthorQuery)
     def resolve_authors(graph, query):
         authors = session.query(AuthorRecord.name).all()
 
@@ -1349,7 +1349,7 @@ We can change the ``AuthorQuery`` to optionally allow this alternative format:
      class AuthorQuery(object):
     -    def __init__(self, object_query):
     +    def __init__(self, object_query, is_keyed_by_id=False):
-             self.type = (AuthorQuery, object_query.type)
+             self.type = AuthorQuery
              self.object_query = object_query
     +        self.is_keyed_by_id = is_keyed_by_id
     +
@@ -1363,7 +1363,7 @@ We can change the ``AuthorQuery`` to optionally allow this alternative format:
 
     class AuthorQuery(object):
         def __init__(self, object_query, is_keyed_by_id=False):
-            self.type = (AuthorQuery, object_query.type)
+            self.type = AuthorQuery
             self.object_query = object_query
             self.is_keyed_by_id = is_keyed_by_id
 
@@ -1421,7 +1421,7 @@ We then need to update the resolver to handle this:
 
 .. diff-doc:: render example
 
-    @g.resolver((AuthorQuery, Author))
+    @g.resolver(AuthorQuery)
     def resolve_authors(graph, query):
         sqlalchemy_query = session.query(AuthorRecord.name)
 
@@ -1597,7 +1597,7 @@ We update ``AuthorQuery`` to add in an ``ids`` attribute:
      class AuthorQuery(object):
     -    def __init__(self, object_query, is_keyed_by_id=False):
     +    def __init__(self, object_query, ids=None, is_keyed_by_id=False):
-             self.type = (AuthorQuery, object_query.type)
+             self.type = AuthorQuery
              self.object_query = object_query
     +        self.ids = ids
              self.is_keyed_by_id = is_keyed_by_id
@@ -1609,14 +1609,14 @@ We update ``AuthorQuery`` to add in an ``ids`` attribute:
     +    def where(self, *, ids):
     +        return AuthorQuery(self.object_query, ids=ids, is_keyed_by_id=self.is_keyed_by_id)
 
-     @g.resolver((AuthorQuery, Author))
+     @g.resolver(AuthorQuery)
      def resolve_authors(graph, query):
 
 .. diff-doc:: render example
 
     class AuthorQuery(object):
         def __init__(self, object_query, ids=None, is_keyed_by_id=False):
-            self.type = (AuthorQuery, object_query.type)
+            self.type = AuthorQuery
             self.object_query = object_query
             self.ids = ids
             self.is_keyed_by_id = is_keyed_by_id
@@ -1635,7 +1635,7 @@ We use that ``ids`` attribute in the author resolver:
     ---
     +++
     @@ -92,6 +92,9 @@
-     @g.resolver((AuthorQuery, Author))
+     @g.resolver(AuthorQuery)
      def resolve_authors(graph, query):
          sqlalchemy_query = session.query(AuthorRecord.name)
     +
@@ -1907,7 +1907,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
 
     -class AuthorQuery(object):
     -    def __init__(self, object_query, ids=None, is_keyed_by_id=False):
-    -        self.type = (AuthorQuery, object_query.type)
+    -        self.type = AuthorQuery
     -        self.object_query = object_query
     -        self.ids = ids
     -        self.is_keyed_by_id = is_keyed_by_id
@@ -1925,7 +1925,7 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -    def where(self, *, ids):
     -        return AuthorQuery(self.object_query, ids=ids, is_keyed_by_id=self.is_keyed_by_id)
     -
-    -@g.resolver((AuthorQuery, Author))
+    -@g.resolver(AuthorQuery)
     -def resolve_authors(graph, query):
     -    sqlalchemy_query = session.query(AuthorRecord.name)
     -
@@ -1962,14 +1962,14 @@ Similarly, we can use the ``graphlayer.sqlalchemy`` module to define the resolve
     -
     -class BookQuery(object):
     -    def __init__(self, object_query, genre=None):
-    -        self.type = (BookQuery, object_query.type)
+    -        self.type = BookQuery
     -        self.object_query = object_query
     -        self.genre = genre
     -
     -    def where(self, *, genre):
     -        return BookQuery(self.object_query, genre=genre)
     -
-    -@g.resolver((BookQuery, Book))
+    -@g.resolver(BookQuery)
     -def resolve_books(graph, query):
     -    field_to_expression = {
     -        Book.fields.title: BookRecord.title,
