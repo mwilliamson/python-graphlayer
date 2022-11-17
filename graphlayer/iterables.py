@@ -1,4 +1,4 @@
-import collections
+from collections import defaultdict, OrderedDict
 
 _undefined = object()
 
@@ -29,7 +29,7 @@ def partition(predicate, iterable):
 
 
 def to_default_multidict(iterable):
-    result = collections.defaultdict(list)
+    result = defaultdict(list)
 
     for key, value in iterable:
         result[key].append(value)
@@ -50,7 +50,7 @@ def to_dict(iterable):
 
 
 def to_multidict(iterable):
-    result = collections.OrderedDict()
+    result = OrderedDict()
 
     for key, value in iterable:
         if key not in result:

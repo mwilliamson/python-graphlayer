@@ -30,14 +30,15 @@ def executor(*, query_type, mutation_type=None, types=None):
             else:
                 result = graph.resolve(query.graph_query)
 
-            if query.graphql_schema_document is not None:
+            if query.graphql_schema_document is not None:          
                 schema_result = _execute_graphql_schema(
                     graphql_schema_document=query.graphql_schema_document,
                     graphql_schema=graphql_schema.graphql_schema,
                     variables=query.variables,
                 )
-                result = result.copy()
-                result.update(schema_result)
+
+                if schema_result:
+                    result.update(schema_result)
 
             return ExecutionResult(
                 data=result,
@@ -63,7 +64,6 @@ def _execute_graphql_schema(graphql_schema_document, graphql_schema, variables):
         # TODO: variables
         variable_values=variables,
     )
-    if result.errors:
-        raise result.errors[0]
-    else:
-        return result.data
+    if isinstance(result.data, list):
+        raise result.data[0]
+    return result.data

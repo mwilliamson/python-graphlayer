@@ -1,5 +1,6 @@
 from copy import copy
 from functools import reduce
+from typing import Any, Dict, List, Union
 
 from graphql import GraphQLError
 from graphql.execution.values import get_argument_values, get_variable_values
@@ -51,9 +52,13 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
         variable_definition
         for variable_definition in (operation.variable_definitions or [])
     ]
-    variable_values = get_variable_values(graphql_schema.graphql_schema, variable_definitions, variables)
-    if variable_values.errors:
-        raise variable_values.errors[0]
+    variable_values: Union[List[GraphQLError], Dict[str, Any]] = get_variable_values(
+        graphql_schema.graphql_schema,
+        variable_definitions,
+        variables,
+    )
+    if isinstance(variable_values, list) and isinstance(variable_values[0], GraphQLError):
+        raise variable_values[0]
 
     fragments = to_dict(
         (fragment.name.value, fragment)
@@ -79,15 +84,14 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
                 selections=schema_selections,
             ),
         )
-
         schema_definitions = copy(document_ast.definitions)
-        schema_definitions[operation_index] = schema_operation
+        schema_definitions[0].selection_set = schema_operation.selection_set
 
         schema_document = _copy_with(
             document_ast,
-            definitions=schema_definitions,
+            definitions=list(schema_definitions),
         )
-
+        
     if non_schema_selections:
         all_types = schema.collect_types((graphql_schema.query_type, graphql_schema.mutation_type) + tuple(graphql_schema.types))
         all_types_by_name = to_dict(
@@ -95,7 +99,7 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
             for graph_type in all_types
             if hasattr(graph_type, "name")
         )
-        parser = Parser(fragments=fragments, types=all_types_by_name, variables=variable_values.coerced)
+        parser = Parser(fragments=fragments, types=all_types_by_name, variables=variable_values)
         graph_query = parser.read_selection_set(
             _copy_with(operation.selection_set, selections=non_schema_selections),
             graph_type=root_type,
@@ -106,7 +110,7 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
     return GraphQLQuery(
         graph_query,
         graphql_schema_document=schema_document,
-        variables=variable_values.coerced,
+        variables=variable_values,
     )
 
 

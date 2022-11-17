@@ -1,0 +1,28 @@
+[build-system]
+requires = ["poetry_core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "graphlayer"
+version = "0.2.9"
+description = "High-performance library for implementing GraphQL APIs"
+authors = ["Andrew Gill <andrew.gill@healx.com>", "Michael Williamson <mike@zwobble.org>"]
+keywords = ["GraphQL", "graph", "join"]
+repository = "https://github.com/healx/python-graphlayer"
+license = "BSD-2-Clause"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+graphql-core = "3.*" 
+
+[tool.poetry.dev-dependencies]
+black = "*"
+pytest = "*"
+tox = "*"
+precisely = "*"
+flake8 = "*"
+flake8-quotes = "*"
+diff-doc = "*"
+flask = "*"
+pyflakes = "*"
+SQLAlchemy = "1.3.*"

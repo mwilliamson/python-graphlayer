@@ -1,4 +1,5 @@
-import collections
+from collections.abc import Iterable
+from collections import defaultdict
 
 import sqlalchemy.orm
 
@@ -92,7 +93,7 @@ def association(table, *, left_key, right_key, distinct=False, filtered_by_left_
 
 
 def _to_key(key):
-    if isinstance(key, collections.Iterable):
+    if isinstance(key, Iterable):
         return _MultipleExpressionKey(key)
     else:
         return _SingleExpressionKey(key)
@@ -263,7 +264,7 @@ class _SingleOrNullResultReader(object):
             raise g.GraphError("expected exactly zero or one values but got {}".format(len(value)))
 
     def read_results(self, iterable):
-        result = collections.defaultdict(lambda: None)
+        result = defaultdict(lambda: None)
 
         for key, value in iterable:
             if key in result:

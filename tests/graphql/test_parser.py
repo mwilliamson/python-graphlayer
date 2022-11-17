@@ -897,7 +897,12 @@ def test_when_input_object_variable_is_missing_field_then_error_is_raised():
         GraphQLError,
         lambda: _document_text_to_graph_query(graphql_query, query_type=Root, variables=variables),
     )
-    assert_that(error.value.message, equal_to("Variable '$var' got invalid value {}; Field value.field of required type Int! was not provided."))
+    assert_that(
+        error.value.message, 
+        equal_to(
+            "Variable '$var' got invalid value {}; Field 'field' of required type 'Int!' was not provided."
+        )
+    )
 
 
 def test_when_arg_is_not_set_then_default_is_used():
