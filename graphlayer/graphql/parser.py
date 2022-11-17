@@ -85,7 +85,7 @@ def document_text_to_query(document_text, graphql_schema, variables=None):
             ),
         )
         schema_definitions = copy(document_ast.definitions)
-        schema_definitions[0].selection_set = schema_operation.selection_set
+        schema_definitions[operation_index].selection_set = schema_operation.selection_set
 
         schema_document = _copy_with(
             document_ast,
