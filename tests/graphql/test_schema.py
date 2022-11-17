@@ -1,7 +1,16 @@
 import enum
 
 import graphql
-from precisely import all_of, anything, assert_that, contains_exactly, equal_to, has_attrs, is_instance, is_mapping
+from precisely import (
+    all_of,
+    anything,
+    assert_that,
+    contains_exactly,
+    equal_to,
+    has_attrs,
+    is_instance,
+    is_mapping,
+)
 
 import graphlayer as g
 from graphlayer.graphql.schema import create_graphql_schema
@@ -34,30 +43,42 @@ def test_enum_is_converted_to_non_null_enum_type():
 
     graphql_type = to_graphql_type(SeasonGraphType)
 
-    assert_that(graphql_type, is_graphql_non_null(is_graphql_enum_type(
-        name="Season",
-        values=is_mapping({
-            "WINTER": is_graphql_enum_value(value="WINTER"),
-            "SPRING": is_graphql_enum_value(value="SPRING"),
-            "SUMMER": is_graphql_enum_value(value="SUMMER"),
-            "AUTUMN": is_graphql_enum_value(value="AUTUMN"),
-        }),
-    )))
+    assert_that(
+        graphql_type,
+        is_graphql_non_null(
+            is_graphql_enum_type(
+                name="Season",
+                values=is_mapping(
+                    {
+                        "WINTER": is_graphql_enum_value(value="WINTER"),
+                        "SPRING": is_graphql_enum_value(value="SPRING"),
+                        "SUMMER": is_graphql_enum_value(value="SUMMER"),
+                        "AUTUMN": is_graphql_enum_value(value="AUTUMN"),
+                    }
+                ),
+            )
+        ),
+    )
 
 
 def test_interface_type_is_converted_to_non_null_graphql_interface_type():
-    graph_type = g.InterfaceType("Obj", fields=(
-        g.field("value", type=g.String),
-    ))
+    graph_type = g.InterfaceType("Obj", fields=(g.field("value", type=g.String),))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_interface_type(
-            name="Obj",
-            fields=is_mapping({
-                "value": is_graphql_field(type=is_graphql_non_null(is_graphql_string)),
-            }),
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_interface_type(
+                name="Obj",
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_field(
+                            type=is_graphql_non_null(is_graphql_string)
+                        ),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_list_type_is_converted_to_non_null_list_type():
@@ -72,184 +93,248 @@ def test_nullable_type_is_converted_to_graphql_type_without_non_null():
 
 
 def test_object_type_is_converted_to_non_null_graphql_object_type():
-    graph_type = g.ObjectType("Obj", fields=(
-        g.field("value", type=g.String),
-    ))
+    graph_type = g.ObjectType("Obj", fields=(g.field("value", type=g.String),))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_object_type(
-            name="Obj",
-            fields=is_mapping({
-                "value": is_graphql_field(type=is_graphql_non_null(is_graphql_string)),
-            }),
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                name="Obj",
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_field(
+                            type=is_graphql_non_null(is_graphql_string)
+                        ),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_object_type_field_names_are_converted_from_snake_case_to_camel_case():
-    graph_type = g.ObjectType("Obj", fields=(
-        g.field("field_name", type=g.String),
-    ))
+    graph_type = g.ObjectType("Obj", fields=(g.field("field_name", type=g.String),))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_object_type(
-            fields=is_mapping({
-                "fieldName": anything,
-            }),
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                fields=is_mapping(
+                    {
+                        "fieldName": anything,
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_recursive_object_type_is_converted_to_non_null_graphql_object_type():
-    graph_type = g.ObjectType("Obj", fields=lambda: (
-        g.field("self", type=graph_type),
-    ))
+    graph_type = g.ObjectType("Obj", fields=lambda: (g.field("self", type=graph_type),))
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_object_type(
-            name="Obj",
-            fields=is_mapping({
-                "self": is_graphql_field(type=is_graphql_non_null(is_graphql_object_type(name="Obj"))),
-            }),
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                name="Obj",
+                fields=is_mapping(
+                    {
+                        "self": is_graphql_field(
+                            type=is_graphql_non_null(is_graphql_object_type(name="Obj"))
+                        ),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_object_type_interfaces_are_converted_to_graphql_interfaces():
-    graph_interface_type = g.InterfaceType("Interface", fields=(
-        g.field("value", type=g.String),
-    ))
+    graph_interface_type = g.InterfaceType(
+        "Interface", fields=(g.field("value", type=g.String),)
+    )
 
     graph_object_type = g.ObjectType(
         "Obj",
-        fields=(
-            g.field("value", type=g.String),
-        ),
-        interfaces=(graph_interface_type, ),
+        fields=(g.field("value", type=g.String),),
+        interfaces=(graph_interface_type,),
     )
 
-    assert_that(to_graphql_type(graph_object_type), is_graphql_non_null(
-        is_graphql_object_type(
-            interfaces=contains_exactly(
-                is_graphql_interface_type(name="Interface"),
+    assert_that(
+        to_graphql_type(graph_object_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                interfaces=contains_exactly(
+                    is_graphql_interface_type(name="Interface"),
+                ),
             ),
         ),
-    ))
+    )
 
 
 def test_field_param_is_converted_to_non_null_graphql_arg():
-    graph_type = g.ObjectType("Obj", fields=(
-        g.field("value", type=g.String, params=(
-            g.param("arg", g.Int),
-        )),
-    ))
+    graph_type = g.ObjectType(
+        "Obj",
+        fields=(g.field("value", type=g.String, params=(g.param("arg", g.Int),)),),
+    )
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_object_type(
-            fields=is_mapping({
-                "value": is_graphql_field(args=is_mapping({
-                    "arg": is_graphql_argument(type=is_graphql_non_null(is_graphql_int)),
-                })),
-            }),
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_field(
+                            args=is_mapping(
+                                {
+                                    "arg": is_graphql_argument(
+                                        type=is_graphql_non_null(is_graphql_int)
+                                    ),
+                                }
+                            )
+                        ),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_param_names_are_converted_from_snake_case_to_camel_case():
-    graph_type = g.ObjectType("Obj", fields=(
-        g.field("value", type=g.String, params=(
-            g.param("arg_zero", g.Int),
-        )),
-    ))
+    graph_type = g.ObjectType(
+        "Obj",
+        fields=(g.field("value", type=g.String, params=(g.param("arg_zero", g.Int),)),),
+    )
 
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_object_type(
-            fields=is_mapping({
-                "value": is_graphql_field(args=is_mapping({
-                    "argZero": is_graphql_argument(),
-                })),
-            }),
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_field(
+                            args=is_mapping(
+                                {
+                                    "argZero": is_graphql_argument(),
+                                }
+                            )
+                        ),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_when_param_has_default_then_param_is_converted_to_nullable_graphql_arg():
-    graph_type = g.ObjectType("Obj", fields=(
-        g.field("value", type=g.String, params=(
-            g.param("arg", g.Int, default=42),
-        )),
-    ))
-
-    assert_that(to_graphql_type(graph_type), is_graphql_non_null(
-        is_graphql_object_type(
-            fields=is_mapping({
-                "value": is_graphql_field(args=is_mapping({
-                    "arg": is_graphql_argument(type=is_graphql_int),
-                })),
-            }),
+    graph_type = g.ObjectType(
+        "Obj",
+        fields=(
+            g.field(
+                "value", type=g.String, params=(g.param("arg", g.Int, default=42),)
+            ),
         ),
-    ))
+    )
+
+    assert_that(
+        to_graphql_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_object_type(
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_field(
+                            args=is_mapping(
+                                {
+                                    "arg": is_graphql_argument(type=is_graphql_int),
+                                }
+                            )
+                        ),
+                    }
+                ),
+            ),
+        ),
+    )
 
 
 def test_input_object_type_is_converted_to_non_null_graphql_input_object_type():
-    graph_type = g.InputObjectType("Obj", fields=(
-        g.input_field("value", type=g.String),
-    ))
+    graph_type = g.InputObjectType(
+        "Obj", fields=(g.input_field("value", type=g.String),)
+    )
 
-    assert_that(to_graphql_input_type(graph_type), is_graphql_non_null(
-        is_graphql_input_object_type(
-            name="Obj",
-            fields=is_mapping({
-                "value": is_graphql_input_field(type=is_graphql_non_null(is_graphql_string)),
-            }),
+    assert_that(
+        to_graphql_input_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_input_object_type(
+                name="Obj",
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_input_field(
+                            type=is_graphql_non_null(is_graphql_string)
+                        ),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_input_object_type_field_names_are_converted_from_snake_case_to_camel_case():
-    graph_type = g.InputObjectType("Obj", fields=(
-        g.input_field("field_name", type=g.String),
-    ))
+    graph_type = g.InputObjectType(
+        "Obj", fields=(g.input_field("field_name", type=g.String),)
+    )
 
-    assert_that(to_graphql_input_type(graph_type), is_graphql_non_null(
-        is_graphql_input_object_type(
-            fields=is_mapping({
-                "fieldName": anything,
-            }),
+    assert_that(
+        to_graphql_input_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_input_object_type(
+                fields=is_mapping(
+                    {
+                        "fieldName": anything,
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def test_when_input_field_has_default_then_input_field_type_is_nullable():
-    graph_type = g.InputObjectType("Obj", fields=(
-        g.input_field("value", type=g.String, default=""),
-    ))
+    graph_type = g.InputObjectType(
+        "Obj", fields=(g.input_field("value", type=g.String, default=""),)
+    )
 
-    assert_that(to_graphql_input_type(graph_type), is_graphql_non_null(
-        is_graphql_input_object_type(
-            name="Obj",
-            fields=is_mapping({
-                "value": is_graphql_input_field(type=is_graphql_string),
-            }),
+    assert_that(
+        to_graphql_input_type(graph_type),
+        is_graphql_non_null(
+            is_graphql_input_object_type(
+                name="Obj",
+                fields=is_mapping(
+                    {
+                        "value": is_graphql_input_field(type=is_graphql_string),
+                    }
+                ),
+            ),
         ),
-    ))
+    )
 
 
 def to_graphql_type(graph_type):
-    root_type = g.ObjectType("Root", fields=(
-        g.field("value", type=graph_type),
-    ))
-    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None).graphql_schema
+    root_type = g.ObjectType("Root", fields=(g.field("value", type=graph_type),))
+    graphql_schema = create_graphql_schema(
+        query_type=root_type, mutation_type=None
+    ).graphql_schema
     return graphql_schema.query_type.fields["value"].type
 
 
 def to_graphql_input_type(graph_type):
-    root_type = g.ObjectType("Root", fields=(
-        g.field("value", type=g.String, params=(
-            g.param("arg0", type=graph_type),
-        )),
-    ))
-    graphql_schema = create_graphql_schema(query_type=root_type, mutation_type=None).graphql_schema
+    root_type = g.ObjectType(
+        "Root",
+        fields=(
+            g.field("value", type=g.String, params=(g.param("arg0", type=graph_type),)),
+        ),
+    )
+    graphql_schema = create_graphql_schema(
+        query_type=root_type, mutation_type=None
+    ).graphql_schema
     return graphql_schema.query_type.fields["value"].args["arg0"].type
 
 
@@ -363,4 +448,3 @@ def is_graphql_argument(type=None):
         is_instance(graphql.GraphQLArgument),
         has_attrs(type=type),
     )
-

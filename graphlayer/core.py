@@ -12,8 +12,7 @@ def define_graph(resolvers):
 class GraphDefinition(object):
     def __init__(self, resolvers):
         self._resolvers = iterables.to_dict(
-            (resolver.type, resolver)
-            for resolver in _flatten(resolvers)
+            (resolver.type, resolver) for resolver in _flatten(resolvers)
         )
 
     def create_graph(self, dependencies):
@@ -30,7 +29,9 @@ class Graph(object):
             type = args[0].type
         resolver = self._resolvers.get(type)
         if resolver is None:
-            raise GraphError("could not find resolver for query of type: {}".format(type))
+            raise GraphError(
+                "could not find resolver for query of type: {}".format(type)
+            )
         else:
             return self._injector.call_with_dependencies(resolver, self, *args)
 
@@ -54,11 +55,7 @@ class Injector(object):
 
 def _flatten(value):
     if isinstance(value, (list, tuple)):
-        return [
-            subelement
-            for element in value
-            for subelement in _flatten(element)
-        ]
+        return [subelement for element in value for subelement in _flatten(element)]
     else:
         return [value]
 

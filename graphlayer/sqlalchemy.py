@@ -36,7 +36,7 @@ class _ExpressionField(object):
         self._expression = expression
 
     def expressions(self):
-        return (self._expression, )
+        return (self._expression,)
 
     def create_reader(self, base_query, field_query, injector):
         def read(row):
@@ -72,7 +72,9 @@ def join(*, key, resolve, association=None):
 
 
 class _Association(object):
-    def __init__(self, table, left_key, right_key, distinct, filtered_by_left_key, order_by):
+    def __init__(
+        self, table, left_key, right_key, distinct, filtered_by_left_key, order_by
+    ):
         self.table = table
         self.left_key = left_key
         self.right_key = right_key
@@ -81,7 +83,15 @@ class _Association(object):
         self.order_by = order_by
 
 
-def association(table, *, left_key, right_key, distinct=False, filtered_by_left_key=False, order_by=None):
+def association(
+    table,
+    *,
+    left_key,
+    right_key,
+    distinct=False,
+    filtered_by_left_key=False,
+    order_by=None
+):
     return _Association(
         table=table,
         left_key=_to_key(left_key),
@@ -107,7 +117,7 @@ class _SingleExpressionKey(object):
         return self._expression
 
     def expressions(self):
-        return (self._expression, )
+        return (self._expression,)
 
     def read(self, row):
         return row[0]
@@ -142,7 +152,9 @@ class _JoinField(object):
             result = injector.call_with_dependencies(self._resolve, key_sql_query)
         else:
             if callable(self._association):
-                association = injector.call_with_dependencies(self._association, key_sql_query)
+                association = injector.call_with_dependencies(
+                    self._association, key_sql_query
+                )
             else:
                 association = self._association
 
@@ -151,15 +163,18 @@ class _JoinField(object):
             if isinstance(association.table, sqlalchemy.orm.Query):
                 base_association_query = association.table
             else:
-                base_association_query = sqlalchemy.orm.Query([]) \
-                    .select_from(association.table)
+                base_association_query = sqlalchemy.orm.Query([]).select_from(
+                    association.table
+                )
 
             if not association.filtered_by_left_key:
-                base_association_query = base_association_query.filter(association.left_key.expression().in_(key_sql_query))
+                base_association_query = base_association_query.filter(
+                    association.left_key.expression().in_(key_sql_query)
+                )
 
-            association_query = base_association_query \
-                .add_columns(*association.left_key.expressions()) \
-                .add_columns(*association.right_key.expressions())
+            association_query = base_association_query.add_columns(
+                *association.left_key.expressions()
+            ).add_columns(*association.right_key.expressions())
 
             if association.order_by is not None:
                 association_query = association_query.order_by(association.order_by)
@@ -169,15 +184,26 @@ class _JoinField(object):
 
             associations = [
                 (
-                    association.left_key.read(row[:len(association.left_key.expressions())]),
-                    association.right_key.read(row[len(association.left_key.expressions()):]),
+                    association.left_key.read(
+                        row[: len(association.left_key.expressions())]
+                    ),
+                    association.right_key.read(
+                        row[len(association.left_key.expressions()) :]
+                    ),
                 )
                 for row in association_query.with_session(session).all()
             ]
 
-            right_result = injector.call_with_dependencies(self._resolve, base_association_query.add_columns(*association.right_key.expressions()))
+            right_result = injector.call_with_dependencies(
+                self._resolve,
+                base_association_query.add_columns(
+                    *association.right_key.expressions()
+                ),
+            )
 
-            result = _result_reader(field_query.type_query).join_associations(associations, right_result)
+            result = _result_reader(field_query.type_query).join_associations(
+                associations, right_result
+            )
 
         read_key = self._key.read
 
@@ -204,7 +230,6 @@ class _DecoratedReadField(object):
         return read
 
 
-
 class _SingleResultReader(object):
     def __init__(self, query):
         self.element_query = query
@@ -213,7 +238,9 @@ class _SingleResultReader(object):
         if len(value) == 1:
             return value[0]
         else:
-            raise g.GraphError("expected exactly one value but got {}".format(len(value)))
+            raise g.GraphError(
+                "expected exactly one value but got {}".format(len(value))
+            )
 
     def read_results(self, iterable):
         result = {}
@@ -228,8 +255,7 @@ class _SingleResultReader(object):
 
     def join_associations(self, associations, right_result):
         return self.read_results(
-            (left_key, right_result[right_key])
-            for left_key, right_key in associations
+            (left_key, right_result[right_key]) for left_key, right_key in associations
         )
 
 
@@ -261,7 +287,9 @@ class _SingleOrNullResultReader(object):
         elif len(value) == 1:
             return value[0]
         else:
-            raise g.GraphError("expected exactly zero or one values but got {}".format(len(value)))
+            raise g.GraphError(
+                "expected exactly zero or one values but got {}".format(len(value))
+            )
 
     def read_results(self, iterable):
         result = defaultdict(lambda: None)
@@ -276,17 +304,20 @@ class _SingleOrNullResultReader(object):
 
     def join_associations(self, associations, right_result):
         return self.read_results(
-            (left_key, right_result[right_key])
-            for left_key, right_key in associations
+            (left_key, right_result[right_key]) for left_key, right_key in associations
         )
 
 
 def _result_reader(query):
     if isinstance(query, schema.ObjectQuery):
         return _SingleResultReader(query)
-    elif isinstance(query, schema.ListQuery) and isinstance(query.element_query, schema.ObjectQuery):
+    elif isinstance(query, schema.ListQuery) and isinstance(
+        query.element_query, schema.ObjectQuery
+    ):
         return _ManyResultsReader(query)
-    elif isinstance(query, schema.NullableQuery) and isinstance(query.element_query, schema.ObjectQuery):
+    elif isinstance(query, schema.NullableQuery) and isinstance(
+        query.element_query, schema.ObjectQuery
+    ):
         return _SingleOrNullResultReader(query)
 
 
@@ -335,7 +366,17 @@ def _sql_query_type(t):
 
 
 class _SqlQuery(object):
-    def __init__(self, type, element_query, type_query, where_clauses, index_key, order, limit, group_by):
+    def __init__(
+        self,
+        type,
+        element_query,
+        type_query,
+        where_clauses,
+        index_key,
+        order,
+        limit,
+        group_by,
+    ):
         self.type = type
         self.element_query = element_query
         self.type_query = type_query
@@ -346,7 +387,9 @@ class _SqlQuery(object):
         self.group_by_ = group_by
 
     def by(self, index_key, index_values):
-        return self.index_by(index_key).where(_to_key(index_key).expression().in_(index_values))
+        return self.index_by(index_key).where(
+            _to_key(index_key).expression().in_(index_values)
+        )
 
     def group_by(self, *group_by):
         return _SqlQuery(
@@ -401,7 +444,7 @@ class _SqlQuery(object):
             type=self.type,
             element_query=self.element_query,
             type_query=self.type_query,
-            where_clauses=self.where_clauses + (where, ),
+            where_clauses=self.where_clauses + (where,),
             index_key=self.index_key,
             order=self.order,
             limit=self.limit_,
@@ -418,40 +461,61 @@ def sql_table_resolver(type, model, fields):
         where = sqlalchemy.and_(*query.where_clauses)
 
         if query.index_key is None:
-            return _read_result(query.type_query, resolve(
-                graph,
-                query=query.element_query,
-                where=where,
-                limit=query.limit_,
-                order=query.order,
-                group_by=query.group_by_,
-                extra_expressions=(),
-                process_row=lambda row, result: result,
-                session=session,
-                injector=injector,
-            ))
+            return _read_result(
+                query.type_query,
+                resolve(
+                    graph,
+                    query=query.element_query,
+                    where=where,
+                    limit=query.limit_,
+                    order=query.order,
+                    group_by=query.group_by_,
+                    extra_expressions=(),
+                    process_row=lambda row, result: result,
+                    session=session,
+                    injector=injector,
+                ),
+            )
         else:
-            return _read_results(query.type_query, resolve(
-                graph,
-                query=query.element_query,
-                where=where,
-                limit=query.limit_,
-                order=query.order,
-                group_by=query.group_by_,
-                extra_expressions=query.index_key.expressions(),
-                process_row=lambda row, result: (query.index_key.read(row), result),
-                session=session,
-                injector=injector,
-            ))
+            return _read_results(
+                query.type_query,
+                resolve(
+                    graph,
+                    query=query.element_query,
+                    where=where,
+                    limit=query.limit_,
+                    order=query.order,
+                    group_by=query.group_by_,
+                    extra_expressions=query.index_key.expressions(),
+                    process_row=lambda row, result: (query.index_key.read(row), result),
+                    session=session,
+                    injector=injector,
+                ),
+            )
 
-    def resolve(graph, query, where, limit, order, group_by, extra_expressions, process_row, session, injector):
+    def resolve(
+        graph,
+        query,
+        where,
+        limit,
+        order,
+        group_by,
+        extra_expressions,
+        process_row,
+        session,
+        injector,
+    ):
         def get_field(field_query):
-            if field_query.field == schema.typename_field and isinstance(query.type, schema.ObjectType):
+            if field_query.field == schema.typename_field and isinstance(
+                query.type, schema.ObjectType
+            ):
                 return _ConstantField(query.type.name)
             else:
                 field = fields().get(field_query.field)
                 if field is None:
-                    raise g.GraphError("Resolver missing for field {}".format(field_query.field.name))
+                    raise g.GraphError(
+                        "Resolver missing for field {}".format(field_query.field.name)
+                    )
                 elif callable(field):
                     # TODO: test dependencies are injected
                     return injector.call_with_dependencies(field, graph, field_query)
@@ -478,7 +542,9 @@ def sql_table_resolver(type, model, fields):
 
         for field_query in query.field_queries:
             expressions = get_field(field_query).expressions()
-            row_slices.append(slice(len(query_expressions), len(query_expressions) + len(expressions)))
+            row_slices.append(
+                slice(len(query_expressions), len(query_expressions) + len(expressions))
+            )
             query_expressions += expressions
 
         readers = None
@@ -487,7 +553,9 @@ def sql_table_resolver(type, model, fields):
             readers = []
 
             for field_query, row_slice in zip(query.field_queries, row_slices):
-                reader = get_field(field_query).create_reader(base_query, field_query=field_query, injector=injector)
+                reader = get_field(field_query).create_reader(
+                    base_query, field_query=field_query, injector=injector
+                )
                 readers.append((field_query.key, row_slice, reader))
 
             return readers
@@ -503,10 +571,7 @@ def sql_table_resolver(type, model, fields):
             return read_row(row)
 
         def read_row_with_readers(row):
-            fields = {
-                key: read(row[row_slice])
-                for key, row_slice, read in readers
-            }
+            fields = {key: read(row[row_slice]) for key, row_slice, read in readers}
             obj = query.create_object(fields)
             return process_row(row[remainder_slice], obj)
 
@@ -515,13 +580,12 @@ def sql_table_resolver(type, model, fields):
         if len(query_expressions) == 0:
             query_expressions.append(sqlalchemy.literal(None))
 
-        row_query = base_query.add_columns(*query_expressions).add_columns(*extra_expressions)
+        row_query = base_query.add_columns(*query_expressions).add_columns(
+            *extra_expressions
+        )
         rows = row_query.with_session(session)
 
-        return [
-            read_row(row)
-            for row in rows
-        ]
+        return [read_row(row) for row in rows]
 
     return resolve_sql_query
 

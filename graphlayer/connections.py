@@ -4,7 +4,9 @@ import graphlayer as g
 from graphlayer.core import Injector
 
 
-def forward_connection(*, connection_type_name, node_type, select_by_cursor, fetch_cursors, cursor_encoding):
+def forward_connection(
+    *, connection_type_name, node_type, select_by_cursor, fetch_cursors, cursor_encoding
+):
     Connection = g.ObjectType(
         connection_type_name,
         fields=lambda: (
@@ -26,9 +28,13 @@ def forward_connection(*, connection_type_name, node_type, select_by_cursor, fet
         @staticmethod
         def select_field(query, *, args):
             if args.first < 0:
-                raise g.GraphError("first must be non-negative integer, was {}".format(args.first))
+                raise g.GraphError(
+                    "first must be non-negative integer, was {}".format(args.first)
+                )
             else:
-                return ConnectionQuery(type_query=query, first=args.first, after=args.after)
+                return ConnectionQuery(
+                    type_query=query, first=args.first, after=args.after
+                )
 
         def __init__(self, *, type_query, first, after):
             self.type = ConnectionQuery
@@ -46,7 +52,9 @@ def forward_connection(*, connection_type_name, node_type, select_by_cursor, fet
         else:
             after_cursor = cursor_encoding.decode(query.after)
 
-        edge_cursors = injector.call_with_dependencies(fetch_cursors, after_cursor=after_cursor, limit=query.first + 1)
+        edge_cursors = injector.call_with_dependencies(
+            fetch_cursors, after_cursor=after_cursor, limit=query.first + 1
+        )
         if len(edge_cursors) > query.first:
             edge_cursors = edge_cursors[:-1]
             has_next_page = True
@@ -69,10 +77,7 @@ def forward_connection(*, connection_type_name, node_type, select_by_cursor, fet
 
                 return lambda edge_cursor: edges[edge_cursor]
 
-            return lambda _: [
-                build_edge(edge_cursor)
-                for edge_cursor in edge_cursors
-            ]
+            return lambda _: [build_edge(edge_cursor) for edge_cursor in edge_cursors]
 
         @build_connection.field(Connection.fields.nodes)
         def field_nodes(field_query):
@@ -115,14 +120,18 @@ class ForwardConnection(object):
     def __init__(self, Connection, Edge, resolver, select_field):
         self.Connection = Connection
         self.Edge = Edge
-        self.resolvers = (resolver, )
+        self.resolvers = (resolver,)
         self.select_field = select_field
 
     def field(self, field_name):
-        return g.field(field_name, type=self.Connection, params=(
-            g.param("after", type=g.NullableType(g.String), default=None),
-            g.param("first", type=g.Int),
-        ))
+        return g.field(
+            field_name,
+            type=self.Connection,
+            params=(
+                g.param("after", type=g.NullableType(g.String), default=None),
+                g.param("first", type=g.Int),
+            ),
+        )
 
 
 PageInfo = g.ObjectType(
@@ -142,4 +151,3 @@ class int_cursor_encoding(object):
     @staticmethod
     def decode(cursor):
         return int(base64.b64decode(cursor.encode("ascii")).decode("ascii"))
-

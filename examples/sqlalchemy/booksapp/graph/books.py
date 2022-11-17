@@ -5,10 +5,13 @@ from .. import database
 from . import authors
 
 
-Book = g.ObjectType("Book", fields=lambda: (
-    g.field("author", type=authors.Author),
-    g.field("title", type=g.String),
-))
+Book = g.ObjectType(
+    "Book",
+    fields=lambda: (
+        g.field("author", type=authors.Author),
+        g.field("title", type=g.String),
+    ),
+)
 
 
 class BookQuery(object):
@@ -36,6 +39,4 @@ book_sql_resolver = gsql.sql_table_resolver(
 )
 
 
-resolvers = (
-    book_sql_resolver,
-)
+resolvers = (book_sql_resolver,)

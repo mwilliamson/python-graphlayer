@@ -1,6 +1,13 @@
 from __future__ import unicode_literals
 
-from precisely import assert_that, contains_exactly, equal_to, has_attrs, is_mapping, is_sequence
+from precisely import (
+    assert_that,
+    contains_exactly,
+    equal_to,
+    has_attrs,
+    is_mapping,
+    is_sequence,
+)
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import pytest
@@ -47,23 +54,30 @@ class TestExpressionField(object):
 
         resolvers = [book_resolver]
 
-        query = gsql.select(g.ListType(Book)(
-            g.key("title", Book.fields.title()),
-        ))
+        query = gsql.select(
+            g.ListType(Book)(
+                g.key("title", Book.fields.title()),
+            )
+        )
         graph_definition = g.define_graph(resolvers)
-        graph = graph_definition.create_graph({
-            sqlalchemy.orm.Session: session,
-        })
+        graph = graph_definition.create_graph(
+            {
+                sqlalchemy.orm.Session: session,
+            }
+        )
         result = graph.resolve(query)
 
-        assert_that(result, contains_exactly(
-            has_attrs(
-                title="Leave it to Psmith",
+        assert_that(
+            result,
+            contains_exactly(
+                has_attrs(
+                    title="Leave it to Psmith",
+                ),
+                has_attrs(
+                    title="Pericles, Prince of Tyre",
+                ),
             ),
-            has_attrs(
-                title="Pericles, Prince of Tyre",
-            ),
-        ))
+        )
 
     def test_can_pass_arguments_to_expression(self):
         Base = sqlalchemy.ext.declarative.declarative_base()
@@ -85,9 +99,13 @@ class TestExpressionField(object):
         Book = g.ObjectType(
             "Book",
             fields=lambda: [
-                g.field("title", type=g.String, params=[
-                    g.param("truncate", g.Int),
-                ]),
+                g.field(
+                    "title",
+                    type=g.String,
+                    params=[
+                        g.param("truncate", g.Int),
+                    ],
+                ),
             ],
         )
 
@@ -96,25 +114,32 @@ class TestExpressionField(object):
             BookRow,
             fields={
                 Book.fields.title: lambda graph, field_query: gsql.expression(
-                    sqlalchemy.func.substr(BookRow.c_title, 1, field_query.args.truncate),
+                    sqlalchemy.func.substr(
+                        BookRow.c_title, 1, field_query.args.truncate
+                    ),
                 ),
             },
         )
 
         resolvers = [book_resolver]
 
-        query = gsql.select(g.ListType(Book)(
-            g.key("title", Book.fields.title(Book.fields.title.params.truncate(8))),
-        ))
+        query = gsql.select(
+            g.ListType(Book)(
+                g.key("title", Book.fields.title(Book.fields.title.params.truncate(8))),
+            )
+        )
         graph_definition = g.define_graph(resolvers)
         graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
         result = graph.resolve(query)
 
-        assert_that(result, contains_exactly(
-            has_attrs(
-                title="Leave it",
+        assert_that(
+            result,
+            contains_exactly(
+                has_attrs(
+                    title="Leave it",
+                ),
             ),
-        ))
+        )
 
 
 def test_can_get_constant_fields():
@@ -154,26 +179,33 @@ def test_can_get_constant_fields():
 
     resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("sales", Book.fields.sales()),
-        g.key("title", Book.fields.title()),
-    ))
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("sales", Book.fields.sales()),
+            g.key("title", Book.fields.title()),
+        )
+    )
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            sales=0,
-            title="Leave it to Psmith",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                sales=0,
+                title="Leave it to Psmith",
+            ),
+            has_attrs(
+                sales=0,
+                title="Pericles, Prince of Tyre",
+            ),
         ),
-        has_attrs(
-            sales=0,
-            title="Pericles, Prince of Tyre",
-        ),
-    ))
+    )
 
 
 def test_can_fulfil_requests_with_no_expressions():
@@ -212,23 +244,30 @@ def test_can_fulfil_requests_with_no_expressions():
 
     resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("sales", Book.fields.sales()),
-    ))
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("sales", Book.fields.sales()),
+        )
+    )
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            sales=0,
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                sales=0,
+            ),
+            has_attrs(
+                sales=0,
+            ),
         ),
-        has_attrs(
-            sales=0,
-        ),
-    ))
+    )
 
 
 def test_can_get_field_backed_by_multiple_expressions():
@@ -270,23 +309,30 @@ def test_can_get_field_backed_by_multiple_expressions():
 
     resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("description", Book.fields.description()),
-    ))
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("description", Book.fields.description()),
+        )
+    )
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            description="Leave it to Psmith (1923)",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                description="Leave it to Psmith (1923)",
+            ),
+            has_attrs(
+                description="Pericles, Prince of Tyre (1607)",
+            ),
         ),
-        has_attrs(
-            description="Pericles, Prince of Tyre (1607)",
-        ),
-    ))
+    )
 
 
 class TestReturnShapeMatchesQueryShape(object):
@@ -324,17 +370,21 @@ class TestReturnShapeMatchesQueryShape(object):
         resolvers = [book_resolver]
 
         graph_definition = g.define_graph(resolvers)
-        self.graph = graph_definition.create_graph({
-            sqlalchemy.orm.Session: session,
-        })
+        self.graph = graph_definition.create_graph(
+            {
+                sqlalchemy.orm.Session: session,
+            }
+        )
         self.Book = Book
         self.BookRow = BookRow
         self.session = session
 
     def test_given_there_are_no_rows_then_requesting_list_returns_empty_list(self):
-        query = gsql.select(g.ListType(self.Book)(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            g.ListType(self.Book)(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         result = self.resolve(query)
 
         assert_that(result, contains_exactly())
@@ -342,24 +392,31 @@ class TestReturnShapeMatchesQueryShape(object):
     def test_given_there_are_rows_then_requesting_list_returns_list(self):
         self.add_books("Leave it to Psmith", "Pericles, Prince of Tyre")
 
-        query = gsql.select(g.ListType(self.Book)(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            g.ListType(self.Book)(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         result = self.resolve(query)
 
-        assert_that(result, contains_exactly(
-            has_attrs(
-                title="Leave it to Psmith",
+        assert_that(
+            result,
+            contains_exactly(
+                has_attrs(
+                    title="Leave it to Psmith",
+                ),
+                has_attrs(
+                    title="Pericles, Prince of Tyre",
+                ),
             ),
-            has_attrs(
-                title="Pericles, Prince of Tyre",
-            ),
-        ))
+        )
 
     def test_given_there_are_no_rows_then_requesting_nullable_returns_null(self):
-        query = gsql.select(g.NullableType(self.Book)(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            g.NullableType(self.Book)(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         result = self.resolve(query)
 
         assert_that(result, equal_to(None))
@@ -367,27 +424,37 @@ class TestReturnShapeMatchesQueryShape(object):
     def test_given_there_is_one_row_then_requesting_nullable_returns_object(self):
         self.add_books("Leave it to Psmith")
 
-        query = gsql.select(g.NullableType(self.Book)(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            g.NullableType(self.Book)(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         result = self.resolve(query)
 
         assert_that(result, has_attrs(title="Leave it to Psmith"))
 
-    def test_given_there_is_more_than_one_row_then_requesting_nullable_raises_error(self):
+    def test_given_there_is_more_than_one_row_then_requesting_nullable_raises_error(
+        self,
+    ):
         self.add_books("Leave it to Psmith", "Pericles, Prince of Tyre")
 
-        query = gsql.select(g.NullableType(self.Book)(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            g.NullableType(self.Book)(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
-        assert_that(str(error.value), equal_to("expected exactly zero or one values but got 2"))
+        assert_that(
+            str(error.value), equal_to("expected exactly zero or one values but got 2")
+        )
 
     def test_given_there_are_no_rows_then_requesting_object_raises_error(self):
-        query = gsql.select(self.Book(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            self.Book(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
         assert_that(str(error.value), equal_to("expected exactly one value but got 0"))
@@ -395,9 +462,11 @@ class TestReturnShapeMatchesQueryShape(object):
     def test_given_there_is_one_row_then_requesting_object_returns_object(self):
         self.add_books("Leave it to Psmith")
 
-        query = gsql.select(self.Book(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            self.Book(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         result = self.resolve(query)
 
         assert_that(result, has_attrs(title="Leave it to Psmith"))
@@ -405,9 +474,11 @@ class TestReturnShapeMatchesQueryShape(object):
     def test_given_there_is_more_than_one_row_then_requesting_object_raises_error(self):
         self.add_books("Leave it to Psmith", "Pericles, Prince of Tyre")
 
-        query = gsql.select(self.Book(
-            g.key("title", self.Book.fields.title()),
-        ))
+        query = gsql.select(
+            self.Book(
+                g.key("title", self.Book.fields.title()),
+            )
+        )
         error = pytest.raises(g.GraphError, lambda: self.resolve(query))
 
         assert_that(str(error.value), equal_to("expected exactly one value but got 2"))
@@ -455,21 +526,26 @@ def test_can_filter_results_using_where():
         },
     )
 
-    resolvers = (book_resolver, )
+    resolvers = (book_resolver,)
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-    )).where(BookRow.c_id == 1)
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("title", Book.fields.title()),
+        )
+    ).where(BookRow.c_id == 1)
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            title="Leave it to Psmith",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                title="Leave it to Psmith",
+            ),
         ),
-    ))
+    )
 
 
 def test_can_limit_results_using_limit():
@@ -507,20 +583,29 @@ def test_can_limit_results_using_limit():
         },
     )
 
-    resolvers = (book_resolver, )
+    resolvers = (book_resolver,)
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-    )).order_by(BookRow.c_title).limit(2)
+    query = (
+        gsql.select(
+            g.ListType(Book)(
+                g.key("title", Book.fields.title()),
+            )
+        )
+        .order_by(BookRow.c_title)
+        .limit(2)
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, is_sequence(
-        has_attrs(title="Captain Corelli's Mandolin"),
-        has_attrs(title="Leave it to Psmith"),
-    ))
+    assert_that(
+        result,
+        is_sequence(
+            has_attrs(title="Captain Corelli's Mandolin"),
+            has_attrs(title="Leave it to Psmith"),
+        ),
+    )
 
 
 def test_can_order_results_using_order_by():
@@ -558,21 +643,26 @@ def test_can_order_results_using_order_by():
         },
     )
 
-    resolvers = (book_resolver, )
+    resolvers = (book_resolver,)
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-    )).order_by(BookRow.c_title)
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("title", Book.fields.title()),
+        )
+    ).order_by(BookRow.c_title)
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, is_sequence(
-        has_attrs(title="Captain Corelli's Mandolin"),
-        has_attrs(title="Leave it to Psmith"),
-        has_attrs(title="Pericles, Prince of Tyre"),
-    ))
+    assert_that(
+        result,
+        is_sequence(
+            has_attrs(title="Captain Corelli's Mandolin"),
+            has_attrs(title="Leave it to Psmith"),
+            has_attrs(title="Pericles, Prince of Tyre"),
+        ),
+    )
 
 
 def test_can_group_results_using_group_by():
@@ -610,20 +700,25 @@ def test_can_group_results_using_group_by():
         },
     )
 
-    resolvers = (author_resolver, )
+    resolvers = (author_resolver,)
 
-    query = gsql.select(g.ListType(Author)(
-        g.key("name", Author.fields.name()),
-    )).group_by(BookRow.c_author)
+    query = gsql.select(
+        g.ListType(Author)(
+            g.key("name", Author.fields.name()),
+        )
+    ).group_by(BookRow.c_author)
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(name="PG Wodehouse"),
-        has_attrs(name="William Shakespeare"),
-    ))
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(name="PG Wodehouse"),
+            has_attrs(name="William Shakespeare"),
+        ),
+    )
 
 
 class TestSqlQueryBy(object):
@@ -665,62 +760,96 @@ class TestSqlQueryBy(object):
             },
         )
 
-        resolvers = (book_resolver, )
+        resolvers = (book_resolver,)
 
         graph_definition = g.define_graph(resolvers)
         self.graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
 
-    def test_when_passed_single_expression_then_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
-        query = gsql.select(self.Book(
-            g.key("title", self.Book.fields.title()),
-        )).by(self.BookRow.c_id, (1, 3))
+    def test_when_passed_single_expression_then_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(
+        self,
+    ):
+        query = gsql.select(
+            self.Book(
+                g.key("title", self.Book.fields.title()),
+            )
+        ).by(self.BookRow.c_id, (1, 3))
 
         result = self.graph.resolve(query)
 
-        assert_that(result, is_mapping({
-            1: has_attrs(
-                title="Leave it to Psmith",
+        assert_that(
+            result,
+            is_mapping(
+                {
+                    1: has_attrs(
+                        title="Leave it to Psmith",
+                    ),
+                    3: has_attrs(
+                        title="Captain Corelli's Mandolin",
+                    ),
+                }
             ),
-            3: has_attrs(
-                title="Captain Corelli's Mandolin",
-            ),
-        }))
-
-    def test_when_passed_singleton_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
-        query = gsql.select(self.Book(
-            g.key("title", self.Book.fields.title()),
-        )).by((self.BookRow.c_id, ), ((1, ), (3, )))
-
-        result = self.graph.resolve(query)
-
-        assert_that(result, is_mapping({
-            (1, ): has_attrs(
-                title="Leave it to Psmith",
-            ),
-            (3, ): has_attrs(
-                title="Captain Corelli's Mandolin",
-            ),
-        }))
-
-    def test_when_passed_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(self):
-        key_values = sqlalchemy.union(
-            sqlalchemy.orm.Query([sqlalchemy.literal(1), sqlalchemy.literal("Leave it to Psmith")]),
-            sqlalchemy.orm.Query([sqlalchemy.literal(3), sqlalchemy.literal("Captain Corelli's Mandolin")]),
         )
-        query = gsql.select(self.Book(
-            g.key("title", self.Book.fields.title()),
-        )).by((self.BookRow.c_id, self.BookRow.c_title), key_values)
+
+    def test_when_passed_singleton_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(
+        self,
+    ):
+        query = gsql.select(
+            self.Book(
+                g.key("title", self.Book.fields.title()),
+            )
+        ).by((self.BookRow.c_id,), ((1,), (3,)))
 
         result = self.graph.resolve(query)
 
-        assert_that(result, is_mapping({
-            (1, "Leave it to Psmith"): has_attrs(
-                title="Leave it to Psmith",
+        assert_that(
+            result,
+            is_mapping(
+                {
+                    (1,): has_attrs(
+                        title="Leave it to Psmith",
+                    ),
+                    (3,): has_attrs(
+                        title="Captain Corelli's Mandolin",
+                    ),
+                }
             ),
-            (3, "Captain Corelli's Mandolin"): has_attrs(
-                title="Captain Corelli's Mandolin",
+        )
+
+    def test_when_passed_tuple_then_query_by_filters_to_rows_with_that_expression_value_and_indexes_by_that_expression(
+        self,
+    ):
+        key_values = sqlalchemy.union(
+            sqlalchemy.orm.Query(
+                [sqlalchemy.literal(1), sqlalchemy.literal("Leave it to Psmith")]
             ),
-        }))
+            sqlalchemy.orm.Query(
+                [
+                    sqlalchemy.literal(3),
+                    sqlalchemy.literal("Captain Corelli's Mandolin"),
+                ]
+            ),
+        )
+        query = gsql.select(
+            self.Book(
+                g.key("title", self.Book.fields.title()),
+            )
+        ).by((self.BookRow.c_id, self.BookRow.c_title), key_values)
+
+        result = self.graph.resolve(query)
+
+        assert_that(
+            result,
+            is_mapping(
+                {
+                    (1, "Leave it to Psmith"): has_attrs(
+                        title="Leave it to Psmith",
+                    ),
+                    (3, "Captain Corelli's Mandolin"): has_attrs(
+                        title="Captain Corelli's Mandolin",
+                    ),
+                }
+            ),
+        )
 
 
 def test_can_recursively_resolve_selected_fields():
@@ -737,7 +866,9 @@ def test_can_recursively_resolve_selected_fields():
 
         c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
         c_title = sqlalchemy.Column(sqlalchemy.Unicode, nullable=False)
-        c_author_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey(AuthorRow.c_id))
+        c_author_id = sqlalchemy.Column(
+            sqlalchemy.Integer, sqlalchemy.ForeignKey(AuthorRow.c_id)
+        )
 
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
@@ -803,30 +934,39 @@ def test_can_recursively_resolve_selected_fields():
     resolvers = [resolve_root, book_resolver, author_resolver]
 
     query = Root(
-        g.key("books", Root.fields.books(
-            g.key("author", Book.fields.author(
-                g.key("name", Author.fields.name()),
-            )),
-            g.key("title", Book.fields.title()),
-        )),
+        g.key(
+            "books",
+            Root.fields.books(
+                g.key(
+                    "author",
+                    Book.fields.author(
+                        g.key("name", Author.fields.name()),
+                    ),
+                ),
+                g.key("title", Book.fields.title()),
+            ),
+        ),
     )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, has_attrs(
-        books=contains_exactly(
-            has_attrs(
-                author=has_attrs(name="PG Wodehouse"),
-                title="Leave it to Psmith",
-            ),
-            has_attrs(
-                author=has_attrs(name="William Shakespeare"),
-                title="Pericles, Prince of Tyre",
+    assert_that(
+        result,
+        has_attrs(
+            books=contains_exactly(
+                has_attrs(
+                    author=has_attrs(name="PG Wodehouse"),
+                    title="Leave it to Psmith",
+                ),
+                has_attrs(
+                    author=has_attrs(name="William Shakespeare"),
+                    title="Pericles, Prince of Tyre",
+                ),
             ),
         ),
-    ))
+    )
 
 
 def test_can_resolve_many_to_one_field():
@@ -893,31 +1033,39 @@ def test_can_resolve_many_to_one_field():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("right", Left.fields.right(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "right",
+                Left.fields.right(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="one",
-            right=has_attrs(
-                value="two",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="one",
+                right=has_attrs(
+                    value="two",
+                ),
+            ),
+            has_attrs(
+                value="three",
+                right=has_attrs(
+                    value="four",
+                ),
             ),
         ),
-        has_attrs(
-            value="three",
-            right=has_attrs(
-                value="four",
-            ),
-        ),
-    ))
+    )
 
 
 def test_can_resolve_many_to_one_or_zero_field():
@@ -983,29 +1131,37 @@ def test_can_resolve_many_to_one_or_zero_field():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("right", Left.fields.right(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "right",
+                Left.fields.right(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="one",
-            right=has_attrs(
-                value="two",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="one",
+                right=has_attrs(
+                    value="two",
+                ),
+            ),
+            has_attrs(
+                value="three",
+                right=None,
             ),
         ),
-        has_attrs(
-            value="three",
-            right=None,
-        ),
-    ))
+    )
 
 
 def test_can_resolve_one_to_many_field():
@@ -1021,7 +1177,9 @@ def test_can_resolve_one_to_many_field():
         __tablename__ = "right"
 
         c_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-        c_left_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey(LeftRow.c_id))
+        c_left_id = sqlalchemy.Column(
+            sqlalchemy.Integer, sqlalchemy.ForeignKey(LeftRow.c_id)
+        )
         c_value = sqlalchemy.Column(sqlalchemy.Unicode)
 
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
@@ -1078,36 +1236,44 @@ def test_can_resolve_one_to_many_field():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("rights", Left.fields.rights(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "rights",
+                Left.fields.rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            rights=contains_exactly(
-                has_attrs(value="right 1a"),
-                has_attrs(value="right 1b"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                rights=contains_exactly(
+                    has_attrs(value="right 1a"),
+                    has_attrs(value="right 1b"),
+                ),
+            ),
+            has_attrs(
+                value="left 2",
+                rights=contains_exactly(),
+            ),
+            has_attrs(
+                value="left 3",
+                rights=contains_exactly(
+                    has_attrs(value="right 3"),
+                ),
             ),
         ),
-        has_attrs(
-            value="left 2",
-            rights=contains_exactly(),
-        ),
-        has_attrs(
-            value="left 3",
-            rights=contains_exactly(
-                has_attrs(value="right 3"),
-            ),
-        ),
-    ))
+    )
 
 
 def test_can_resolve_many_to_many_join_through_association_table():
@@ -1194,36 +1360,44 @@ def test_can_resolve_many_to_many_join_through_association_table():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("rights", Left.fields.rights(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "rights",
+                Left.fields.rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            rights=contains_exactly(
-                has_attrs(value="right 1a"),
-                has_attrs(value="right 1b"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                rights=contains_exactly(
+                    has_attrs(value="right 1a"),
+                    has_attrs(value="right 1b"),
+                ),
+            ),
+            has_attrs(
+                value="left 2",
+                rights=contains_exactly(),
+            ),
+            has_attrs(
+                value="left 3",
+                rights=contains_exactly(
+                    has_attrs(value="right 3"),
+                ),
             ),
         ),
-        has_attrs(
-            value="left 2",
-            rights=contains_exactly(),
-        ),
-        has_attrs(
-            value="left 3",
-            rights=contains_exactly(
-                has_attrs(value="right 3"),
-            ),
-        ),
-    ))
+    )
 
 
 def test_can_resolve_many_to_one_join_through_association_table():
@@ -1306,27 +1480,35 @@ def test_can_resolve_many_to_one_join_through_association_table():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("right", Left.fields.right(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "right",
+                Left.fields.right(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            right=has_attrs(value="right 1"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                right=has_attrs(value="right 1"),
+            ),
+            has_attrs(
+                value="left 2",
+                right=has_attrs(value="right 2"),
+            ),
         ),
-        has_attrs(
-            value="left 2",
-            right=has_attrs(value="right 2"),
-        ),
-    ))
+    )
 
 
 def test_can_resolve_many_to_one_or_zero_join_through_association_table():
@@ -1415,35 +1597,43 @@ def test_can_resolve_many_to_one_or_zero_join_through_association_table():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("right", Left.fields.right(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "right",
+                Left.fields.right(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            right=has_attrs(value="right 1"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                right=has_attrs(value="right 1"),
+            ),
+            has_attrs(
+                value="left 2",
+                right=None,
+            ),
+            has_attrs(
+                value="left 3",
+                right=has_attrs(value="right 3"),
+            ),
+            has_attrs(
+                value="left 4",
+                right=None,
+            ),
         ),
-        has_attrs(
-            value="left 2",
-            right=None,
-        ),
-        has_attrs(
-            value="left 3",
-            right=has_attrs(value="right 3"),
-        ),
-        has_attrs(
-            value="left 4",
-            right=None,
-        ),
-    ))
+    )
 
 
 def test_can_resolve_join_through_association_query():
@@ -1530,36 +1720,44 @@ def test_can_resolve_join_through_association_query():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("rights", Left.fields.rights(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "rights",
+                Left.fields.rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            rights=contains_exactly(
-                has_attrs(value="right 1a"),
-                has_attrs(value="right 1b"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                rights=contains_exactly(
+                    has_attrs(value="right 1a"),
+                    has_attrs(value="right 1b"),
+                ),
+            ),
+            has_attrs(
+                value="left 2",
+                rights=contains_exactly(),
+            ),
+            has_attrs(
+                value="left 3",
+                rights=contains_exactly(
+                    has_attrs(value="right 3"),
+                ),
             ),
         ),
-        has_attrs(
-            value="left 2",
-            rights=contains_exactly(),
-        ),
-        has_attrs(
-            value="left 3",
-            rights=contains_exactly(
-                has_attrs(value="right 3"),
-            ),
-        ),
-    ))
+    )
 
 
 def test_when_distinct_is_true_then_only_unique_associations_are_selected():
@@ -1646,30 +1844,41 @@ def test_when_distinct_is_true_then_only_unique_associations_are_selected():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("rights", Left.fields.rights(
-            g.key("value", Right.fields.value()),
-        )),
-        g.key("distinct_rights", Left.fields.distinct_rights(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key(
+                "rights",
+                Left.fields.rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+            g.key(
+                "distinct_rights",
+                Left.fields.distinct_rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            rights=contains_exactly(
-                has_attrs(value="right 1"),
-                has_attrs(value="right 1"),
-            ),
-            distinct_rights=contains_exactly(
-                has_attrs(value="right 1"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                rights=contains_exactly(
+                    has_attrs(value="right 1"),
+                    has_attrs(value="right 1"),
+                ),
+                distinct_rights=contains_exactly(
+                    has_attrs(value="right 1"),
+                ),
             ),
         ),
-    ))
+    )
 
 
 def test_association_table_can_be_filtered_explicitly():
@@ -1738,13 +1947,17 @@ def test_association_table_can_be_filtered_explicitly():
 
     def left_field_rights(graph, field_query):
         def association(left_ids):
-            associations_table = sqlalchemy.orm.Query([
-                AssociationRow.c_left_id,
-                AssociationRow.c_right_id,
-            ]) \
-                .select_from(AssociationRow) \
-                .filter(AssociationRow.c_left_id.in_(left_ids)) \
+            associations_table = (
+                sqlalchemy.orm.Query(
+                    [
+                        AssociationRow.c_left_id,
+                        AssociationRow.c_right_id,
+                    ]
+                )
+                .select_from(AssociationRow)
+                .filter(AssociationRow.c_left_id.in_(left_ids))
                 .subquery()
+            )
 
             return gsql.association(
                 associations_table,
@@ -1771,39 +1984,44 @@ def test_association_table_can_be_filtered_explicitly():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("rights", Left.fields.rights(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "rights",
+                Left.fields.rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            rights=contains_exactly(
-                has_attrs(value="right 1a"),
-                has_attrs(value="right 1b"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                rights=contains_exactly(
+                    has_attrs(value="right 1a"),
+                    has_attrs(value="right 1b"),
+                ),
+            ),
+            has_attrs(
+                value="left 2",
+                rights=contains_exactly(),
+            ),
+            has_attrs(
+                value="left 3",
+                rights=contains_exactly(
+                    has_attrs(value="right 3"),
+                ),
             ),
         ),
-        has_attrs(
-            value="left 2",
-            rights=contains_exactly(),
-        ),
-        has_attrs(
-            value="left 3",
-            rights=contains_exactly(
-                has_attrs(value="right 3"),
-            ),
-        ),
-    ))
-
-
-
+    )
 
 
 def test_association_can_have_explicit_order():
@@ -1896,35 +2114,43 @@ def test_association_can_have_explicit_order():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("rights", Left.fields.rights(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "rights",
+                Left.fields.rights(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="left 1",
-            rights=is_sequence(
-                has_attrs(value="right 1a"),
-                has_attrs(value="right 1b"),
-                has_attrs(value="right 1c"),
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="left 1",
+                rights=is_sequence(
+                    has_attrs(value="right 1a"),
+                    has_attrs(value="right 1b"),
+                    has_attrs(value="right 1c"),
+                ),
+            ),
+            has_attrs(
+                value="left 2",
+                rights=is_sequence(
+                    has_attrs(value="right 2a"),
+                    has_attrs(value="right 2b"),
+                    has_attrs(value="right 2c"),
+                ),
             ),
         ),
-        has_attrs(
-            value="left 2",
-            rights=is_sequence(
-                has_attrs(value="right 2a"),
-                has_attrs(value="right 2b"),
-                has_attrs(value="right 2c"),
-            ),
-        ),
-    ))
+    )
 
 
 def test_can_join_tables_using_multi_column_key():
@@ -1977,7 +2203,9 @@ def test_can_join_tables_using_multi_column_key():
             Left.fields.right: lambda graph, field_query: gsql.join(
                 key=(LeftRow.c_id_1, LeftRow.c_id_2),
                 resolve=lambda left_ids: graph.resolve(
-                    gsql.select(field_query.type_query).by((RightRow.c_id_1, RightRow.c_id_2), left_ids),
+                    gsql.select(field_query.type_query).by(
+                        (RightRow.c_id_1, RightRow.c_id_2), left_ids
+                    ),
                 ),
             ),
         },
@@ -1993,31 +2221,39 @@ def test_can_join_tables_using_multi_column_key():
 
     resolvers = [left_resolver, right_resolver]
 
-    query = gsql.select(g.ListType(Left)(
-        g.key("value", Left.fields.value()),
-        g.key("right", Left.fields.right(
-            g.key("value", Right.fields.value()),
-        )),
-    ))
+    query = gsql.select(
+        g.ListType(Left)(
+            g.key("value", Left.fields.value()),
+            g.key(
+                "right",
+                Left.fields.right(
+                    g.key("value", Right.fields.value()),
+                ),
+            ),
+        )
+    )
 
     graph_definition = g.define_graph(resolvers)
     graph = graph_definition.create_graph({sqlalchemy.orm.Session: session})
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            value="one",
-            right=has_attrs(
-                value="two",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                value="one",
+                right=has_attrs(
+                    value="two",
+                ),
+            ),
+            has_attrs(
+                value="three",
+                right=has_attrs(
+                    value="four",
+                ),
             ),
         ),
-        has_attrs(
-            value="three",
-            right=has_attrs(
-                value="four",
-            ),
-        ),
-    ))
+    )
 
 
 def test_can_map_values_from_sql_expression():
@@ -2049,25 +2285,34 @@ def test_can_map_values_from_sql_expression():
         Book,
         BookRow,
         fields={
-            Book.fields.initial: gsql.expression(BookRow.c_title).map_value(lambda title: title[0]),
+            Book.fields.initial: gsql.expression(BookRow.c_title).map_value(
+                lambda title: title[0]
+            ),
         },
     )
 
     resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("initial", Book.fields.initial()),
-    ))
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("initial", Book.fields.initial()),
+        )
+    )
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(initial="L"),
-        has_attrs(initial="P"),
-    ))
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(initial="L"),
+            has_attrs(initial="P"),
+        ),
+    )
 
 
 class TestTags(object):
@@ -2121,9 +2366,11 @@ class TestTags(object):
         resolvers = [author_resolver, reader_resolver]
 
         graph_definition = g.define_graph(resolvers)
-        graph = graph_definition.create_graph({
-            sqlalchemy.orm.Session: session,
-        })
+        graph = graph_definition.create_graph(
+            {
+                sqlalchemy.orm.Session: session,
+            }
+        )
 
         authors = graph.resolve(
             gsql.select(
@@ -2134,9 +2381,12 @@ class TestTags(object):
             ),
         )
 
-        assert_that(authors, contains_exactly(
-            has_attrs(name="PG Wodehouse"),
-        ))
+        assert_that(
+            authors,
+            contains_exactly(
+                has_attrs(name="PG Wodehouse"),
+            ),
+        )
 
         readers = graph.resolve(
             gsql.select(
@@ -2147,9 +2397,12 @@ class TestTags(object):
             ),
         )
 
-        assert_that(readers, contains_exactly(
-            has_attrs(name="Matilda"),
-        ))
+        assert_that(
+            readers,
+            contains_exactly(
+                has_attrs(name="Matilda"),
+            ),
+        )
 
 
 def test_when_type_is_object_then_typename_field_is_resolved():
@@ -2186,22 +2439,29 @@ def test_when_type_is_object_then_typename_field_is_resolved():
 
     resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-        g.key("type", schema.typename_field()),
-    ))
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("title", Book.fields.title()),
+            g.key("type", schema.typename_field()),
+        )
+    )
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
     result = graph.resolve(query)
 
-    assert_that(result, contains_exactly(
-        has_attrs(
-            title="Leave it to Psmith",
-            type="Book",
+    assert_that(
+        result,
+        contains_exactly(
+            has_attrs(
+                title="Leave it to Psmith",
+                type="Book",
+            ),
         ),
-    ))
+    )
 
 
 def test_when_type_is_interface_then_typename_field_is_unresolved():
@@ -2238,14 +2498,18 @@ def test_when_type_is_interface_then_typename_field_is_unresolved():
 
     resolvers = [book_resolver]
 
-    query = gsql.select(g.ListType(Book)(
-        g.key("title", Book.fields.title()),
-        g.key("type", schema.typename_field()),
-    ))
+    query = gsql.select(
+        g.ListType(Book)(
+            g.key("title", Book.fields.title()),
+            g.key("type", schema.typename_field()),
+        )
+    )
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
 
     error = pytest.raises(g.GraphError, lambda: graph.resolve(query))
     assert_that(str(error.value), equal_to("Resolver missing for field type_name"))
@@ -2296,9 +2560,7 @@ def test_connection_uses_primary_key_to_order_objects():
 
     Query = g.ObjectType(
         "Query",
-        fields=lambda: (
-            books_connection.field("books_connection"),
-        ),
+        fields=lambda: (books_connection.field("books_connection"),),
     )
 
     resolve_query = g.root_object_resolver(Query)
@@ -2309,34 +2571,47 @@ def test_connection_uses_primary_key_to_order_objects():
 
     resolvers = (book_resolver, books_connection.resolvers, resolve_query)
     graph_definition = g.define_graph(resolvers)
-    graph = graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    graph = graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
 
     result = graph.resolve(
         Query(
-            g.key("books", Query.fields.books_connection(
-                Query.fields.books_connection.params.first(2),
-
-                g.key("nodes", BooksConnection.fields.nodes(
-                    g.key("title", Book.fields.title()),
-                )),
-                g.key("page_info", BooksConnection.fields.page_info(
-                    g.key("has_next_page", PageInfo.fields.has_next_page()),
-                )),
-            )),
+            g.key(
+                "books",
+                Query.fields.books_connection(
+                    Query.fields.books_connection.params.first(2),
+                    g.key(
+                        "nodes",
+                        BooksConnection.fields.nodes(
+                            g.key("title", Book.fields.title()),
+                        ),
+                    ),
+                    g.key(
+                        "page_info",
+                        BooksConnection.fields.page_info(
+                            g.key("has_next_page", PageInfo.fields.has_next_page()),
+                        ),
+                    ),
+                ),
+            ),
         )
     )
 
-    assert_that(result, has_attrs(
-        books=has_attrs(
-            nodes=contains_exactly(
-                has_attrs(title="Leave it to Psmith"),
-                has_attrs(title="The Gentleman's Guide to Vice and Virtue"),
+    assert_that(
+        result,
+        has_attrs(
+            books=has_attrs(
+                nodes=contains_exactly(
+                    has_attrs(title="Leave it to Psmith"),
+                    has_attrs(title="The Gentleman's Guide to Vice and Virtue"),
+                ),
+                page_info=has_attrs(has_next_page=True),
             ),
-            page_info=has_attrs(has_next_page=True),
         ),
-    ))
+    )
 
 
 def test_sql_query_type_str():
@@ -2346,8 +2621,13 @@ def test_sql_query_type_str():
             g.field("title", type=g.String),
         ],
     )
-    query = gsql.select(Book(
-        g.key("title", Book.fields.title()),
-    ))
+    query = gsql.select(
+        Book(
+            g.key("title", Book.fields.title()),
+        )
+    )
 
-    assert_that(str(query.type), equal_to("(graphlayer.sqlalchemy.select, ObjectType(name='Book'))"))
+    assert_that(
+        str(query.type),
+        equal_to("(graphlayer.sqlalchemy.select, ObjectType(name='Book'))"),
+    )

@@ -33,10 +33,9 @@ def is_query(query):
     elif isinstance(query, schema.ObjectQuery):
         return has_attrs(
             type=query.type,
-            field_queries=is_sequence(*[
-                is_query(field_query)
-                for field_query in query.field_queries
-            ]),
+            field_queries=is_sequence(
+                *[is_query(field_query) for field_query in query.field_queries]
+            ),
         )
 
     else:

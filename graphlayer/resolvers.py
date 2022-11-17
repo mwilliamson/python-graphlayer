@@ -14,10 +14,11 @@ def create_object_builder(object_query):
     ]
 
     def create_object(value):
-        return object_query.create_object(iterables.to_dict(
-            (key, resolve_field(value))
-            for key, resolve_field in field_resolvers
-        ))
+        return object_query.create_object(
+            iterables.to_dict(
+                (key, resolve_field(value)) for key, resolve_field in field_resolvers
+            )
+        )
 
     def field_resolver(field):
         def add_field_resolver(build_field_resolver):
@@ -50,6 +51,7 @@ def create_object_builder(object_query):
     create_object.constant = constant
 
     if isinstance(object_query.type, schema.ObjectType):
+
         @getter(schema.typename_field)
         def resolve_typename(_):
             return object_query.type.name
@@ -60,10 +62,12 @@ def create_object_builder(object_query):
 def constant_object_resolver(type, values):
     @core.resolver(type)
     def resolve(graph, query):
-        return query.create_object(iterables.to_dict(
-            (field_query.key, values[field_query.field.name])
-            for field_query in query.field_queries
-        ))
+        return query.create_object(
+            iterables.to_dict(
+                (field_query.key, values[field_query.field.name])
+                for field_query in query.field_queries
+            )
+        )
 
     return resolve
 
@@ -77,10 +81,13 @@ def root_object_resolver(type):
         build_object = create_object_builder(query)
 
         for field, field_handler in field_handlers.items():
+
             @build_object.field(field)
             def resolve_field(field_query):
                 field_resolver = field_handlers[field_query.field]
-                return lambda _: injector.call_with_dependencies(field_resolver, graph, field_query.type_query, field_query.args)
+                return lambda _: injector.call_with_dependencies(
+                    field_resolver, graph, field_query.type_query, field_query.args
+                )
 
         return build_object(None)
 

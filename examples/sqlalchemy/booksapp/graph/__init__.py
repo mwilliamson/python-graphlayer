@@ -15,9 +15,11 @@ _graph_definition = g.define_graph(resolvers=resolvers)
 
 
 def create_graph(*, session):
-    return _graph_definition.create_graph({
-        sqlalchemy.orm.Session: session,
-    })
+    return _graph_definition.create_graph(
+        {
+            sqlalchemy.orm.Session: session,
+        }
+    )
 
 
 Root = root.Root

@@ -5,10 +5,13 @@ from .. import database
 from . import books
 
 
-Author = g.ObjectType("Author", fields=lambda: (
-    g.field("books", type=g.ListType(books.Book)),
-    g.field("name", type=g.String),
-))
+Author = g.ObjectType(
+    "Author",
+    fields=lambda: (
+        g.field("books", type=g.ListType(books.Book)),
+        g.field("name", type=g.String),
+    ),
+)
 
 
 class AuthorQuery(object):
@@ -28,7 +31,9 @@ author_sql_resolver = gsql.sql_table_resolver(
         Author.fields.books: gsql.join(
             key=database.Author.id,
             resolve=lambda graph, field_query, ids: graph.resolve(
-                books.BookQuery.select_by_author_ids(field_query.type_query, author_ids=ids),
+                books.BookQuery.select_by_author_ids(
+                    field_query.type_query, author_ids=ids
+                ),
             ),
         ),
         Author.fields.name: gsql.expression(database.Author.name),
@@ -36,6 +41,4 @@ author_sql_resolver = gsql.sql_table_resolver(
 )
 
 
-resolvers = (
-    author_sql_resolver,
-)
+resolvers = (author_sql_resolver,)

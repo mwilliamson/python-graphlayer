@@ -50,4 +50,6 @@ def test_when_resolve_cannot_be_found_then_error_is_raised():
     graph = g.create_graph(())
     error = pytest.raises(g.GraphError, lambda: graph.resolve(Query))
 
-    assert_that(str(error.value), equal_to("could not find resolver for query of type: one"))
+    assert_that(
+        str(error.value), equal_to("could not find resolver for query of type: one")
+    )

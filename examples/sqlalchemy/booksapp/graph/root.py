@@ -3,10 +3,13 @@ import graphlayer as g
 from . import authors, books
 
 
-Root = g.ObjectType("Root", fields=(
-    g.field("authors", g.ListType(authors.Author)),
-    g.field("books", g.ListType(books.Book)),
-))
+Root = g.ObjectType(
+    "Root",
+    fields=(
+        g.field("authors", g.ListType(authors.Author)),
+        g.field("books", g.ListType(books.Book)),
+    ),
+)
 
 
 root_resolver = g.root_object_resolver(Root)
@@ -22,4 +25,4 @@ def root_resolve_books(graph, query, args):
     return graph.resolve(books.BookQuery.select(query))
 
 
-resolvers = (root_resolver, )
+resolvers = (root_resolver,)

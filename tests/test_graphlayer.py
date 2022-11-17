@@ -20,10 +20,12 @@ def test_can_get_scalar_from_root():
             two=2,
         )
 
-        return query.create_object(iterables.to_dict(
-            (field_query.key, values[field_query.field.name])
-            for field_query in query.field_queries
-        ))
+        return query.create_object(
+            iterables.to_dict(
+                (field_query.key, values[field_query.field.name])
+                for field_query in query.field_queries
+            )
+        )
 
     resolvers = [resolve_root]
 
@@ -73,10 +75,12 @@ def test_can_recursively_resolve():
 
     @g.resolver(Root)
     def resolve_root(graph, query):
-        return query.create_object(iterables.to_dict(
-            (field_query.key, graph.resolve(field_query.type_query))
-            for field_query in query.field_queries
-        ))
+        return query.create_object(
+            iterables.to_dict(
+                (field_query.key, graph.resolve(field_query.type_query))
+                for field_query in query.field_queries
+            )
+        )
 
     @g.resolver(g.ListType(Book))
     def resolve_book(graph, query):
@@ -85,28 +89,36 @@ def test_can_recursively_resolve():
             dict(title="Pericles, Prince of Tyre"),
         ]
         return [
-            query.element_query.create_object(iterables.to_dict(
-                (field_query.key, book[field_query.field.name])
-                for field_query in query.element_query.field_queries
-            ))
+            query.element_query.create_object(
+                iterables.to_dict(
+                    (field_query.key, book[field_query.field.name])
+                    for field_query in query.element_query.field_queries
+                )
+            )
             for book in books
         ]
 
     resolvers = [resolve_root, resolve_book]
 
     query = Root(
-        g.key("books", Root.fields.books(
-            g.key("title", Book.fields.title()),
-        )),
+        g.key(
+            "books",
+            Root.fields.books(
+                g.key("title", Book.fields.title()),
+            ),
+        ),
     )
     result = g.create_graph(resolvers).resolve(query)
 
-    assert_that(result, has_attrs(
-        books=contains_exactly(
-            has_attrs(title="Leave it to Psmith"),
-            has_attrs(title="Pericles, Prince of Tyre"),
+    assert_that(
+        result,
+        has_attrs(
+            books=contains_exactly(
+                has_attrs(title="Leave it to Psmith"),
+                has_attrs(title="Pericles, Prince of Tyre"),
+            ),
         ),
-    ))
+    )
 
 
 def test_can_recursively_resolve_selected_fields():
@@ -134,10 +146,12 @@ def test_can_recursively_resolve_selected_fields():
 
     @g.resolver(Root)
     def resolve_root(graph, query):
-        return query.create_object(iterables.to_dict(
-            (field_query.key, graph.resolve(field_query.type_query))
-            for field_query in query.field_queries
-        ))
+        return query.create_object(
+            iterables.to_dict(
+                (field_query.key, graph.resolve(field_query.type_query))
+                for field_query in query.field_queries
+            )
+        )
 
     books = [
         dict(author_id="wodehouse", title="Leave it to Psmith"),
@@ -168,10 +182,12 @@ def test_can_recursively_resolve_selected_fields():
     @g.resolver(g.ListType(Book))
     def resolve_book(graph, query):
         return [
-            query.element_query.create_object(iterables.to_dict(
-                (field_query.key, resolve_field(graph, book, field_query))
-                for field_query in query.element_query.field_queries
-            ))
+            query.element_query.create_object(
+                iterables.to_dict(
+                    (field_query.key, resolve_field(graph, book, field_query))
+                    for field_query in query.element_query.field_queries
+                )
+            )
             for book in books
         ]
 
@@ -183,32 +199,43 @@ def test_can_recursively_resolve_selected_fields():
     @g.resolver(AuthorQuery.type)
     def resolve_author(graph, query):
         author = authors[query.author_id]
-        return query.type_query.create_object(iterables.to_dict(
-            (field_query.key, author[field_query.field.name])
-            for field_query in query.type_query.field_queries
-        ))
+        return query.type_query.create_object(
+            iterables.to_dict(
+                (field_query.key, author[field_query.field.name])
+                for field_query in query.type_query.field_queries
+            )
+        )
 
     resolvers = [resolve_root, resolve_book, resolve_author]
 
     query = Root(
-        g.key("books", Root.fields.books(
-            g.key("author", Book.fields.author(
-                g.key("name", Author.fields.name()),
-            )),
-            g.key("title", Book.fields.title()),
-        )),
+        g.key(
+            "books",
+            Root.fields.books(
+                g.key(
+                    "author",
+                    Book.fields.author(
+                        g.key("name", Author.fields.name()),
+                    ),
+                ),
+                g.key("title", Book.fields.title()),
+            ),
+        ),
     )
     result = g.create_graph(resolvers).resolve(query)
 
-    assert_that(result, has_attrs(
-        books=contains_exactly(
-            has_attrs(
-                author=has_attrs(name="PG Wodehouse"),
-                title="Leave it to Psmith",
-            ),
-            has_attrs(
-                author=has_attrs(name="William Shakespeare"),
-                title="Pericles, Prince of Tyre",
+    assert_that(
+        result,
+        has_attrs(
+            books=contains_exactly(
+                has_attrs(
+                    author=has_attrs(name="PG Wodehouse"),
+                    title="Leave it to Psmith",
+                ),
+                has_attrs(
+                    author=has_attrs(name="William Shakespeare"),
+                    title="Pericles, Prince of Tyre",
+                ),
             ),
         ),
-    ))
+    )

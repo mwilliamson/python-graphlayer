@@ -19,11 +19,15 @@ class UnionQuery(object):
 
 @core.resolver(UnionQuery)
 def resolver(graph, query):
-    return query.merge([
-        graph.resolve(
-            select_element(
-                query.type_query.for_type(schema.replace_element_type(query.type_query.type, element_type)),
-            ),
-        )
-        for element_type, select_element in query.select_elements
-    ])
+    return query.merge(
+        [
+            graph.resolve(
+                select_element(
+                    query.type_query.for_type(
+                        schema.replace_element_type(query.type_query.type, element_type)
+                    ),
+                ),
+            )
+            for element_type, select_element in query.select_elements
+        ]
+    )

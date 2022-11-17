@@ -1,4 +1,12 @@
-from precisely import all_of, assert_that, contains_exactly, equal_to, has_attrs, has_feature, is_instance
+from precisely import (
+    all_of,
+    assert_that,
+    contains_exactly,
+    equal_to,
+    has_attrs,
+    has_feature,
+    is_instance,
+)
 
 import graphlayer as g
 from graphlayer import graphql
@@ -6,9 +14,7 @@ from graphql import GraphQLError
 
 
 def test_execute():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     root_resolver = g.root_object_resolver(Root)
 
@@ -16,7 +22,7 @@ def test_execute():
     def root_resolve_value(graph, query, args):
         return "resolved"
 
-    graph_definition = g.define_graph(resolvers=(root_resolver, ))
+    graph_definition = g.define_graph(resolvers=(root_resolver,))
     graph = graph_definition.create_graph({})
 
     query = """
@@ -31,9 +37,7 @@ def test_execute():
 
 
 def test_executor():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     root_resolver = g.root_object_resolver(Root)
 
@@ -41,7 +45,7 @@ def test_executor():
     def root_resolve_value(graph, query, args):
         return "resolved"
 
-    graph_definition = g.define_graph(resolvers=(root_resolver, ))
+    graph_definition = g.define_graph(resolvers=(root_resolver,))
     graph = graph_definition.create_graph({})
 
     query = """
@@ -57,9 +61,7 @@ def test_executor():
 
 
 def test_can_query_schema():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     graph_definition = g.define_graph(resolvers=())
     graph = graph_definition.create_graph({})
@@ -74,19 +76,24 @@ def test_can_query_schema():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, is_success(data=equal_to({
-        "__schema": {
-            "queryType": {
-                "name": "Root",
-            },
-        },
-    })))
+    assert_that(
+        result,
+        is_success(
+            data=equal_to(
+                {
+                    "__schema": {
+                        "queryType": {
+                            "name": "Root",
+                        },
+                    },
+                }
+            )
+        ),
+    )
 
 
 def test_can_query_schema_with_other_data():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     root_resolver = g.root_object_resolver(Root)
 
@@ -94,7 +101,7 @@ def test_can_query_schema_with_other_data():
     def root_resolve_value(graph, query, args):
         return "resolved"
 
-    graph_definition = g.define_graph(resolvers=(root_resolver, ))
+    graph_definition = g.define_graph(resolvers=(root_resolver,))
     graph = graph_definition.create_graph({})
 
     query = """
@@ -108,20 +115,25 @@ def test_can_query_schema_with_other_data():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, is_success(data=equal_to({
-        "value": "resolved",
-        "__schema": {
-            "queryType": {
-                "name": "Root",
-            },
-        },
-    })))
+    assert_that(
+        result,
+        is_success(
+            data=equal_to(
+                {
+                    "value": "resolved",
+                    "__schema": {
+                        "queryType": {
+                            "name": "Root",
+                        },
+                    },
+                }
+            )
+        ),
+    )
 
 
 def test_variables_can_be_used_in_schema_query():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     graph_definition = g.define_graph(resolvers=())
     graph = graph_definition.create_graph({})
@@ -138,21 +150,28 @@ def test_variables_can_be_used_in_schema_query():
     """
 
     variables = {"t": True, "f": False}
-    result = graphql.execute(graph=graph, document_text=query, query_type=Root, variables=variables)
+    result = graphql.execute(
+        graph=graph, document_text=query, query_type=Root, variables=variables
+    )
 
-    assert_that(result, is_success(data=equal_to({
-        "included": {
-            "queryType": {
-                "name": "Root",
-            },
-        },
-    })))
+    assert_that(
+        result,
+        is_success(
+            data=equal_to(
+                {
+                    "included": {
+                        "queryType": {
+                            "name": "Root",
+                        },
+                    },
+                }
+            )
+        ),
+    )
 
 
 def test_typename():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     root_resolver = g.root_object_resolver(Root)
 
@@ -160,7 +179,7 @@ def test_typename():
     def root_resolve_value(graph, query, args):
         return "resolved"
 
-    graph_definition = g.define_graph(resolvers=(root_resolver, ))
+    graph_definition = g.define_graph(resolvers=(root_resolver,))
     graph = graph_definition.create_graph({})
 
     query = """
@@ -173,13 +192,18 @@ def test_typename():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, is_success(data=equal_to({"__typename": "Root", "value": "resolved", "typename": "Root"})))
+    assert_that(
+        result,
+        is_success(
+            data=equal_to(
+                {"__typename": "Root", "value": "resolved", "typename": "Root"}
+            )
+        ),
+    )
 
 
 def test_when_query_is_invalid_then_result_is_invalid():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     graph_definition = g.define_graph(resolvers=())
     graph = graph_definition.create_graph({})
@@ -192,15 +216,18 @@ def test_when_query_is_invalid_then_result_is_invalid():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, is_invalid(errors=contains_exactly(
-        has_attrs(message="Cannot query field 'bad' on type 'Root'."),
-    )))
+    assert_that(
+        result,
+        is_invalid(
+            errors=contains_exactly(
+                has_attrs(message="Cannot query field 'bad' on type 'Root'."),
+            )
+        ),
+    )
 
 
 def test_when_resolution_raises_graph_error_then_result_is_invalid():
-    Root = g.ObjectType("Root", fields=(
-        g.field("value", g.String),
-    ))
+    Root = g.ObjectType("Root", fields=(g.field("value", g.String),))
 
     root_resolver = g.root_object_resolver(Root)
 
@@ -208,7 +235,7 @@ def test_when_resolution_raises_graph_error_then_result_is_invalid():
     def root_resolve_value(graph, query, args):
         raise g.GraphError("BAD")
 
-    graph_definition = g.define_graph(resolvers=(root_resolver, ))
+    graph_definition = g.define_graph(resolvers=(root_resolver,))
     graph = graph_definition.create_graph({})
 
     query = """
@@ -219,12 +246,17 @@ def test_when_resolution_raises_graph_error_then_result_is_invalid():
 
     result = graphql.execute(graph=graph, document_text=query, query_type=Root)
 
-    assert_that(result, is_invalid(errors=contains_exactly(
-        all_of(
-            is_instance(GraphQLError),
-            has_str("BAD"),
+    assert_that(
+        result,
+        is_invalid(
+            errors=contains_exactly(
+                all_of(
+                    is_instance(GraphQLError),
+                    has_str("BAD"),
+                ),
+            )
         ),
-    )))
+    )
 
 
 def is_invalid(*, errors):

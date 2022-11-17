@@ -6,7 +6,9 @@ from . import parser
 from .schema import create_graphql_schema
 
 
-def execute(document_text, *, graph, query_type, mutation_type=None, types=None, variables=None):
+def execute(
+    document_text, *, graph, query_type, mutation_type=None, types=None, variables=None
+):
     return executor(
         query_type=query_type,
         mutation_type=mutation_type,
@@ -15,7 +17,9 @@ def execute(document_text, *, graph, query_type, mutation_type=None, types=None,
 
 
 def executor(*, query_type, mutation_type=None, types=None):
-    graphql_schema = create_graphql_schema(query_type=query_type, mutation_type=mutation_type, types=types)
+    graphql_schema = create_graphql_schema(
+        query_type=query_type, mutation_type=mutation_type, types=types
+    )
 
     def execute(document_text, *, graph, variables=None):
         try:
@@ -30,7 +34,7 @@ def executor(*, query_type, mutation_type=None, types=None):
             else:
                 result = graph.resolve(query.graph_query)
 
-            if query.graphql_schema_document is not None:          
+            if query.graphql_schema_document is not None:
                 schema_result = _execute_graphql_schema(
                     graphql_schema_document=query.graphql_schema_document,
                     graphql_schema=graphql_schema.graphql_schema,

@@ -44,36 +44,47 @@ def create_graphql_schema(query_type, mutation_type, types=None):
             return graphql.GraphQLNonNull(graphql_type)
 
         elif isinstance(graph_type, schema.InputObjectType):
-            return graphql.GraphQLNonNull(graphql.GraphQLInputObjectType(
-                name=graph_type.name,
-                fields=lambda: iterables.to_dict(
-                    (snake_case_to_camel_case(field.name), to_graphql_input_field(field))
-                    for field in graph_type.fields
-                ),
-            ))
+            return graphql.GraphQLNonNull(
+                graphql.GraphQLInputObjectType(
+                    name=graph_type.name,
+                    fields=lambda: iterables.to_dict(
+                        (
+                            snake_case_to_camel_case(field.name),
+                            to_graphql_input_field(field),
+                        )
+                        for field in graph_type.fields
+                    ),
+                )
+            )
 
         elif isinstance(graph_type, schema.InterfaceType):
-            return graphql.GraphQLNonNull(graphql.GraphQLInterfaceType(
-                name=graph_type.name,
-                fields=to_graphql_fields(graph_type.fields),
-                resolve_type=lambda: None,
-            ))
+            return graphql.GraphQLNonNull(
+                graphql.GraphQLInterfaceType(
+                    name=graph_type.name,
+                    fields=to_graphql_fields(graph_type.fields),
+                    resolve_type=lambda: None,
+                )
+            )
 
         elif isinstance(graph_type, schema.ListType):
-            return graphql.GraphQLNonNull(graphql.GraphQLList(to_graphql_type(graph_type.element_type)))
+            return graphql.GraphQLNonNull(
+                graphql.GraphQLList(to_graphql_type(graph_type.element_type))
+            )
 
         elif isinstance(graph_type, schema.NullableType):
             return to_graphql_type(graph_type.element_type).of_type
 
         elif isinstance(graph_type, schema.ObjectType):
-            return graphql.GraphQLNonNull(graphql.GraphQLObjectType(
-                name=graph_type.name,
-                fields=to_graphql_fields(graph_type.fields),
-                interfaces=tuple(
-                    to_graphql_type(interface).of_type
-                    for interface in graph_type.interfaces
-                ),
-            ))
+            return graphql.GraphQLNonNull(
+                graphql.GraphQLObjectType(
+                    name=graph_type.name,
+                    fields=to_graphql_fields(graph_type.fields),
+                    interfaces=tuple(
+                        to_graphql_type(interface).of_type
+                        for interface in graph_type.interfaces
+                    ),
+                )
+            )
 
         else:
             raise ValueError("unsupported type: {}".format(graph_type))
