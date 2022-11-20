@@ -33,6 +33,6 @@ endif
 	make clean
 
 .venv:
-	python3.6 -m venv .venv
+	python3.7 -m venv .venv
 	.venv/bin/pip install --upgrade pip
 	.venv/bin/pip install --upgrade setuptools
