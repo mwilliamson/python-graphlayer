@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 
 import sqlalchemy.orm
 
@@ -92,7 +92,7 @@ def association(table, *, left_key, right_key, distinct=False, filtered_by_left_
 
 
 def _to_key(key):
-    if isinstance(key, collections.Iterable):
+    if isinstance(key, collections.abc.Iterable):
         return _MultipleExpressionKey(key)
     else:
         return _SingleExpressionKey(key)
