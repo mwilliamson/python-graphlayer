@@ -1,6 +1,6 @@
 diff-doc==0.1.0
 flask==1.0.2
-GraphQL-core-next==1.0.5
+graphql-core==3.2.3
 precisely==0.1.6
 pyflakes==2.5.0
 pytest==3.0.2
