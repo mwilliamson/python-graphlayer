@@ -5,15 +5,15 @@ test: test-pyflakes test-pytest README.rst
 .PHONY: test-pyflakes
 
 test-pyflakes:
-	.venv/bin/pyflakes graphlayer tests
+	_virtualenv/bin/pyflakes graphlayer tests
 
 .PHONY: test-pytest
 
 test-pytest:
-	sh -c '. .venv/bin/activate; pytest tests'
+	sh -c '. _virtualenv/bin/activate; pytest tests'
 
 README.rst:
-	.venv/bin/diff-doc compile README.src.rst > README.rst
+	_virtualenv/bin/diff-doc compile README.src.rst > README.rst
 
 .PHONY: test-all
 
@@ -46,7 +46,7 @@ ifneq ($(wildcard test-requirements.txt),)
 endif
 	make clean
 
-.venv:
+_virtualenv:
 	python3 -m venv _virtualenv
 	_virtualenv/bin/pip install --upgrade pip
 	_virtualenv/bin/pip install --upgrade setuptools
