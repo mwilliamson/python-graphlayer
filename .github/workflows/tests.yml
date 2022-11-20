@@ -1,0 +1,24 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                python-version: ["3.6", "3.7", "3.8", "pypy3.9"]
+
+        steps:
+
+        - uses: actions/checkout@v3
+
+        - name: Use Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v4
+          with:
+              python-version: ${{ matrix.python-version }}
+
+        - run: pip install tox
+
+        - run: tox -e py
